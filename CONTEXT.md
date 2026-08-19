@@ -1,8 +1,8 @@
 # Cozy God Sim
 
-A cozy, slow-paced idle game about a Domain where humans, animals, plants,
+A cozy, slow-paced idle game about a World where humans, animals, plants,
 and mythological beings all live and matter. Despite the genre label, the
-player is not a god: the Gods act on the Domain for their own reasons; the
+player is not a god: the Gods act on the World for their own reasons; the
 player merely has a seat at their table, watching both their game and the
 individual lives caught up in it.
 
@@ -11,7 +11,7 @@ individual lives caught up in it.
 ### The Pantheon
 
 **The Gods**:
-Act on the Domain, each pursuing their own interests and staying out of
+Act on the World, each pursuing their own interests and staying out of
 each other's business (Death doesn't interfere elsewhere, etc.) —
 Discworld-style, not a single unified will. They range enormously in scale
 and dignity, from cosmic figures like Death down to small, petty gods
@@ -21,50 +21,59 @@ cause every instance of it (nature is nature); they can perform the act
 deliberately, at will, since it's what they're known for. They're
 discreet about it: showing their hand too openly would spoil the game
 they're all playing with each other. What the world does on its own is
-what draws the Gods' interest — they react to the Domain, they don't
-author its events.
+what draws the Gods' interest — they react to it, they don't author its
+events.
 _Avoid_: authoring events, orchestrating plots — that direction of
 causality is backwards; see Player.
 
+**Domain**:
+A particular God's sphere of concern — the kind of thing, or place, a God
+is tied to (the harvest god's Domain is agriculture; Death's Domain is
+dying). Not the whole World, and not necessarily a place at all — just
+whatever belongs to that God.
+_Avoid_: Realm — reads too geographic; a Domain can be a place, a concept,
+or an act. World — the whole game world is a separate, larger concept.
+
 **Player**:
 Not one of the Gods, and without a god's power to act directly on the
-Domain — but a guest at the Gods' table, respected and consulted. Watches
+World — but a guest at the Gods' table, respected and consulted. Watches
 at two scales: the Gods themselves — their interests, rivalries, and
-reactions to what's happening in the Domain — and individual Folk up
+reactions to what's happening in the World — and individual Folk up
 close.
 _Avoid_: God — the player is explicitly not one, despite the genre label.
 
-### The Domain
+### The World
 
-**Domain** _(proposed — confirm or rename)_:
-The territory the Player watches, encompassing the Village, animal
-burrows, plant groves, and any other dwellings within it.
-_Avoid_: Realm, Land, World — these read as larger in scale than the single
-territory this game is currently about.
+**World**:
+The whole of what the Player can watch — many Villages, across
+landmasses, and everything between. The Player moves across it freely,
+and near-instantly.
+_Avoid_: Domain — that word now means something more specific (a God's
+sphere), not the whole game world.
 
 **Village**:
-The human settlement within the Domain. Other species will have their own
-settlement types (animal burrows/dens, plant groves, etc.) as those are
-designed — not yet named.
+A human settlement. Many Villages exist across the World's landmasses.
+Other species have their own settlement types (animal burrows/dens, plant
+groves, etc.) as those are designed — not yet named.
 _Avoid_: Colony, Settlement, Town
 
 **Villager**:
-A human inhabitant of the Village.
+A human inhabitant of a Village.
 _Avoid_: Colonist, Sim, Citizen
 
 **Folk** _(proposed — confirm or rename)_:
-Umbrella term for any living being in the Domain the player can perceive
+Umbrella term for any living being in the World the player can perceive
 Thoughts from — Villagers, animals, plants, and mythological beings (nymphs,
 pixies, etc.) alike. Non-human Folk get species-appropriate names, drawn
 from mythology, as they're introduced.
 _Avoid_: Creature, Denizen, NPC
 
 **Disaster** _(proposed)_:
-A storm, plague, or other calamity striking the Domain. Usually just
-nature being nature; occasionally a deliberate act by the God it's
-associated with — the Folk can't tell which, an "act of god" reads the
-same either way. Never a fail state: the Domain rebuilds; a Village dying
-out entirely is rare.
+A storm, plague, or other calamity striking a Village or the land around
+it. Usually just nature being nature; occasionally a deliberate act by the
+God it's associated with — the Folk can't tell which, an "act of god"
+reads the same either way. Never a fail state: the Village rebuilds; one
+dying out entirely is rare.
 _Avoid_: Punishment, Curse — implies deliberate targeting, which is the
 exception here, not the rule.
 
@@ -91,8 +100,8 @@ relationship or an obligation that hasn't been designed yet.
 The Player drawing a relevant God's attention to a Wish, in hope the God
 acts on it — e.g. raising a starving child's plight with the harvest god,
 or asking Death whether it's really this man's time. The Player has no
-power to grant the Wish, only to make it known to whoever's domain it falls
-under.
+power to grant the Wish, only to make it known to whoever's Domain it
+falls under.
 _Avoid_: Prayer — this is closer to raising a concern with someone who
 happens to listen because they respect you, not worship.
 
@@ -103,7 +112,7 @@ Village, say). Performed through the Player's Presence.
 _Avoid_: Miracle, Ability — too overt for what this is.
 
 **Presence** _(proposed)_:
-How the Player manifests within the Domain in order to perform a Nudge —
+How the Player manifests within the World in order to perform a Nudge —
 not a hand or a body, but light. Only Folk with Faith can ever sense it,
 and even then only when the Player is actually attending to them — not an
 ambient, always-on awareness.
@@ -118,13 +127,13 @@ trait, not a general alertness stat.
 
 ### Growth
 
-**Favored** _(proposed)_:
+**Favored** _(concept confirmed — name still open)_:
 A Folk member the Player has chosen to invest in — through Petitions,
 Nudges, and attention — in hopes of guiding them toward Renown.
 _Avoid_: Chosen One, Champion — too grandiose; a Favored might become a
 wise elder as easily as a hero.
 
-**Renown** _(proposed)_:
+**Renown** _(concept confirmed — name still open)_:
 The state of a Favored having grown distinct enough to draw a God's
 attention. Not necessarily heroic — a village chief, a wise elder, and a
 great shepherd are all forms of Renown, same as a hero on a hero's path.
