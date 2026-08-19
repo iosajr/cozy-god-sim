@@ -42,3 +42,20 @@ update them). Notable ones for this project:
 
 Run the `setup-matt-pocock-skills` skill once to configure this repo
 (issue tracker, triage labels, doc preferences).
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues (`iosajr/cozy-god-sim`), via the `gh` CLI. See
+`docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`,
+`ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout: root `CONTEXT.md` + `docs/adr/`. See
+`docs/agents/domain.md`.
