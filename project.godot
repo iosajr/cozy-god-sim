@@ -29,4 +29,3 @@ window/stretch/mode="canvas_items"
 [rendering]
 
 renderer/rendering_method="forward_plus"
-environment/defaults/default_environment="res://scenes/main.tscn"

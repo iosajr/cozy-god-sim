@@ -18,6 +18,6 @@ func _on_time_changed(hours: float) -> void:
 	rotation.x = -PI / 2.0 + sin(angle) * (PI / 2.2)
 	rotation.y = PI / 5.0
 
-	var height_factor := clamp(sin(angle), 0.0, 1.0)
+	var height_factor: float = clamp(sin(angle), 0.0, 1.0)
 	light_color = sunrise_color.lerp(midday_color, height_factor)
 	light_energy = lerp(0.15, 1.1, height_factor)
