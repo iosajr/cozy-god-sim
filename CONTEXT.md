@@ -128,8 +128,10 @@ trait, not a general alertness stat.
 ### Growth
 
 **Favored** _(concept confirmed — name still open)_:
-A Folk member the Player has chosen to invest in — through Petitions,
-Nudges, and attention — in hopes of guiding them toward Renown.
+A Folk member that a God — or the Player — is deliberately exerting
+attention on, for good or ill; not the Player's doing alone. Doesn't
+require Faith to begin — the attention itself can be what earns a skeptic
+their Faith, on the way toward Renown.
 _Avoid_: Chosen One, Champion — too grandiose; a Favored might become a
 wise elder as easily as a hero.
 
