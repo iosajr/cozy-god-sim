@@ -1,13 +1,29 @@
 # Cozy God Sim
 
-A cozy, slow-paced idle god-sim. The player watches over a Domain where
-humans, animals, plants, and mythological beings all live and matter —
-not just a human settlement with scenery around it.
+A cozy, slow-paced idle game about a Domain where humans, animals, plants,
+and mythological beings all live and matter. Despite the genre label, the
+player is not a god: the Gods act on the Domain for their own reasons; the
+player merely has a seat at their table, watching both their game and the
+individual lives caught up in it.
 
 ## Language
 
+**The Gods**:
+The pantheon that actually acts on the Domain, each pursuing their own
+interests and staying out of each other's business (Death doesn't
+interfere elsewhere, etc.) — Discworld-style, not a single unified will.
+What Folk read as deliberate signs (a lightning strike as an "instruction")
+is often just fallout from the Gods' own game, not a message meant for them.
+
+**Player**:
+Not one of the Gods, and without a god's power to act directly on the
+Domain — but a guest at the Gods' table, respected and consulted. Watches
+at two scales: the Gods' own game (their interests, schemes, brewing
+conflicts) and individual Folk up close.
+_Avoid_: God — the player is explicitly not one, despite the genre label.
+
 **Domain** _(proposed — confirm or rename)_:
-The territory the player watches over as a whole: the Village, animal
+The territory the Player watches, encompassing the Village, animal
 burrows, plant groves, and any other dwellings within it.
 _Avoid_: Realm, Land, World — these read as larger in scale than the single
 territory this game is currently about.
