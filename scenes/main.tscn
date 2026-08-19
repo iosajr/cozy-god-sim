@@ -1,0 +1,70 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/world_gen.gd" id="2_worldgen"]
+[ext_resource type="Script" path="res://scripts/camera_rig.gd" id="3_camrig"]
+[ext_resource type="Script" path="res://scripts/day_night_cycle.gd" id="4_daynight"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
+size = Vector2(200, 200)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_grass"]
+albedo_color = Color(0.427451, 0.65098, 0.360784, 1)
+roughness = 0.9
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ground"]
+size = Vector3(200, 0.2, 200)
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
+sky_top_color = Color(0.38, 0.58, 0.82, 1)
+sky_horizon_color = Color(0.75, 0.82, 0.85, 1)
+ground_bottom_color = Color(0.25, 0.32, 0.28, 1)
+ground_horizon_color = Color(0.75, 0.82, 0.85, 1)
+
+[sub_resource type="Sky" id="Sky_sky"]
+sky_material = SubResource("ProceduralSkyMaterial_sky")
+
+[sub_resource type="Environment" id="Environment_env"]
+background_mode = 2
+sky = SubResource("Sky_sky")
+ambient_light_source = 3
+ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_energy = 0.6
+fog_enabled = true
+fog_light_color = Color(0.75, 0.82, 0.85, 1)
+fog_density = 0.001
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="World" type="Node3D" parent="."]
+script = ExtResource("2_worldgen")
+
+[node name="Ground" type="MeshInstance3D" parent="World"]
+mesh = SubResource("PlaneMesh_ground")
+surface_material_override/0 = SubResource("StandardMaterial3D_grass")
+
+[node name="GroundBody" type="StaticBody3D" parent="World/Ground"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="World/Ground/GroundBody"]
+shape = SubResource("BoxShape3D_ground")
+position = Vector3(0, -0.1, 0)
+
+[node name="Sun" type="DirectionalLight3D" parent="World"]
+transform = Transform3D(1, 0, 0, 0, 0.7071, 0.7071, 0, -0.7071, 0.7071, 0, 10, 0)
+shadow_enabled = true
+script = ExtResource("4_daynight")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="World"]
+environment = SubResource("Environment_env")
+
+[node name="CameraRig" type="Node3D" parent="."]
+script = ExtResource("3_camrig")
+
+[node name="Pivot" type="Node3D" parent="CameraRig"]
+transform = Transform3D(1, 0, 0, 0, 0.7071, 0.7071, 0, -0.7071, 0.7071, 0, 0, 0)
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig/Pivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 24)
+current = true
+fov = 55.0

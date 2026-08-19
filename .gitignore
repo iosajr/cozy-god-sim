@@ -1,0 +1,21 @@
+# Godot 4+ specific ignores
+.godot/
+.import/
+export.cfg
+export_presets.cfg
+
+# Imported translations (automatically generated from CSV files)
+*.translation
+
+# Mono-specific ignores
+.mono/
+data_*/
+mono_crash.*.json
+
+# System / editor cruft
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Claude Code local settings (keep shared skills, ignore personal settings)
+.claude/settings.local.json
