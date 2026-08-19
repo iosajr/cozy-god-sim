@@ -61,11 +61,11 @@ _Avoid_: Colony, Settlement, Town
 A human inhabitant of a Village.
 _Avoid_: Colonist, Sim, Citizen
 
-**Folk** _(proposed — confirm or rename)_:
-Umbrella term for any living being in the World the player can perceive
-Thoughts from — Villagers, animals, plants, and mythological beings (nymphs,
-pixies, etc.) alike. Non-human Folk get species-appropriate names, drawn
-from mythology, as they're introduced.
+**Folk** _(name questioned — open to renaming)_:
+Umbrella term for an ordinary human, animal, or plant the Player can
+perceive Thoughts from. The World's mythological beings (nymphs, centaurs,
+tree spirits, etc.) aren't a starting category under Folk — they're what a
+Renowned animal or plant Folk member becomes; see Renown.
 _Avoid_: Creature, Denizen, NPC
 
 **Disaster** _(proposed)_:
@@ -134,8 +134,14 @@ _Avoid_: Chosen One, Champion — too grandiose; a Favored might become a
 wise elder as easily as a hero.
 
 **Renown** _(concept confirmed — name still open)_:
-The state of a Favored having grown distinct enough to draw a God's
-attention. Not necessarily heroic — a village chief, a wise elder, and a
-great shepherd are all forms of Renown, same as a hero on a hero's path.
+Requires Faith — a powerful or notable Folk member without Faith is never
+Renown, however much status they hold; being a chief doesn't make someone
+Renown on its own. A Renowned Folk member comes to believe, and say, that
+a god shaped their rise — intended or not, whether or not one actually
+did. Visibly marked as more "holy," for good or ill. For animal or plant
+Folk, the mark is transformation itself, toward something more humanoid
+and elegant (a horse toward centaur, a goat toward faun, a tree toward
+dryad) — the origin of the World's mythical beings, and the fairy tales
+mortals tell about them.
 _Avoid_: Fame, Legend — read as too narrowly public/heroic for what this
 covers.
