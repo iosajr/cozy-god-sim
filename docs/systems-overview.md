@@ -10,14 +10,23 @@ now there mostly aren't any yet.
 ## Where the code actually is right now
 
 - `autoload/game_state.gd`: a `time_of_day`/`day_speed` clock, a flat
-  `resources` dict (`food`, `wood`), and `population: int`. No individual
-  inhabitants exist as data; just a headcount.
+  `resources` dict (`food`, `wood`), and `village: Village` (a real
+  Village, replacing the old `population: int` headcount).
+- `systems/village.gd` / `systems/villager.gd`: real Villager entities
+  with a Faith bool (stored, not gating anything yet — no Presence
+  exists to gate) and a cycling flavor Thought, shown via
+  `scripts/villager_nameplate.gd`. No Wish yet — every Thought is
+  currently flavor, per `CONTEXT.md`'s "not every Thought is a Wish."
+- `systems/god.gd` / `systems/pantheon.gd`: a static, explicitly
+  placeholder God roster (`docs/adr/0002`), queryable by Domain via
+  `get_by_domain()`. Not wired to anything — nothing currently looks a
+  God up.
 - `scripts/world_gen.gd`: placeholder primitives, explicitly disposable
   per `CLAUDE.md` — nothing here should be read as a design decision.
-- Nothing yet resembling a Village, a Folk member, a God, a Thought, or a
-  Presence.
+- Nothing yet resembling Wish, Petition, Nudge, Presence, Favored, or
+  Renown as data.
 
-The gap between that and everything below is the whole project.
+The gap between that and everything below is most of the project.
 
 ## The Pantheon
 
@@ -32,8 +41,10 @@ The gap between that and everything below is the whole project.
   Once real, what a God *does* (Petition responses, occasional
   deliberate Disasters) can still be simple rules keyed off that data
   for a long time.
-- **Domain**: a tag on each God (`"harvest"`, `"death"`, ...) used to route
-  a Wish's Petition to the right God.
+- **Domain**: a tag on each God (`"harvest"`, `"death"`, ...), already
+  queryable via `Pantheon.get_by_domain()`. Used to look up which God a
+  Wish concerns — see the open question under Wish/Petition below about
+  whether that lookup should always be a single Domain match.
 - **Player**: not an entity in the World. Functionally: the camera/observer,
   plus whatever input triggers a Petition or a Nudge.
 
@@ -55,13 +66,25 @@ The gap between that and everything below is the whole project.
 
 ## Listening and Acting
 
-- **Thought / Wish**: a per-Folk stream of surfaced text/audio the Player
-  can perceive. No menus, so delivery is ambient (proximity- or
-  attention-triggered), not a UI list — exact form is a prototype/UI
-  question, not decided here.
-- **Petition**: an action the Player takes on a heard Wish, routed to a
-  God by Domain match. Needs no new physical system beyond "which God does
-  this Wish's Domain belong to."
+- **Thought**: built — a per-Villager cycling flavor string, shown via a
+  nameplate. **Wish**: not built yet — a Thought that specifically wants
+  something, tagged with a Domain. Planned next slice: Wish exists as
+  data and is linked to a God via `Pantheon.get_by_domain()`, with the
+  God's reaction stored as inert placeholder data (resolved/ignored) —
+  explicitly to-be-developed-on, not a finished mechanic. **Open
+  question the user has raised, not resolved**: whether linking always
+  works via a single Domain match is even correct, versus some Wishes
+  having multiple resolving outcomes/paths. Shipping the single-Domain
+  lookup as a known simplification, not a settled decision — worth an
+  ADR at implementation time recording that tension (same pattern as
+  ADR-0001/0002).
+- **Petition**: per `CONTEXT.md`, specifically a *Player* action —
+  drawing a God's attention to a Wish. Deliberately not what the planned
+  next slice builds: Player-input design is being deferred, so that
+  slice is Gods reacting to Wishes on their own (matching the core Gods
+  principle: "what the world does on its own is what draws the Gods'
+  interest"), not Petition. Don't call that mechanism Petition in code —
+  it isn't one yet.
 - **Nudge**: needs the Presence to be a real interactive thing in the
   world — something that can apply a small, local effect (spook an animal,
   nudge an object) via direct manipulation, not a command menu.
@@ -78,7 +101,11 @@ The gap between that and everything below is the whole project.
 
 - **Favored**: a relationship on a Folk entity — who favors them (a
   specific God, or the Player), and roughly whether that attention is
-  well- or ill-intentioned. Doesn't require Faith to start.
+  well- or ill-intentioned. Doesn't require Faith to start. The Player's
+  side of it has a proposed mechanism now: a growing per-Folk stat that
+  rises the longer the Player lingers near them — shares a "how close is
+  the Player, and for how long" primitive with the Presence camera-light
+  demo below. How a God's attention registers is still undecided.
 - **Renown**: a state per Folk entity, gated on Faith being true.
   Reaching it means: for a Villager, some visible "more holy" marking (art
   TBD); for an animal or plant Folk member, an actual model/identity swap
@@ -96,15 +123,33 @@ The gap between that and everything below is the whole project.
   141016.png`.
 - **Thought display**: wanted eventually as both proximity-triggered
   audio and a Black & White-style floating nameplate reworked as a
-  thought bubble. For the first concrete slice below, build the
-  nameplate only — audio comes later. Reference:
+  thought bubble. Built: the nameplate. Audio comes later. Reference:
   `REFERENCES/Imagers/Ui/Screenshot 2026-08-20 141340.png`.
+- **Presence, demo/preview only**: a B&W-style camera-relative
+  cursor/light — confirmed by the user as intentionally previewing
+  Presence's eventual look. Purely cosmetic: no Nudge, no Faith-gating,
+  no mechanic at all yet, just a light that moves with the camera to
+  see how it feels. Natural shared ground with Favored's lingering
+  mechanic above (both need "where is the Player looking/how close"),
+  but the two don't have to land in the same slice.
 
-## Suggested first concrete slice
+## Slices so far
 
-Everything above is the whole game, not a first milestone. When ready to
-move past lore, the smallest useful slice is probably: one Village, a
-handful of individual Villagers with Faith and a Thought stream the Player
-can perceive — no Petition, no Nudge, no Renown yet. That alone requires
-turning `population: int` into real per-Villager entities, which is the
-actual foundation everything else in this document sits on.
+1. **Done** (issue #2): one Village, Villagers with Faith and a cycling
+   flavor Thought, shown via nameplate.
+2. **Done** (issue #3): a static, placeholder God/Pantheon roster,
+   queryable by Domain.
+3. **Next, not yet specced**: Wish as data, linked to a God via Domain
+   (single-lookup, flagged above as an open question), with the God's
+   reaction stored as inert placeholder data — no Petition, no Player
+   input, no visible effect yet. See the Listening and Acting section
+   above for the full scoping.
+4. **Independent, parallel candidate**: the cosmetic Presence camera-
+   light demo, per the UI section above. No dependency on slice 3.
+5. **Optional, independent, parallel candidate**: Favored as a growing
+   per-Folk stat driven by Player-lingering proximity, per the Growth
+   section above. Shares a primitive with slice 4 but doesn't require it.
+
+Everything else in this document — Petition, Nudge, real Presence
+gating, Renown, Disaster, a real Pantheon-generation mechanism — is
+still the rest of the whole game, not scoped into any slice yet.

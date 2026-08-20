@@ -99,7 +99,10 @@ button that makes it certainly happen. Acting on one means a Petition
 directly, but whose effect on the Wish plays out through the world, not
 on command) — directness of cause is not the same as certainty of
 outcome. Wishes cut both ways — wanting help is one kind, but so is
-wanting someone gone.
+wanting someone gone. Open question, not yet decided: whether a Wish
+should always resolve to exactly one Domain/God, or whether some
+Wishes have multiple resolving outcomes/paths instead of a single
+lookup.
 _Avoid_: Prayer, Demand, Objective — these imply either a worship/exchange
 relationship or an obligation that hasn't been designed yet.
 
@@ -138,7 +141,9 @@ trait, not a general alertness stat.
 A Folk member that a God — or the Player — is deliberately exerting
 attention on, for good or ill; not the Player's doing alone. Doesn't
 require Faith to begin — the attention itself can be what earns a skeptic
-their Faith, on the way toward Renown.
+their Faith, on the way toward Renown. Mechanism for the Player's side of
+it: a growing per-Folk stat that rises the longer the Player lingers near
+them — how a God's attention registers isn't decided.
 _Avoid_: Chosen One, Champion — too grandiose; a Favored might become a
 wise elder as easily as a hero.
 
