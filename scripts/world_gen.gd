@@ -68,5 +68,4 @@ func _scatter_rocks() -> void:
 
 
 func _random_ground_position() -> Vector3:
-	var half := ground_size * 0.5 * 0.9
-	return Vector3(_rng.randf_range(-half, half), 0.0, _rng.randf_range(-half, half))
+	return GroundScatter.random_ground_position(ground_size, _rng)

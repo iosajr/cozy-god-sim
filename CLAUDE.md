@@ -6,7 +6,13 @@ A cozy 3D god-sim / simulation game built in Godot 4 (GDScript).
 
 - Godot 4.3+, Forward+ renderer
 - GDScript (typed where practical)
-- No external plugins yet — keep dependencies minimal until there's a real need
+- Keep dependencies minimal until there's a real need. One exception so
+  far: [GUT](https://github.com/bitwes/Gut) (Godot Unit Test), vendored
+  under `addons/gut/` — the project's test framework, added because
+  `systems/village.gd`/`systems/villager.gd` and
+  `scripts/villager_nameplate.gd` aren't testable without one (issue #2).
+  Run it with `godot --headless -s addons/gut/gut_cmdln.gd`
+  (`.gutconfig.json` points it at `res://tests`).
 
 ## Layout
 
@@ -19,6 +25,9 @@ A cozy 3D god-sim / simulation game built in Godot 4 (GDScript).
 - `assets/{models,textures,audio}/` — real art/audio assets go here as they
   replace the placeholder primitives in `scripts/world_gen.gd`.
 - `ui/` — UI scenes/scripts, currently empty.
+- `tests/` — GUT tests (`extends GutTest`, `test_*.gd`), mirroring the
+  layout of what they test (e.g. `tests/systems/test_village.gd`).
+- `addons/gut/` — vendored GUT addon; see the Stack exception above.
 
 ## Conventions
 
