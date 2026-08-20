@@ -21,10 +21,11 @@ var resources: Dictionary = {
 }
 
 ## The one Village that exists so far (per issue #2's "no multi-Village
-## support" scope). GameState only holds whatever reference is assigned to
-## it — populating it is systems/village.gd's job (via the spawner), not
-## GameState's, per the doc comment above.
-var village: Village = null
+## support" scope). Defaults to an empty Village (never null) so reading
+## it before the spawner runs is always safe — GameState still isn't
+## populating it, that's systems/village.gd's job (via the spawner), per
+## the doc comment above.
+var village: Village = Village.new()
 
 
 func _process(delta: float) -> void:

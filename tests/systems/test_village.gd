@@ -22,6 +22,18 @@ func test_populated_villager_has_faith_flag_and_thought_from_pool() -> void:
 	assert_has(Village.THOUGHT_POOL, villager.current_thought)
 
 
+func test_same_seed_produces_the_same_villagers() -> void:
+	var village_a := Village.new(42)
+	village_a.populate(6)
+
+	var village_b := Village.new(42)
+	village_b.populate(6)
+
+	for i in 6:
+		assert_eq(village_a.villagers[i].has_faith, village_b.villagers[i].has_faith)
+		assert_eq(village_a.villagers[i].current_thought, village_b.villagers[i].current_thought)
+
+
 func test_reroll_thought_produces_a_value_from_the_pool() -> void:
 	var village := Village.new()
 	village.populate(1)

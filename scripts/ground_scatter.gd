@@ -6,6 +6,11 @@ extends RefCounted
 ## village_spawner.gd (Villagers) don't duplicate the same random-position
 ## logic. Disposable, same spirit as world_gen.gd's primitives — nothing
 ## here is a real terrain/placement system.
+##
+## Lives in scripts/, not systems/, on purpose: CLAUDE.md's systems/ is for
+## simulation logic (economy, needs, weather, ...), and this has none —
+## it's a placement/art utility for two scene scripts, same category as
+## the code it was extracted from.
 
 
 ## Returns a random point within `ground_size` (a square), inset 10% from

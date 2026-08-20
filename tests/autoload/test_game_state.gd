@@ -12,3 +12,11 @@ func test_game_state_exposes_a_village_not_a_population_int() -> void:
 	var demo_village := Village.new()
 	gs.village = demo_village
 	assert_eq(gs.village, demo_village, "village should hold whatever Village reference is assigned")
+
+
+func test_game_state_village_defaults_to_an_empty_village_not_null() -> void:
+	var gs: Node = autofree(preload("res://autoload/game_state.gd").new())
+
+	assert_not_null(gs.village, "village should never be null — an empty Village, not a missing one")
+	assert_true(gs.village is Village)
+	assert_eq(gs.village.villagers.size(), 0)
