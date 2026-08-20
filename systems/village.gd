@@ -22,8 +22,8 @@ const THOUGHT_POOL: Array[String] = [
 ]
 
 ## Smaller pool of Domain-tagged want-content a reroll may draw instead of
-## plain flavor (see WISH_CHANCE_DEFAULT / wish_chance, _random_content()) —
-## CONTEXT.md's Wish entry: "not every Thought is a Wish." Each entry is a
+## plain flavor (see wish_chance, _maybe_generate_wish()) — CONTEXT.md's
+## Wish entry: "not every Thought is a Wish." Each entry is a
 ## Dictionary with "text" and "domain" keys. Domains here deliberately
 ## overlap Pantheon's roster ("dying", "agriculture", "vermin", "storms",
 ## "lost things" — see systems/pantheon.gd) so linking succeeds sometimes,
@@ -108,7 +108,9 @@ func reroll_thought(villager: Villager, pantheon: Pantheon) -> void:
 ## for any Wish that gets drawn — see its doc comment.
 func advance_thoughts(delta: float, pantheon: Pantheon) -> void:
 	for villager in villagers:
-		var remaining: float = _reroll_countdowns.get(villager, _random_reroll_interval()) - delta
+		if not _reroll_countdowns.has(villager):
+			_reroll_countdowns[villager] = _random_reroll_interval()
+		var remaining: float = _reroll_countdowns[villager] - delta
 		if remaining <= 0.0:
 			reroll_thought(villager, pantheon)
 			remaining = _random_reroll_interval()
@@ -126,9 +128,12 @@ func advance_thoughts(delta: float, pantheon: Pantheon) -> void:
 ## A Wish whose Domain matches no God in `pantheon` resolves to
 ## Wish.OUTCOME_IGNORED rather than crashing (User Story 4) — the same
 ## "ignored" shape a matched-but-unlucky Wish can also land on below, so a
-## Wish is never assumed to always be granted (User Story 5).
+## Wish is never assumed to always be granted (User Story 5). A null
+## `pantheon` (GameState.pantheon itself is never null, but this seam
+## doesn't assume every caller honors that) gets the same safe fallback
+## rather than crashing.
 func resolve_wish(wish: Wish, pantheon: Pantheon) -> void:
-	wish.linked_god = pantheon.get_by_domain(wish.domain)
+	wish.linked_god = pantheon.get_by_domain(wish.domain) if pantheon != null else null
 	if wish.linked_god == null:
 		wish.outcome = Wish.OUTCOME_IGNORED
 	else:

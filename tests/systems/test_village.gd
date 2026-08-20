@@ -75,6 +75,16 @@ func test_resolve_wish_with_unclaimed_domain_leaves_it_unlinked_but_resolved() -
 	assert_eq(wish.outcome, Wish.OUTCOME_IGNORED)
 
 
+func test_resolve_wish_with_a_null_pantheon_resolves_to_ignored_without_crashing() -> void:
+	var village := Village.new()
+	var wish := Wish.new("I wish the rats would leave the grain store.", "vermin")
+
+	village.resolve_wish(wish, null)
+
+	assert_null(wish.linked_god)
+	assert_eq(wish.outcome, Wish.OUTCOME_IGNORED)
+
+
 func test_reroll_thought_can_draw_a_wish_and_resolve_it_against_the_pantheon() -> void:
 	var village := Village.new(1)
 	village.wish_chance = 1.0
