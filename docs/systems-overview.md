@@ -119,15 +119,37 @@ The gap between that and everything below is most of the project.
   1-2 times a day (in `time_of_day` terms), not a continuously
   depleting meter. This directly addresses the performance concern
   below by construction, not as a later optimization pass.
-- **Individual need-tracking only matters away from the Village**: a
-  Villager away for multiple days (i.e. on a Known Territory expedition
-  — see above) is where actual per-individual need state would matter;
-  at the Village it doesn't. This means a full Survival Needs slice
-  meaningfully depends on the (not yet built) Known Territory
-  expedition mechanic for its only case where individual tracking does
-  anything — for now, before expeditions exist, this slice reduces to
-  just the periodic Village-level food check, with the "away" case
-  explicitly deferred until expeditions exist to trigger it.
+- **The eating check, in full (user confirmed: link it, don't defer)**:
+  fires at the moment a Folk member is going to eat (one of the
+  periodic check points), and asks "are they in a position to eat?"
+  with three branches:
+  1. **At the Village** — trivially fine, walk home, eat from the
+     communal stock.
+  2. **Provisioned journey** — they anticipated a long trip (a Known
+     Territory expedition) and brought food, so they're self-sufficient
+     for its duration.
+  3. **Away, unprovisioned, alone** — they have to actively forage or
+     hunt for food (and water) themselves. Real risk.
+  Branch 3 explicitly generalizes past Villagers to animals — the same
+  mechanic is meant to cover e.g. a wolf hunting for food, not just a
+  stranded Villager. This is a predator/prey angle, not just a
+  survival-risk angle for people — a real scope expansion past "sheep
+  are content on grass," and in tension with the "domesticated animals
+  get fewer systems" principle above (wolves, as a wild/predator
+  animal, would need *more* systems, not fewer — the "fewer systems"
+  principle applies to *domesticated* Folk specifically, not to every
+  animal).
+- **Real dependency, not deferred**: branches 2 and 3 both require the
+  Known Territory expedition mechanic (issue #8's follow-up, not built
+  yet) to mean anything — there's no "away from the Village" state to
+  check against without it. A first slice here should still land
+  something real without waiting on the full predator/prey system:
+  likely just branch 1 (the Village-level check) plus the *data shape*
+  for branches 2/3 (a Folk member can be "provisioned" or not, can be
+  "hunting" or not) without real hunting/foraging behavior yet —
+  mirroring how Wish/Pantheon shipped a real seam before Petition
+  existed to consume it. Actual hunting AI (for people or wolves) is
+  its own, later, larger slice.
 - **Performance note (user-flagged, largely superseded by the above)**:
   originally worried about a per-Villager per-frame system across a
   continent of cities; the periodic-check-not-continuous-meter design
