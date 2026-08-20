@@ -11,4 +11,4 @@ extends OmniLight3D
 
 
 func move_to(point: Vector3) -> void:
-	position = point
+	global_position = point

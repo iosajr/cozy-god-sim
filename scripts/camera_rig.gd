@@ -87,6 +87,13 @@ func _physics_process(delta: float) -> void:
 		var motion := (right * input_dir.x + forward * -input_dir.y) * pan_speed * delta
 		global_position += motion
 
+	if _dragging and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		# Safety net for a lost mouse-up event (e.g. alt-tabbing away
+		# mid-drag never delivers one to _unhandled_input) — without
+		# this, _dragging could get stuck true and the camera would
+		# keep chasing the last grab point indefinitely.
+		_dragging = false
+
 	if _dragging:
 		_apply_drag_pan()
 
