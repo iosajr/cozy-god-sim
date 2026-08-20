@@ -29,11 +29,30 @@ extends RefCounted
 ## real balancing exists (issue #6's Implementation Decisions).
 const DEFAULT_FAITH_THRESHOLD: float = 30.0
 
+## Placeholder threshold `gain_favored()` compares accumulated `favored`
+## against to decide whether a Villager who already has Faith becomes
+## Renowned — per CONTEXT.md's Renown entry ("Requires Faith"), the
+## endpoint of the Favored progression. Deliberately set higher than
+## `DEFAULT_FAITH_THRESHOLD` so the natural path is: lingering grows
+## Favored → a skeptic gains Faith → continued lingering reaches Renown
+## (issue #7's User Story 2) — but a Villager who already has Faith can
+## reach it by accumulating `favored` alone, without ever crossing the
+## lower threshold first (User Story 3). Not a tuned design value, same
+## disposable spirit as wish_chance/reroll_interval_min/max/
+## DEFAULT_FAITH_THRESHOLD — swap freely once real balancing exists.
+const DEFAULT_RENOWN_THRESHOLD: float = 100.0
+
 var id: String
 var has_faith: bool
 var current_thought: String
 var current_wish: Wish
 var favored: float = 0.0
+## Requires Faith (CONTEXT.md's Renown entry) — set only by
+## gain_favored() once `favored` crosses `DEFAULT_RENOWN_THRESHOLD` while
+## this Villager has Faith. Permanent once true this slice: no decay, no
+## un-Renowning (issue #7's User Story 10, same "no cap, no decay"
+## precedent as Favored itself). No God-attribution/dialogue logic lives
+## here — that's the next slice (issue #7's Out of Scope).
 var is_renowned: bool = false
 
 
@@ -52,9 +71,18 @@ func _init(p_id: String, p_has_faith: bool, p_current_thought: String, p_current
 ## Faith-unlock rule on Villager (not the caller) keeps it testable
 ## without the scene tree (issue #6's Implementation Decisions). A
 ## Villager who already has Faith just keeps accumulating `favored`
-## past the threshold with no further effect this slice — Renown is a
-## separate, later slice (CONTEXT.md's Renown entry).
-func gain_favored(amount: float, faith_threshold: float = DEFAULT_FAITH_THRESHOLD) -> void:
+## past the threshold with no further effect on Faith itself. After that
+## check, also evaluates Renown (CONTEXT.md's Renown entry, issue #7): if
+## this Villager now has Faith — the just-updated value above, not
+## whatever was true when this call started — and `favored` has crossed
+## `renown_threshold`, marks them Renowned. Checking the post-update
+## `has_faith` here (rather than a value captured before the Faith check
+## above) is what lets one large call cross both thresholds at once and
+## correctly land a skeptic as both faithful and Renowned in a single
+## step (issue #7's User Story 4).
+func gain_favored(amount: float, faith_threshold: float = DEFAULT_FAITH_THRESHOLD, renown_threshold: float = DEFAULT_RENOWN_THRESHOLD) -> void:
 	favored += amount
 	if not has_faith and favored >= faith_threshold:
 		has_faith = true
+	if has_faith and favored >= renown_threshold:
+		is_renowned = true

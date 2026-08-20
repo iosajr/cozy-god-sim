@@ -100,6 +100,48 @@ func test_gain_favored_on_a_villager_who_already_has_faith_keeps_accumulating_wi
 	assert_true(villager.has_faith)
 
 
+func test_gain_favored_grants_renown_to_a_faithful_villager_who_crosses_the_renown_threshold() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	villager.gain_favored(10.0, 5.0, 10.0)
+
+	assert_true(villager.is_renowned)
+
+
+func test_gain_favored_leaves_a_faithful_villager_unrenowned_below_the_renown_threshold() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	villager.gain_favored(5.0, 5.0, 10.0)
+
+	assert_false(villager.is_renowned)
+
+
+func test_gain_favored_never_grants_renown_to_a_skeptic_even_past_the_renown_threshold() -> void:
+	var villager := Villager.new("v1", false, "The bread smells almost ready.")
+
+	villager.gain_favored(10.0, 100.0, 10.0)
+
+	assert_false(villager.is_renowned)
+
+
+func test_gain_favored_can_grant_faith_and_renown_in_the_same_call_that_crosses_both_thresholds() -> void:
+	var villager := Villager.new("v1", false, "The bread smells almost ready.")
+
+	villager.gain_favored(10.0, 5.0, 10.0)
+
+	assert_true(villager.has_faith)
+	assert_true(villager.is_renowned)
+
+
+func test_renown_persists_across_further_gain_favored_calls() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	villager.gain_favored(10.0, 5.0, 10.0)
+	villager.gain_favored(1.0, 5.0, 10.0)
+
+	assert_true(villager.is_renowned)
+
+
 func test_resolve_wish_links_to_the_god_who_claims_its_domain() -> void:
 	var village := Village.new()
 	var pantheon := Pantheon.new()
