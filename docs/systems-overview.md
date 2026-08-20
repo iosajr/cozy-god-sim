@@ -87,9 +87,10 @@ The gap between that and everything below is the whole project.
   distinct from Renown — more grandiose — but that distinction itself is
   still unsure. Reference: `REFERENCES/Imagers/Ui/Screenshot 2026-08-20
   141016.png`.
-- **Thought display**: two candidate directions, not chosen between yet —
-  proximity-triggered audio when the Player is close enough, or a Black &
-  White-style floating nameplate reworked as a thought bubble. Reference:
+- **Thought display**: wanted eventually as both proximity-triggered
+  audio and a Black & White-style floating nameplate reworked as a
+  thought bubble. For the first concrete slice below, build the
+  nameplate only — audio comes later. Reference:
   `REFERENCES/Imagers/Ui/Screenshot 2026-08-20 141340.png`.
 
 ## Suggested first concrete slice
