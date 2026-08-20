@@ -22,7 +22,10 @@ deliberately, at will, since it's what they're known for. They're
 discreet about it: showing their hand too openly would spoil the game
 they're all playing with each other. What the world does on its own is
 what draws the Gods' interest — they react to it, they don't author its
-events.
+events. The Gods themselves are meant to be created from the perceived
+world, not pre-authored as fixed content — the roster isn't just static
+lore the Player is handed; it comes from what the World does and what
+Folk perceive. The actual mechanism for that isn't decided yet.
 _Avoid_: authoring events, orchestrating plots — that direction of
 causality is backwards; see Player.
 

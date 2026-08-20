@@ -21,10 +21,17 @@ The gap between that and everything below is the whole project.
 
 ## The Pantheon
 
-- **The Gods**: probably starts as static data — name, personality/interest
-  flavor, and a Domain — rather than anything with real-time behavior of
-  its own. What a God *does* (Petition responses, occasional deliberate
-  Disasters) can be simple rules keyed off that data for a long time.
+- **The Gods**: for the first Pantheon slice, a static/fixed array is
+  accepted as placeholder scaffolding — name, personality/interest
+  flavor, and a Domain, with no real-time behavior of its own yet. This
+  is a deliberate placeholder, not the intended architecture: per
+  `CONTEXT.md`, the Gods are meant to be created from the perceived
+  world, not hand-authored content — same disposable spirit as
+  `world_gen.gd`'s placeholder primitives. The actual generation
+  mechanism isn't designed yet; swap the static array out once it is.
+  Once real, what a God *does* (Petition responses, occasional
+  deliberate Disasters) can still be simple rules keyed off that data
+  for a long time.
 - **Domain**: a tag on each God (`"harvest"`, `"death"`, ...) used to route
   a Wish's Petition to the right God.
 - **Player**: not an entity in the World. Functionally: the camera/observer,
