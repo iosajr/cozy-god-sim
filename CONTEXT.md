@@ -90,9 +90,13 @@ inherently actionable — most Thoughts are flavor, not requests.
 **Wish**:
 A Thought that specifically expresses a want. A subtype of Thought, not a
 separate channel — not every Thought is a Wish, and not every Wish is a
-demand. The Player can't grant a Wish directly; acting on one means a
-Petition or a Nudge. Wishes cut both ways — wanting help is one kind, but
-so is wanting someone gone.
+demand. The Player can never guarantee a Wish comes true — there's no
+button that makes it certainly happen. Acting on one means a Petition
+(asking a God, who might refuse) or a Nudge (a push the Player causes
+directly, but whose effect on the Wish plays out through the world, not
+on command) — directness of cause is not the same as certainty of
+outcome. Wishes cut both ways — wanting help is one kind, but so is
+wanting someone gone.
 _Avoid_: Prayer, Demand, Objective — these imply either a worship/exchange
 relationship or an obligation that hasn't been designed yet.
 
