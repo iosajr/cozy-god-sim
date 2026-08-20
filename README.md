@@ -51,16 +51,24 @@ and exits with a non-zero code on failure, so this is CI-friendly as-is.
 
 ## Next steps
 
-Some natural next things to build, roughly in order:
+The actual roadmap, not a wishlist — see `docs/systems-overview.md` for
+full designs and the open issues on `iosajr/cozy-god-sim` for specs.
+Issues #8–#12 are specced and held (not yet launched):
 
 - Replace the placeholder tree/rock primitives in `world_gen.gd`, and the
   placeholder Villager capsule/nameplate, with real assets once you have
   art direction.
-- Click-to-place buildings on the ground (the `GroundBody` StaticBody3D is
-  already there to raycast against).
 - Wish/Petition/Nudge and Faith actually gating Presence-sensing — see
   `CONTEXT.md` and `docs/systems-overview.md`.
-- Basic UI (`ui/`) for resources and time of day.
+- Renown (a Villager's Favored crossing a threshold, plus Faith, promotes
+  them to Renowned) and, once that lands, a reusable Hades-style dialogue
+  box with a real trigger — clicking a Renowned Villager in-world
+  (issue #12).
+- Known Territory (issue #8), Survival Needs/eating (issue #10), camera
+  pitch (issue #9), and a Sheep/Folk-base-class slice (issue #11).
+- More Village/nature/environment systems, and ways to gain Faith outside
+  direct god intervention/Petition — both flagged by the designer as
+  future directions, not designed yet.
 
 ## License
 
