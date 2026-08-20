@@ -125,13 +125,19 @@ The gap between that and everything below is most of the project.
   audio and a Black & White-style floating nameplate reworked as a
   thought bubble. Built: the nameplate. Audio comes later. Reference:
   `REFERENCES/Imagers/Ui/Screenshot 2026-08-20 141340.png`.
-- **Presence, demo/preview only**: a B&W-style camera-relative
+- **Presence, demo/preview only**: **Done** (issue #5). A B&W-style
   cursor/light — confirmed by the user as intentionally previewing
   Presence's eventual look. Purely cosmetic: no Nudge, no Faith-gating,
-  no mechanic at all yet, just a light that moves with the camera to
-  see how it feels. Natural shared ground with Favored's lingering
-  mechanic above (both need "where is the Player looking/how close"),
-  but the two don't have to land in the same slice.
+  no mechanic at all yet. Tracks wherever the cursor's ray currently
+  meets the ground plane, every frame, via `scripts/ground_ray.gd`'s
+  ray/ground-plane intersection helper — not "moves with the camera" as
+  originally sketched here, but a live mouse-to-world raycast, matching
+  what a Black & White-style hand/light actually does. That same helper
+  also backs `camera_rig.gd`'s new raycast-anchored drag-pan (issue #5),
+  since both needed the same mouse-to-ground primitive. Natural shared
+  ground with Favored's lingering mechanic above (both need "where is
+  the Player looking/how close"), but the two don't have to land in the
+  same slice.
 
 ## Slices so far
 
@@ -144,8 +150,10 @@ The gap between that and everything below is most of the project.
    reaction stored as inert placeholder data — no Petition, no Player
    input, no visible effect yet. See the Listening and Acting section
    above for the full scoping.
-4. **Independent, parallel candidate**: the cosmetic Presence camera-
-   light demo, per the UI section above. No dependency on slice 3.
+4. **Done** (issue #5): the cosmetic Presence camera-light demo, per the
+   UI section above, plus a raycast-anchored drag-pan for the camera —
+   the two turned out to share one ray/ground-plane intersection
+   primitive, so they shipped as one slice. No dependency on slice 3.
 5. **Optional, independent, parallel candidate**: Favored as a growing
    per-Folk stat driven by Player-lingering proximity, per the Growth
    section above. Shares a primitive with slice 4 but doesn't require it.
