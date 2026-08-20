@@ -107,16 +107,32 @@ The gap between that and everything below is most of the project.
   something as minimal as a nearby tree, no construction required.
 - **Housing**: a desired, constructed *upgrade* over baseline Shelter,
   not itself required to survive — distinct term, not a synonym.
-- **Eating** / **Sleeping**: confirmed needs, presumably drawing down
-  `GameState.resources.food` for eating; sleep likely ties to
-  `time_of_day`. Water was floated as a maybe by the user themselves,
-  self-flagged as possibly more tedious than fun — left out of scope
-  until (if ever) confirmed.
-- **Performance note (user-flagged)**: once this is a per-Villager
-  per-frame system across a continent of cities, it could get
-  expensive. Fine to build straightforwardly at today's small scale;
-  worth revisiting for optimization once population counts grow, not a
-  blocker now.
+- **Eating** / **Sleeping**: confirmed needs, but explicitly NOT
+  continuous per-Villager tracking (user revised this after first
+  floating it) — a Villager at the Village doesn't need individual
+  need-tracking at all as long as the Village has food; that's
+  effectively a Village-level check, not a per-Villager meter. Water
+  was floated as a maybe by the user themselves, self-flagged as
+  possibly more tedious than fun — left out of scope until (if ever)
+  confirmed.
+- **Check cadence (user-revised)**: periodic, not per-frame — roughly
+  1-2 times a day (in `time_of_day` terms), not a continuously
+  depleting meter. This directly addresses the performance concern
+  below by construction, not as a later optimization pass.
+- **Individual need-tracking only matters away from the Village**: a
+  Villager away for multiple days (i.e. on a Known Territory expedition
+  — see above) is where actual per-individual need state would matter;
+  at the Village it doesn't. This means a full Survival Needs slice
+  meaningfully depends on the (not yet built) Known Territory
+  expedition mechanic for its only case where individual tracking does
+  anything — for now, before expeditions exist, this slice reduces to
+  just the periodic Village-level food check, with the "away" case
+  explicitly deferred until expeditions exist to trigger it.
+- **Performance note (user-flagged, largely superseded by the above)**:
+  originally worried about a per-Villager per-frame system across a
+  continent of cities; the periodic-check-not-continuous-meter design
+  above already avoids that by construction rather than needing a
+  later optimization pass.
 - **General principle (user-confirmed)**: less-central Folk types get a
   deliberately lighter feature set, not just lighter compute as an
   afterthought — the two are the same lever. Domesticated animals (see
