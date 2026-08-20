@@ -117,6 +117,14 @@ The gap between that and everything below is most of the project.
   expensive. Fine to build straightforwardly at today's small scale;
   worth revisiting for optimization once population counts grow, not a
   blocker now.
+- **General principle (user-confirmed)**: less-central Folk types get a
+  deliberately lighter feature set, not just lighter compute as an
+  afterthought — the two are the same lever. Domesticated animals (see
+  sheep, below) explicitly skip Survival Needs entirely rather than
+  running a cheaper version of it. Apply this to whatever Folk types
+  come after sheep too: fewer systems per instance for types that will
+  exist in much larger numbers than Villagers, not just fewer per-frame
+  checks within the same systems.
 - **Priest / Prophet**: floated as a Villager social role, explicitly
   not required for ordinary Faith. User explicitly said not worth
   slicing yet — a sidenote for later, not a queued slice.
