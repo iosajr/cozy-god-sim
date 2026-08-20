@@ -9,6 +9,12 @@ extends Node3D
 ## it periodically. Everything visual here is throwaway placeholder art,
 ## same disposable spirit as world_gen.gd — none of it is a design
 ## decision about what a real Villager should look like.
+##
+## Also the bridge for `GameState.pantheon` (issue #4): Village/Villager
+## (Seam 1) never reach into GameState directly, so this is what forwards
+## the Pantheon into Village.advance_thoughts() for any Wish that gets
+## linked and resolved during a reroll (see systems/village.gd's
+## resolve_wish()).
 
 @export var villager_count: int = 6
 ## Fallback ground size, used only if `world_gen_path` doesn't resolve to
@@ -49,7 +55,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	village.advance_thoughts(delta)
+	village.advance_thoughts(delta, GameState.pantheon)
 	for villager in village.villagers:
 		var nameplate: VillagerNameplate = _nameplates[villager]
 		if nameplate.text != villager.current_thought:

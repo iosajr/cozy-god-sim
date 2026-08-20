@@ -14,13 +14,19 @@ now there mostly aren't any yet.
   Village, replacing the old `population: int` headcount).
 - `systems/village.gd` / `systems/villager.gd`: real Villager entities
   with a Faith bool (stored, not gating anything yet — no Presence
-  exists to gate) and a cycling flavor Thought, shown via
-  `scripts/villager_nameplate.gd`. No Wish yet — every Thought is
-  currently flavor, per `CONTEXT.md`'s "not every Thought is a Wish."
+  exists to gate) and a cycling Thought, shown via
+  `scripts/villager_nameplate.gd`. Most rerolls stay flavor, per
+  `CONTEXT.md`'s "not every Thought is a Wish" — a minority draw a
+  `systems/wish.gd` Wish instead (issue #4), immediately linked to a God
+  via `Pantheon.get_by_domain()` and resolved to a placeholder outcome
+  (`Village.resolve_wish()`). Single-Domain-lookup shipped as a known
+  simplification, not a settled design — see `docs/adr/0003`.
 - `systems/god.gd` / `systems/pantheon.gd`: a static, explicitly
   placeholder God roster (`docs/adr/0002`), queryable by Domain via
-  `get_by_domain()`. Not wired to anything — nothing currently looks a
-  God up.
+  `get_by_domain()`. Wired in as of issue #4 — `Village.resolve_wish()` is
+  its first caller, via a `Pantheon` reference `GameState` holds and
+  `scripts/village_spawner.gd` forwards in (Village/Villager never reach
+  into `GameState` directly).
 - `scripts/world_gen.gd`: placeholder primitives, explicitly disposable
   per `CLAUDE.md` — nothing here should be read as a design decision.
 - Nothing yet resembling Wish, Petition, Nudge, Presence, Favored, or
@@ -66,18 +72,20 @@ The gap between that and everything below is most of the project.
 
 ## Listening and Acting
 
-- **Thought**: built — a per-Villager cycling flavor string, shown via a
-  nameplate. **Wish**: not built yet — a Thought that specifically wants
-  something, tagged with a Domain. Planned next slice: Wish exists as
-  data and is linked to a God via `Pantheon.get_by_domain()`, with the
+- **Thought**: built — a per-Villager cycling string, shown via a
+  nameplate. **Wish**: built (issue #4) — a Thought that specifically
+  wants something, tagged with a Domain (`systems/wish.gd`), drawn as a
+  minority of rerolls (`Village.WISH_POOL`/`wish_chance`) and linked to a
+  God via `Pantheon.get_by_domain()` (`Village.resolve_wish()`), with the
   God's reaction stored as inert placeholder data (resolved/ignored) —
-  explicitly to-be-developed-on, not a finished mechanic. **Open
-  question the user has raised, not resolved**: whether linking always
-  works via a single Domain match is even correct, versus some Wishes
-  having multiple resolving outcomes/paths. Shipping the single-Domain
-  lookup as a known simplification, not a settled decision — worth an
-  ADR at implementation time recording that tension (same pattern as
-  ADR-0001/0002).
+  explicitly to-be-developed-on, not a finished mechanic; no Petition, no
+  Player input, no visible effect yet. **Open question the user has
+  raised, still not resolved**: whether linking always works via a single
+  Domain match is even correct, versus some Wishes having multiple
+  resolving outcomes/paths. Shipped the single-Domain lookup as a known
+  simplification, not a settled decision — see
+  `docs/adr/0003-wish-resolves-via-a-single-domain-lookup.md` (same
+  pattern as ADR-0001/0002).
 - **Petition**: per `CONTEXT.md`, specifically a *Player* action —
   drawing a God's attention to a Wish. Deliberately not what the planned
   next slice builds: Player-input design is being deferred, so that
@@ -139,7 +147,7 @@ The gap between that and everything below is most of the project.
    flavor Thought, shown via nameplate.
 2. **Done** (issue #3): a static, placeholder God/Pantheon roster,
    queryable by Domain.
-3. **Next, not yet specced**: Wish as data, linked to a God via Domain
+3. **Done** (issue #4): Wish as data, linked to a God via Domain
    (single-lookup, flagged above as an open question), with the God's
    reaction stored as inert placeholder data — no Petition, no Player
    input, no visible effect yet. See the Listening and Acting section

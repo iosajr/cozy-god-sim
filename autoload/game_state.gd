@@ -27,6 +27,14 @@ var resources: Dictionary = {
 ## the doc comment above.
 var village: Village = Village.new()
 
+## The Pantheon (systems/pantheon.gd), deferred by issue #3 on purpose,
+## filled in by issue #4. Defaults to a real Pantheon (never null), same
+## "always safe to read" reasoning as `village` above.
+## scripts/village_spawner.gd reads this and passes it into Village's
+## Wish-linking (see systems/village.gd's resolve_wish()) — Village/
+## Villager (Seam 1) never reach into GameState directly.
+var pantheon: Pantheon = Pantheon.new()
+
 
 func _process(delta: float) -> void:
 	if paused:
