@@ -7,10 +7,9 @@ extends RefCounted
 ## docs/systems-overview.md).
 
 ## Fixed pool of placeholder flavor-Thoughts a Villager's `current_thought`
-## is drawn from. Tone: warm, gentle, wondrous, low-stakes, high-charm —
-## flavor, not requests (CONTEXT.md's Thought entry). Placeholder content,
-## same disposable spirit as world_gen.gd's primitives — swap freely once
-## real writing exists.
+## is drawn from — flavor, not requests (CONTEXT.md's Thought entry).
+## Placeholder content, same disposable spirit as world_gen.gd's
+## primitives — swap freely once real writing exists.
 const THOUGHT_POOL: Array[String] = [
 	"The bread smells almost ready.",
 	"I wonder if it'll rain before sundown.",
