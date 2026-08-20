@@ -79,6 +79,19 @@ The gap between that and everything below is the whole project.
   implies each such species eventually needs a Renown-variant asset, which
   is a real content cost worth remembering when scoping species.
 
+## UI / presentation directions (not decided in detail — early sketch)
+
+- **Talking to a God, or to a Renowned Folk member**: a Hades-style dialog
+  — animated character model alongside a text box, possibly a slightly
+  larger box horizontally covering the model. Gods are imagined as
+  distinct from Renown — more grandiose — but that distinction itself is
+  still unsure. Reference: `REFERENCES/Imagers/Ui/Screenshot 2026-08-20
+  141016.png`.
+- **Thought display**: two candidate directions, not chosen between yet —
+  proximity-triggered audio when the Player is close enough, or a Black &
+  White-style floating nameplate reworked as a thought bubble. Reference:
+  `REFERENCES/Imagers/Ui/Screenshot 2026-08-20 141340.png`.
+
 ## Suggested first concrete slice
 
 Everything above is the whole game, not a first milestone. When ready to
