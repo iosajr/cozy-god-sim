@@ -4,6 +4,9 @@ extends Node3D
 ##   - WASD / arrow keys to pan across the ground plane
 ##   - Mouse wheel to zoom in/out
 ##   - Hold right mouse button and drag to rotate (yaw)
+##   - Hold left mouse button and drag to pan 1:1 — the ground point
+##     grabbed at press-time stays under the cursor (issue #5), additive
+##     to the WASD/edge-pan above, not a replacement.
 ## Attach to a Node3D that contains a Pivot (Node3D) -> Camera3D chain,
 ## or just a direct Camera3D child — either works with this script.
 
@@ -18,6 +21,8 @@ extends Node3D
 var _camera: Camera3D
 var _zoom_distance: float = 24.0
 var _rotating: bool = false
+var _dragging: bool = false
+var _drag_grab_point: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
@@ -41,6 +46,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_RIGHT:
 			_rotating = event.pressed
+		elif event.button_index == MOUSE_BUTTON_LEFT:
+			_on_left_click(event.pressed)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			_zoom_distance = clamp(_zoom_distance - zoom_speed, min_zoom, max_zoom)
 			_apply_zoom()
@@ -49,6 +56,17 @@ func _unhandled_input(event: InputEvent) -> void:
 			_apply_zoom()
 	elif event is InputEventMouseMotion and _rotating:
 		rotate_y(-event.relative.x * rotate_sensitivity)
+
+
+func _on_left_click(pressed: bool) -> void:
+	if not pressed:
+		_dragging = false
+		return
+
+	var hit := _raycast_mouse_to_ground()
+	if hit["hit"]:
+		_dragging = true
+		_drag_grab_point = hit["point"]
 
 
 func _physics_process(delta: float) -> void:
@@ -68,6 +86,42 @@ func _physics_process(delta: float) -> void:
 		right = right.normalized()
 		var motion := (right * input_dir.x + forward * -input_dir.y) * pan_speed * delta
 		global_position += motion
+
+	if _dragging:
+		_apply_drag_pan()
+
+
+## Recomputes, fresh from the current camera transform, the XZ delta
+## needed to bring the original grab point back under the cursor, and
+## applies it. Never accumulates deltas across frames, so a long drag
+## can't drift. If the current mouse ray doesn't meet the ground plane
+## (GroundRay's defined not-a-hit case), the camera simply doesn't move
+## this frame rather than erroring.
+func _apply_drag_pan() -> void:
+	var hit := _raycast_mouse_to_ground()
+	if not hit["hit"]:
+		return
+
+	var current_point: Vector3 = hit["point"]
+	var motion: Vector3 = _drag_grab_point - current_point
+	motion.y = 0.0
+	global_position += motion
+
+
+## Raycasts the current mouse position against the y = 0 ground plane via
+## Camera3D.project_ray_origin/project_ray_normal and GroundRay. Shared
+## by drag-pan's press-time grab and its per-frame recompute.
+func _raycast_mouse_to_ground() -> Dictionary:
+	if not _camera:
+		return {"hit": false, "point": Vector3.ZERO}
+	var viewport := get_viewport()
+	if not viewport:
+		return {"hit": false, "point": Vector3.ZERO}
+
+	var mouse_pos := viewport.get_mouse_position()
+	var ray_origin := _camera.project_ray_origin(mouse_pos)
+	var ray_direction := _camera.project_ray_normal(mouse_pos)
+	return GroundRay.intersect_ground_plane(ray_origin, ray_direction)
 
 
 func _edge_pan_direction() -> Vector2:
