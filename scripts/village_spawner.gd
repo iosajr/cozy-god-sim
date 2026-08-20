@@ -24,6 +24,14 @@ extends Node3D
 ## `favored_radius`. Proximity/lingering *detection* lives here
 ## (Node-based orchestration); the stat and its Faith-unlock rule live
 ## on Villager (Seam 1), fully testable without the scene tree.
+##
+## Also the bridge for Renown (issue #7, CONTEXT.md's Renown entry): the
+## same per-frame loop that already re-checks nameplate text every frame
+## also checks each Villager's `is_renowned` and calls the nameplate's
+## `set_renowned()` once it flips true — no new loop, no new timer.
+## Renown is permanent this slice, so this is a one-way sync (see
+## Villager.gain_favored()); no narrative/God-attribution logic lives
+## here, that's the next (dialogue UI) slice.
 
 @export var villager_count: int = 6
 ## Fallback ground size, used only if `world_gen_path` doesn't resolve to
@@ -88,6 +96,8 @@ func _process(delta: float) -> void:
 		var nameplate: VillagerNameplate = _nameplates[villager]
 		if nameplate.text != villager.current_thought:
 			nameplate.show_thought(villager.current_thought)
+		if villager.is_renowned and nameplate.modulate != VillagerNameplate.RENOWNED_COLOR:
+			nameplate.set_renowned(true)
 		_maybe_gain_favored(villager, camera_rig, delta)
 
 
@@ -103,7 +113,9 @@ func _maybe_gain_favored(villager: Villager, camera_rig: Node3D, delta: float) -
 	if body == null:
 		return
 	if body.global_position.distance_to(camera_rig.global_position) <= favored_radius:
-		villager.gain_favored(favored_gain_rate * delta, Villager.DEFAULT_FAITH_THRESHOLD)
+		villager.gain_favored(
+			favored_gain_rate * delta, Villager.DEFAULT_FAITH_THRESHOLD, Villager.DEFAULT_RENOWN_THRESHOLD
+		)
 
 
 func _resolve_ground_size() -> float:
