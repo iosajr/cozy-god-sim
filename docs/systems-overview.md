@@ -82,14 +82,16 @@ The gap between that and everything below is most of the project.
   `is_renowned`. "City" (in the 5-6 cities scale target above) is
   resolved — just casual phrasing for a built-up Village, not a
   distinct tier; see `CONTEXT.md`'s Village entry.
-- **Known Territory**: a per-Village shared value (not per-Villager) —
-  likely a set/collection of discovered World regions or landmarks,
-  exact representation undecided. Needs an expedition mechanic (a Folk
-  member leaves the Village, and either returns — adding what they
-  found — or doesn't, which is also meant to convey something, TBD) to
-  ever grow past its starting state. Two implementation-sized slices,
-  not one: the concept/data existing at all, then expeditions actually
-  happening. The Player's own view is entirely unaffected — no
+- **Known Territory**: a per-Village shared value (not per-Villager) — a
+  list of locations, each carrying context of what's there (animals,
+  forest, villages, water, farmland, mountains, ...). Explicitly not
+  tied to resources — these are points of interest/information, not a
+  resource-production list (user-stated). Needs an expedition mechanic
+  (a Folk member leaves the Village, and either returns — adding what
+  they found — or doesn't, which is also meant to convey something, TBD)
+  to ever grow past its starting state. Two implementation-sized
+  slices, not one: the concept/data existing at all, then expeditions
+  actually happening. The Player's own view is entirely unaffected — no
   fog-of-war gating for the Player, per `CONTEXT.md`.
 - **Folk**: the same per-individual state as Villager, generalized to
   animals and plants once those exist.
