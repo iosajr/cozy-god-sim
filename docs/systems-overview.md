@@ -29,8 +29,18 @@ now there mostly aren't any yet.
   into `GameState` directly).
 - `scripts/world_gen.gd`: placeholder primitives, explicitly disposable
   per `CLAUDE.md` — nothing here should be read as a design decision.
-- Nothing yet resembling Wish, Petition, Nudge, Presence, Favored, or
-  Renown as data.
+- `systems/villager.gd`: also has `favored: float` and `is_renowned: bool`
+  (issues #6/#7) — `gain_favored()` grows `favored` from Player-lingering
+  proximity (`scripts/village_spawner.gd`), can unlock a skeptic's Faith,
+  and past a second threshold promotes to Renowned, marked with a
+  placeholder nameplate tint (`VillagerNameplate.set_renowned()`).
+- `scripts/camera_rig.gd`: gained a raycast-anchored drag-pan (issue #5),
+  additive to the original WASD/edge-pan/zoom/rotate. `scripts/
+  presence_light.gd` + `presence_cursor.gd` are a cosmetic-only preview
+  of Presence, sharing a pure `scripts/ground_ray.gd` intersection seam.
+- Still nothing resembling Petition, Nudge, real Presence-gating,
+  Disaster, Known Territory, Survival needs, or any building/City-scale
+  World generation.
 
 The gap between that and everything below is most of the project.
 
@@ -58,10 +68,31 @@ The gap between that and everything below is most of the project.
 
 - **World**: implies more than one Village, across more than one landmass,
   with fast/instant travel between them for the Player. Nothing like this
-  exists yet — `world_gen.gd` builds one placeholder space.
-- **Village** / **Villager**: need to become real entities, not a
-  population count. Each Villager needs at least: current Thought/Wish (if
-  any), Faith, Renown state, Favored-by (if any).
+  exists yet — `world_gen.gd` builds one placeholder space. **Scale
+  target** (user-stated, not yet designed toward): small-scale goal is a
+  continent of 5-6 cities with many sub-populations each — orders of
+  magnitude past today's single flat plane/single Village. A possible,
+  explicitly uncertain end goal is procedural, infinite generation — the
+  user isn't sure they actually want that scope. Nothing about Known
+  Territory below needs to wait for continent-scale World generation to
+  exist; it can be built against whatever placeholder World shape is
+  current and grow with it.
+- **Village** / **Villager**: real entities as of issues #2/#6/#7 — each
+  Villager has Faith, a current Thought/Wish, `favored`, and
+  `is_renowned`. Open naming question: the user has also used "City"
+  (5-6 cities, "many sub-populations") — not yet clear whether City is
+  just casual phrasing for Village, or a distinct, larger tier that
+  contains multiple Villages/sub-populations. Not resolved in
+  `CONTEXT.md` yet.
+- **Known Territory**: a per-Village shared value (not per-Villager) —
+  likely a set/collection of discovered World regions or landmarks,
+  exact representation undecided. Needs an expedition mechanic (a Folk
+  member leaves the Village, and either returns — adding what they
+  found — or doesn't, which is also meant to convey something, TBD) to
+  ever grow past its starting state. Two implementation-sized slices,
+  not one: the concept/data existing at all, then expeditions actually
+  happening. The Player's own view is entirely unaffected — no
+  fog-of-war gating for the Player, per `CONTEXT.md`.
 - **Folk**: the same per-individual state as Villager, generalized to
   animals and plants once those exist.
 - **Disaster**: an event system that can fire a calamity at a Village, and
@@ -69,6 +100,26 @@ The gap between that and everything below is most of the project.
   nature" or a deliberate act by the associated God — the distinction only
   matters for the Gods'/Player's own bookkeeping, never surfaced as a
   difference in-world.
+
+## Survival (not in CONTEXT.md yet — still being sharpened)
+
+- **Shelter**: the actual baseline survival need — could be satisfied by
+  something as minimal as a nearby tree, no construction required.
+- **Housing**: a desired, constructed *upgrade* over baseline Shelter,
+  not itself required to survive — distinct term, not a synonym.
+- **Eating** / **Sleeping**: confirmed needs, presumably drawing down
+  `GameState.resources.food` for eating; sleep likely ties to
+  `time_of_day`. Water was floated as a maybe by the user themselves,
+  self-flagged as possibly more tedious than fun — left out of scope
+  until (if ever) confirmed.
+- **Performance note (user-flagged)**: once this is a per-Villager
+  per-frame system across a continent of cities, it could get
+  expensive. Fine to build straightforwardly at today's small scale;
+  worth revisiting for optimization once population counts grow, not a
+  blocker now.
+- **Priest / Prophet**: floated as a Villager social role, explicitly
+  not required for ordinary Faith. User explicitly said not worth
+  slicing yet — a sidenote for later, not a queued slice.
 
 ## Listening and Acting
 

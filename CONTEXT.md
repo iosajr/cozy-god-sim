@@ -64,6 +64,19 @@ _Avoid_: Colony, Settlement, Town
 A human inhabitant of a Village.
 _Avoid_: Colonist, Sim, Citizen
 
+**Known Territory** _(proposed)_:
+The portion of the World a Village's Folk collectively know about —
+shared across the whole community, not tracked per individual; once one
+Folk member's expedition adds to it, the whole Village knows it. Folk
+only forage within it. Grows only through an actual expedition's
+outcome, never just because time has passed: a Folk member who explores
+and returns adds what they found; one who explores and never returns is
+also information, though the exact mechanism for what that conveys
+isn't decided. Explicitly not a Player mechanic — the Player always
+sees the whole World regardless of what any Village has discovered.
+_Avoid_: Fog of war — that term usually implies gating the Player's own
+view, which this explicitly does not do.
+
 **Folk** _(name questioned — open to renaming)_:
 Umbrella term for an ordinary human, animal, or plant the Player can
 perceive Thoughts from. The World's mythological beings (nymphs, centaurs,
