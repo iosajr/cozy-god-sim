@@ -4,7 +4,7 @@ A cozy 3D god-sim / simulation game built in Godot 4 (GDScript).
 
 ## Stack
 
-- Godot 4.3+, Forward+ renderer
+- Godot 4.7+, Forward+ renderer
 - GDScript (typed where practical)
 - Keep dependencies minimal until there's a real need. One exception so
   far: [GUT](https://github.com/bitwes/Gut) (Godot Unit Test), vendored
@@ -21,7 +21,8 @@ A cozy 3D god-sim / simulation game built in Godot 4 (GDScript).
 - `autoload/` — singletons registered in `project.godot` under `[autoload]`.
   `GameState` is the only one so far; keep autoloads few and boring.
 - `systems/` — home for standalone simulation systems as they're extracted
-  out of scene scripts (economy, needs, weather, etc.). Empty for now.
+  out of scene scripts (economy, needs, weather, etc.). Holds `village.gd`/
+  `villager.gd` and `god.gd`/`pantheon.gd` so far.
 - `assets/{models,textures,audio}/` — real art/audio assets go here as they
   replace the placeholder primitives in `scripts/world_gen.gd`.
 - `ui/` — UI scenes/scripts, currently empty.
