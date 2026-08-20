@@ -58,6 +58,12 @@ func test_villager_defaults_favored_to_zero() -> void:
 	assert_eq(villager.favored, 0.0)
 
 
+func test_villager_defaults_is_renowned_to_false() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	assert_false(villager.is_renowned)
+
+
 func test_gain_favored_accumulates_over_repeated_calls() -> void:
 	var villager := Villager.new("v1", true, "The bread smells almost ready.")
 

@@ -34,6 +34,7 @@ var has_faith: bool
 var current_thought: String
 var current_wish: Wish
 var favored: float = 0.0
+var is_renowned: bool = false
 
 
 func _init(p_id: String, p_has_faith: bool, p_current_thought: String, p_current_wish: Wish = null) -> void:
