@@ -13,10 +13,11 @@ signal resource_changed(resource_name: String, amount: int)
 @export var day_speed: float = 0.25
 @export var paused: bool = false
 
+## No "faith" here on purpose: CONTEXT.md defines Faith as a per-Folk
+## belief trait, not a global spendable stockpile. See docs/adr/0001.
 var resources: Dictionary = {
 	"food": 100,
 	"wood": 50,
-	"faith": 0,
 }
 
 var population: int = 0

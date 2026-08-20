@@ -10,9 +10,8 @@ now there mostly aren't any yet.
 ## Where the code actually is right now
 
 - `autoload/game_state.gd`: a `time_of_day`/`day_speed` clock, a flat
-  `resources` dict (`food`, `wood`, `faith` — see contradiction below),
-  and `population: int`. No individual inhabitants exist as data; just a
-  headcount.
+  `resources` dict (`food`, `wood`), and `population: int`. No individual
+  inhabitants exist as data; just a headcount.
 - `scripts/world_gen.gd`: placeholder primitives, explicitly disposable
   per `CLAUDE.md` — nothing here should be read as a design decision.
 - Nothing yet resembling a Village, a Folk member, a God, a Thought, or a
@@ -62,14 +61,11 @@ The gap between that and everything below is the whole project.
 - **Presence**: a rendered light the Player controls, gated per-Folk by
   Faith and by whether the Player is currently attending to that Folk
   member — not global, not always-on.
-- **Faith**: **contradicts existing code.** `GameState.resources["faith"]`
-  is currently a global spendable stockpile (Black & White worship-meter
-  style). The glossary's Faith is a per-Folk belief trait that gates
-  Presence-sensing and gates Renown. These are two different mechanics
-  sharing one name by accident of scaffolding, not by design — needs a
-  decision (and probably an ADR once made) before any real Faith code
-  gets written. Likely resolution: rename or repurpose the GameState
-  field; Faith proper becomes per-Folk state.
+- **Faith**: previously contradicted existing code (`GameState.resources`
+  had a global spendable `"faith"` stockpile, Black & White
+  worship-meter style). Resolved in ADR-0001: the field was removed, and
+  Faith stays exactly what the glossary says — a per-Folk belief trait.
+  It isn't implemented yet, since no per-Folk entities exist to hold it.
 
 ## Growth
 
