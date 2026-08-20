@@ -52,6 +52,48 @@ func test_villager_defaults_current_wish_to_null() -> void:
 	assert_null(villager.current_wish)
 
 
+func test_villager_defaults_favored_to_zero() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	assert_eq(villager.favored, 0.0)
+
+
+func test_gain_favored_accumulates_over_repeated_calls() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	villager.gain_favored(0.5, 100.0)
+	villager.gain_favored(0.5, 100.0)
+	villager.gain_favored(0.25, 100.0)
+
+	assert_eq(villager.favored, 1.25)
+
+
+func test_gain_favored_grants_faith_to_a_skeptic_who_crosses_the_threshold() -> void:
+	var villager := Villager.new("v1", false, "The bread smells almost ready.")
+
+	villager.gain_favored(10.0, 10.0)
+
+	assert_true(villager.has_faith)
+
+
+func test_gain_favored_leaves_a_skeptic_faithless_below_the_threshold() -> void:
+	var villager := Villager.new("v1", false, "The bread smells almost ready.")
+
+	villager.gain_favored(5.0, 10.0)
+
+	assert_false(villager.has_faith)
+
+
+func test_gain_favored_on_a_villager_who_already_has_faith_keeps_accumulating_without_incident() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	villager.gain_favored(10.0, 10.0)
+	villager.gain_favored(10.0, 10.0)
+
+	assert_eq(villager.favored, 20.0)
+	assert_true(villager.has_faith)
+
+
 func test_resolve_wish_links_to_the_god_who_claims_its_domain() -> void:
 	var village := Village.new()
 	var pantheon := Pantheon.new()

@@ -15,6 +15,15 @@ extends Node3D
 ## the Pantheon into Village.advance_thoughts() for any Wish that gets
 ## linked and resolved during a reroll (see systems/village.gd's
 ## resolve_wish()).
+##
+## Also the bridge for Favored (issue #6, CONTEXT.md's Favored entry):
+## the existing per-frame loop already walks every spawned Villager for
+## nameplates, so it also measures distance from the Player-position
+## reference (`camera_rig_path`) to each Villager's spawned body and
+## calls Villager.gain_favored() — scaled by `delta` — on anyone within
+## `favored_radius`. Proximity/lingering *detection* lives here
+## (Node-based orchestration); the stat and its Faith-unlock rule live
+## on Villager (Seam 1), fully testable without the scene tree.
 
 @export var villager_count: int = 6
 ## Fallback ground size, used only if `world_gen_path` doesn't resolve to
@@ -34,11 +43,29 @@ extends Node3D
 ## actual scheduling (see advance_thoughts() in systems/village.gd).
 @export var reroll_interval_min: float = 12.0
 @export var reroll_interval_max: float = 24.0
+## Sibling node whose `global_position` stands in for the Player's
+## position (CONTEXT.md: the Player is "functionally the camera" —
+## docs/systems-overview.md). Resolved the same way `world_gen_path`
+## already is above — a script-level default, no scene-file edit — so
+## this stays disjoint from issue #5's concurrent camera_rig.gd work
+## (issue #6's Implementation Decisions / User Story 8).
+@export var camera_rig_path: NodePath = ^"../CameraRig"
+## How close (world units) the Player needs to be to a Villager's
+## spawned body for Favored to accumulate. Tunable placeholder, same
+## spirit as wish_chance/reroll_interval_min/max — exact number is an
+## implementer's call (issue #6's Implementation Decisions).
+@export var favored_radius: float = 8.0
+## Favored gained per second while within `favored_radius`, forwarded to
+## Villager.gain_favored() scaled by delta. Tunable placeholder, same
+## spirit as wish_chance/reroll_interval_min/max — exact number is an
+## implementer's call (issue #6's Implementation Decisions).
+@export var favored_gain_rate: float = 5.0
 
 var village: Village
 
 var _rng := RandomNumberGenerator.new()
 var _nameplates: Dictionary = {}  # Villager -> VillagerNameplate
+var _bodies: Dictionary = {}  # Villager -> MeshInstance3D (spawned body)
 
 
 func _ready() -> void:
@@ -56,10 +83,27 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	village.advance_thoughts(delta, GameState.pantheon)
+	var camera_rig: Node3D = get_node_or_null(camera_rig_path)
 	for villager in village.villagers:
 		var nameplate: VillagerNameplate = _nameplates[villager]
 		if nameplate.text != villager.current_thought:
 			nameplate.show_thought(villager.current_thought)
+		_maybe_gain_favored(villager, camera_rig, delta)
+
+
+## Proximity/lingering *detection* only — the Favored stat and its
+## Faith-unlock rule live on Villager (Seam 1), see gain_favored(). No-op
+## if `camera_rig_path` doesn't resolve to a Node3D (e.g. this spawner
+## running standalone without a camera rig sibling), same defensive
+## shape as `_resolve_ground_size()` above.
+func _maybe_gain_favored(villager: Villager, camera_rig: Node3D, delta: float) -> void:
+	if camera_rig == null:
+		return
+	var body: Node3D = _bodies.get(villager)
+	if body == null:
+		return
+	if body.global_position.distance_to(camera_rig.global_position) <= favored_radius:
+		villager.gain_favored(favored_gain_rate * delta, Villager.DEFAULT_FAITH_THRESHOLD)
 
 
 func _resolve_ground_size() -> float:
@@ -87,6 +131,7 @@ func _spawn_villagers() -> void:
 		body.material_override = body_mat
 		body.position.y = 0.8
 		root.add_child(body)
+		_bodies[villager] = body
 
 		var nameplate := VillagerNameplate.new()
 		nameplate.position.y = 1.9
