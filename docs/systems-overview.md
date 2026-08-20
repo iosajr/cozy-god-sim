@@ -79,11 +79,9 @@ The gap between that and everything below is most of the project.
   current and grow with it.
 - **Village** / **Villager**: real entities as of issues #2/#6/#7 — each
   Villager has Faith, a current Thought/Wish, `favored`, and
-  `is_renowned`. Open naming question: the user has also used "City"
-  (5-6 cities, "many sub-populations") — not yet clear whether City is
-  just casual phrasing for Village, or a distinct, larger tier that
-  contains multiple Villages/sub-populations. Not resolved in
-  `CONTEXT.md` yet.
+  `is_renowned`. "City" (in the 5-6 cities scale target above) is
+  resolved — just casual phrasing for a built-up Village, not a
+  distinct tier; see `CONTEXT.md`'s Village entry.
 - **Known Territory**: a per-Village shared value (not per-Villager) —
   likely a set/collection of discovered World regions or landmarks,
   exact representation undecided. Needs an expedition mechanic (a Folk

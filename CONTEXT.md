@@ -58,7 +58,8 @@ sphere), not the whole game world.
 A human settlement. Many Villages exist across the World's landmasses.
 Other species have their own settlement types (animal burrows/dens, plant
 groves, etc.) as those are designed — not yet named.
-_Avoid_: Colony, Settlement, Town
+_Avoid_: Colony, Settlement, Town, City — City was just casual phrasing
+for a built-up Village, not a distinct tier; out of scope for now.
 
 **Villager**:
 A human inhabitant of a Village.
