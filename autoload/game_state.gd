@@ -20,7 +20,11 @@ var resources: Dictionary = {
 	"wood": 50,
 }
 
-var population: int = 0
+## The one Village that exists so far (per issue #2's "no multi-Village
+## support" scope). GameState only holds whatever reference is assigned to
+## it — populating it is systems/village.gd's job (via the spawner), not
+## GameState's, per the doc comment above.
+var village: Village = null
 
 
 func _process(delta: float) -> void:
