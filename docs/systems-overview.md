@@ -549,11 +549,24 @@ Roadmap items below.
   triggered mechanic. **Genuinely open, not yet asked**: how two
   Villagers actually get paired (proximity? an existing relationship
   concept, none of which exist yet? random?), how long "time" actually
-  is, and — a real cross-dependency — whether a newborn needs some
-  minimum maturity/life-stage from Ageing above before it can itself
-  reproduce, which Ageing doesn't define yet. Don't invent any of this;
-  Ageing may need at least a minimal life-stage concept before
-  Reproducing is fully spec-able.
+  is.
+  - **Maturity gate resolved (2026-08-22, user-confirmed): a plain age
+    threshold, not a life-stage concept.** A Villager needs
+    `age_years >= 18` (Ageing's bare year counter, above) to be eligible
+    to pair/reproduce — the earlier worry that "Ageing may need at least
+    a minimal life-stage concept before Reproducing is fully spec-able"
+    turned out unnecessary; a numeric comparison against `age_years` is
+    enough, no life-stage system required. 18 is the concrete number the
+    user gave — same tunable-not-defended spirit as every other threshold
+    in this project.
+  - **Real gap surfaced by this resolution, not yet answered**: every
+    Villager `Village.populate()` seeds starts at `age_years == 0`
+    (Ageing's own spec, issue #21), so with a hard 18-year floor, an
+    initial population can't produce a single pairing until 18 in-game
+    years have passed — unless `populate()` seeds a randomized starting
+    age instead of always 0. Flagged here, not resolved; touches
+    `Village.populate()`'s existing behavior, which is outside both the
+    Ageing and Reproducing issues' current scope.
 
 ## Listening and Acting
 
