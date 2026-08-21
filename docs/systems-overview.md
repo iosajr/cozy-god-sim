@@ -181,6 +181,62 @@ The gap between that and everything below is most of the project.
   not required for ordinary Faith. User explicitly said not worth
   slicing yet — a sidenote for later, not a queued slice.
 
+## Buildings (not in CONTEXT.md yet — still being sharpened)
+
+- **Building** _(proposed umbrella term)_: a structure a Village constructs
+  for itself. Housing (see Survival's Shelter/Housing distinction above)
+  and a Farm (food production, below) are the first two kinds identified
+  — more may follow.
+- **Housing (user-confirmed shape)**: per-house, not a per-Village
+  aggregate count and not per-Villager individual tracking — each House
+  is its own entity holding 2-8 occupants. Villagers get assigned into a
+  House. **Genuinely undecided (user flagged, don't invent)**: whether
+  the House, the Village, or the Villager owns the assignment
+  logic/decision.
+- **Open question on "Village" itself (user-raised, explicitly left
+  open)**: is a solitary Folk member with only their own Shelter (no
+  House, no other Folk nearby) a Village of population 1, or not a
+  Village at all? The user's own instinct: **"Village" itself may need a
+  rework once tree Folk and animal Folk are in play** — this connects to
+  `CONTEXT.md`'s existing Village entry, which already notes other
+  species get their own (not-yet-named) settlement types, e.g. animal
+  burrows/dens, plant groves. Don't resolve either question by guessing;
+  revisit together when it actually blocks something.
+- **Built autonomously (user-confirmed)**: a Village's own Villagers
+  decide to build, with no Player build-menu or placement UI — consistent
+  with `CONTEXT.md`'s "no menus" principle (everything the Player does is
+  overheard, or performed through Presence/Nudge, never a command
+  interface). What actually triggers a Village choosing to build
+  (resources on hand? population size? something else?) isn't decided.
+- **Farm (user-confirmed mechanic)**: a cycle — seed, grow (needs periodic
+  watering to progress, not continuous staffing), harvest (produces
+  food), then re-seed to go again. Watering comes from rain, a Villager
+  manually watering it, or a river — the river option specifically means
+  a Known Territory Location tagged `water` that the Village already
+  knows about (reuses issue #8's Location/tag system rather than
+  inventing a separate one); a Village with no known `water`-tagged
+  Location can't rely on it. Explicitly does **not** require constant
+  Villager attendance to progress. Still open: exactly how a harvest
+  turns into `GameState.resources.food` (a lump sum? spread out?), and
+  what happens if a mature farm goes too long unwatered or unharvested.
+- **Needs should have real consequences (user-confirmed, direction only)**:
+  now that Villages are meant to actually build things, the Survival
+  Needs check (see above) shouldn't stay purely "recorded, no
+  consequence" forever — a Village lacking food/Shelter/Housing should
+  actually matter. What the consequence actually *is* (population
+  effects? Faith effects? something else?) is explicitly not decided —
+  flagged here rather than invented.
+
+## Roadmap, not designed yet (user-flagged, don't spec until sharpened)
+
+- **Shepherding**: a Villager tending/managing Sheep (or future domesticated
+  animals) — not designed. Actual hunting-for-real (for people or wild
+  animals like wolves) is already flagged above under Survival as its own
+  later slice.
+- **Ageing**: Folk (starting with Villagers?) ageing over time — to what
+  end (life stages, death, something else) isn't decided. Genuinely new
+  territory; don't invent a mechanism.
+
 ## Listening and Acting
 
 - **Thought**: built — a per-Villager cycling string, shown via a
