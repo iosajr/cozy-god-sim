@@ -19,3 +19,16 @@ extends RefCounted
 static func random_ground_position(ground_size: float, rng: RandomNumberGenerator) -> Vector3:
 	var half := ground_size * 0.5 * 0.9
 	return Vector3(rng.randf_range(-half, half), 0.0, rng.randf_range(-half, half))
+
+
+## Resolves the real ground size from `world_gen` (typically a sibling
+## world_gen.gd node, which owns the ground plane's actual size), falling
+## back to `fallback` if `world_gen` is null or doesn't expose its own
+## `ground_size` property. Extracted out of village_spawner.gd's original
+## `_resolve_ground_size()` (issue #11) so village_spawner.gd and
+## sheep_spawner.gd — both scattering things via this same helper — share
+## one implementation instead of each keeping their own copy.
+static func resolve_ground_size(world_gen: Node, fallback: float) -> float:
+	if world_gen != null and "ground_size" in world_gen:
+		return world_gen.ground_size
+	return fallback

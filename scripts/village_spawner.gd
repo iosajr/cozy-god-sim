@@ -45,9 +45,9 @@ extends Node3D
 
 @export var villager_count: int = 6
 ## Fallback ground size, used only if `world_gen_path` doesn't resolve to
-## a node with its own `ground_size` (see _resolve_ground_size()). Keeping
-## a fallback lets this spawner still work standalone, e.g. in isolation
-## or a different scene.
+## a node with its own `ground_size` (see GroundScatter.
+## resolve_ground_size()). Keeping a fallback lets this spawner still
+## work standalone, e.g. in isolation or a different scene.
 @export var ground_size: float = 200.0
 ## Sibling node (world_gen.gd) that owns the ground plane's real size, so
 ## Villagers and trees/rocks never disagree about how big the ground is.
@@ -87,7 +87,7 @@ var _bodies: Dictionary = {}  # Villager -> MeshInstance3D (spawned body)
 
 
 func _ready() -> void:
-	ground_size = _resolve_ground_size()
+	ground_size = GroundScatter.resolve_ground_size(get_node_or_null(world_gen_path), ground_size)
 	_rng.seed = seed_value
 
 	village = Village.new(seed_value)
@@ -116,7 +116,7 @@ func _process(delta: float) -> void:
 ## Faith-unlock rule live on Villager (Seam 1), see gain_favored(). No-op
 ## if `camera_rig_path` doesn't resolve to a Node3D (e.g. this spawner
 ## running standalone without a camera rig sibling), same defensive
-## shape as `_resolve_ground_size()` above.
+## shape as `GroundScatter.resolve_ground_size()`.
 func _maybe_gain_favored(villager: Villager, camera_rig: Node3D, delta: float) -> void:
 	if camera_rig == null:
 		return
@@ -127,13 +127,6 @@ func _maybe_gain_favored(villager: Villager, camera_rig: Node3D, delta: float) -
 		villager.gain_favored(
 			favored_gain_rate * delta, Villager.DEFAULT_FAITH_THRESHOLD, Villager.DEFAULT_RENOWN_THRESHOLD
 		)
-
-
-func _resolve_ground_size() -> float:
-	var world_gen: Node = get_node_or_null(world_gen_path)
-	if world_gen != null and "ground_size" in world_gen:
-		return world_gen.ground_size
-	return ground_size
 
 
 func _spawn_villagers() -> void:
