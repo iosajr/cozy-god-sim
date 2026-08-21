@@ -351,17 +351,42 @@ independent random periodic countdown, with no shared notion of
   not a full decision-making AI. Matches how every other slice so far
   (Eating, Sleeping, Farm) shipped data/mechanism before real
   cross-need coordination existed.
-- **#15/#16/#18 explicitly left as-is for now, flagged for later
-  rework (user-confirmed, direct instruction — do not revise them
-  speculatively)**: those three specs' independent random-countdown
-  triggering (matching issue #10's original periodic-check pattern) is
-  now known to be at odds with a schedule-driven Daily Routine —
-  Sleeping in particular was designed before this thread existed and
-  doesn't yet know about nightfall/lookahead at all. This is a real,
-  acknowledged gap between what's already published and where the
-  design is heading, not an oversight — revisit #16/#18's triggering
-  mechanism once Daily Routine actually gets spec'd and built, don't
-  patch them piecemeal before then.
+- **Update: #16 and #18 WERE revised after all**, once the user asked
+  directly whether they should be reworded before running as overnight
+  agents — the original "leave as-is, flag for later" call (below, kept
+  for history) turned out to have a real, concrete cost: running either
+  as originally published would have built the wrong trigger mechanism
+  (a random countdown) that directly contradicts this thread's resolved
+  schedule-driven design, requiring a teardown-and-rebuild once Daily
+  Routine landed. That's real wasted agent work worth avoiding now that
+  the correct mechanism is actually known, so both got updated in
+  place (`gh issue edit`) rather than left to rot:
+  - **#16 (Eating)**: trigger swapped from the random
+    `eating_check_interval_min/max` countdown to twice-daily,
+    `GameState.time_of_day`-based. The Hungry/Starving escalation logic
+    itself was untouched — only the trigger mechanism changed.
+  - **#18 (Sleeping)**: substantially rewritten, not just re-triggered —
+    now a real nightfall + lookahead + `Mover` (issue #14) mechanic:
+    calculate travel time to a sleep destination (a placeholder — the
+    Village's own site position, since `House` isn't spatial yet),
+    compare against time remaining before the target sleep-start time,
+    and only escalate Tired/Exhausted when an away+unprovisioned
+    Villager genuinely doesn't have enough time to make it back — a
+    real, mechanically-grounded failure condition instead of an
+    abstract dice roll. Now functionally depends on #14, which the
+    original version didn't.
+  - **#15 (Farm) was NOT revised** — its standalone delivery-walker
+    approach doesn't factually conflict with anything here, it's just
+    intentionally incomplete (no real worker-assignment yet), already
+    documented as such in its own Out of Scope.
+  - The original reasoning for holding off (below) is kept for
+    context, but is now superseded for #16/#18 specifically.
+
+**(Original entry, kept for history)** #15/#16/#18 were initially left
+as-is on purpose, flagged for later rework rather than revised
+immediately, per direct instruction not to patch them speculatively —
+see the update above for what actually happened once the user asked
+whether that was still the right call.
 
 ## Known duplication, deferred to a later refactor issue (user-flagged)
 
