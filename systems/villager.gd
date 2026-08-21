@@ -1,9 +1,15 @@
 class_name Villager
-extends RefCounted
+extends Folk
 ## Villager
 ## A single human inhabitant of a Village (CONTEXT.md). Plain data, no
 ## scene tree and no _ready() lifecycle — fully testable in isolation
 ## (Seam 1, see issue #2 / docs/systems-overview.md).
+##
+## Extends Folk (issue #11) — `id`, `has_faith`, `favored`, `is_renowned`,
+## and `gain_favored()` now live there, shared with Sheep. This refactor
+## is meant to be fully behavior-preserving (issue #11's User Story 2):
+## every field below, the constructor signature, and gain_favored()'s
+## call shape all stay externally identical to before the extraction.
 ##
 ## `id` is a stable internal identifier for tests/debugging only — it is
 ## not an in-world visible name (only `current_thought` is ever shown to
@@ -21,39 +27,22 @@ extends RefCounted
 ## (CONTEXT.md: "doesn't require Faith to begin"); no cap, no decay this
 ## slice (issue #6).
 
-## Placeholder threshold `gain_favored()` compares accumulated `favored`
-## against to decide whether a skeptic crosses over into Faith — per
-## CONTEXT.md's Favored entry, "the attention itself can be what earns a
-## skeptic their Faith." Not a tuned design value, same disposable spirit
-## as wish_chance/reroll_interval_min/max on Village — swap freely once
-## real balancing exists (issue #6's Implementation Decisions).
-const DEFAULT_FAITH_THRESHOLD: float = 30.0
+## Villager's Faith/Renown thresholds now live on Folk as
+## DEFAULT_FAITH_THRESHOLD/DEFAULT_RENOWN_THRESHOLD (30.0/100.0) — Villager
+## doesn't redeclare them here. GDScript's global-class member resolution
+## can't disambiguate a subclass constant that shares a parent class's
+## constant name (verified empirically while implementing issue #11: doing
+## so broke `Villager.DEFAULT_FAITH_THRESHOLD`-style external references,
+## e.g. from village_spawner.gd, with a "Could not resolve external class
+## member" parse error) — so, unlike the issue's Implementation Decisions
+## suggested, Villager relies on Folk's constants directly rather than
+## redeclaring same-named ones of its own. Values are unchanged from
+## before this refactor either way. Sheep, which genuinely needs a
+## different Renown threshold, avoids the same trap by naming its own
+## constant distinctly (see systems/sheep.gd).
 
-## Placeholder threshold `gain_favored()` compares accumulated `favored`
-## against to decide whether a Villager who already has Faith becomes
-## Renowned — per CONTEXT.md's Renown entry ("Requires Faith"), the
-## endpoint of the Favored progression. Deliberately set higher than
-## `DEFAULT_FAITH_THRESHOLD` so the natural path is: lingering grows
-## Favored → a skeptic gains Faith → continued lingering reaches Renown
-## (issue #7's User Story 2) — but a Villager who already has Faith can
-## reach it by accumulating `favored` alone, without ever crossing the
-## lower threshold first (User Story 3). Not a tuned design value, same
-## disposable spirit as wish_chance/reroll_interval_min/max/
-## DEFAULT_FAITH_THRESHOLD — swap freely once real balancing exists.
-const DEFAULT_RENOWN_THRESHOLD: float = 100.0
-
-var id: String
-var has_faith: bool
 var current_thought: String
 var current_wish: Wish
-var favored: float = 0.0
-## Requires Faith (CONTEXT.md's Renown entry) — set only by
-## gain_favored() once `favored` crosses `DEFAULT_RENOWN_THRESHOLD` while
-## this Villager has Faith. Permanent once true this slice: no decay, no
-## un-Renowning (issue #7's User Story 10, same "no cap, no decay"
-## precedent as Favored itself). No God-attribution/dialogue logic lives
-## here — that's the next slice (issue #7's Out of Scope).
-var is_renowned: bool = false
 
 ## Whether this Villager is currently away from the Village (issue #10's
 ## Survival Needs eating-check slice — CONTEXT.md doesn't cover Survival
@@ -76,32 +65,6 @@ var last_eating_outcome: String = ""
 
 
 func _init(p_id: String, p_has_faith: bool, p_current_thought: String, p_current_wish: Wish = null) -> void:
-	id = p_id
-	has_faith = p_has_faith
+	super(p_id, p_has_faith)
 	current_thought = p_current_thought
 	current_wish = p_current_wish
-
-
-## Adds `amount` to `favored` (expected to already be scaled by the
-## caller, e.g. by delta and a gain-per-second rate — see
-## village_spawner.gd). If this Villager is still a skeptic
-## (`has_faith == false`) and the new total meets or crosses
-## `faith_threshold`, grants them Faith right here — encapsulating the
-## Faith-unlock rule on Villager (not the caller) keeps it testable
-## without the scene tree (issue #6's Implementation Decisions). A
-## Villager who already has Faith just keeps accumulating `favored`
-## past the threshold with no further effect on Faith itself. After that
-## check, also evaluates Renown (CONTEXT.md's Renown entry, issue #7): if
-## this Villager now has Faith — the just-updated value above, not
-## whatever was true when this call started — and `favored` has crossed
-## `renown_threshold`, marks them Renowned. Checking the post-update
-## `has_faith` here (rather than a value captured before the Faith check
-## above) is what lets one large call cross both thresholds at once and
-## correctly land a skeptic as both faithful and Renowned in a single
-## step (issue #7's User Story 4).
-func gain_favored(amount: float, faith_threshold: float = DEFAULT_FAITH_THRESHOLD, renown_threshold: float = DEFAULT_RENOWN_THRESHOLD) -> void:
-	favored += amount
-	if not has_faith and favored >= faith_threshold:
-		has_faith = true
-	if has_faith and favored >= renown_threshold:
-		is_renowned = true
