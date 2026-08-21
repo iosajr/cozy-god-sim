@@ -34,6 +34,14 @@ now there mostly aren't any yet.
   proximity (`scripts/village_spawner.gd`), can unlock a skeptic's Faith,
   and past a second threshold promotes to Renowned, marked with a
   placeholder nameplate tint (`VillagerNameplate.set_renowned()`).
+- `systems/folk.gd` (issue #11): `id`/`has_faith`/`favored`/`is_renowned`/
+  `gain_favored()` extracted out of `Villager` into this shared base —
+  `Villager` now `extends Folk`, unchanged externally. `systems/sheep.gd`
+  is the first other Folk type built on it: full Favored/Renown via the
+  same `gain_favored()`, its own (much higher) Renown threshold, but no
+  Thought/Wish and no Survival Needs at all, per the "domesticated
+  animals get fewer systems" principle below. Spawned/marked by
+  `scripts/sheep_spawner.gd`, a sibling to `village_spawner.gd`.
 - `scripts/camera_rig.gd`: gained a raycast-anchored drag-pan (issue #5),
   additive to the original WASD/edge-pan/zoom/rotate. `scripts/
   presence_light.gd` + `presence_cursor.gd` are a cosmetic-only preview
@@ -94,7 +102,13 @@ The gap between that and everything below is most of the project.
   actually happening. The Player's own view is entirely unaffected — no
   fog-of-war gating for the Player, per `CONTEXT.md`.
 - **Folk**: the same per-individual state as Villager, generalized to
-  animals and plants once those exist.
+  animals and plants once those exist. As of issue #11, `Sheep` is the
+  first such generalization, built on a shared `Folk` base — but `Sheep`
+  has no Thought at all, which sits in tension with `CONTEXT.md`'s Folk
+  entry phrasing ("the Player can perceive Thoughts from"): that's no
+  longer true of every Folk type. Flagged here per issue #11's
+  Implementation Decisions, not rewritten — the right fix isn't obvious
+  enough to prescribe yet (issue #11's Out of Scope).
 - **Disaster**: an event system that can fire a calamity at a Village, and
   internally (not visibly to Folk) tag whether this instance was "just
   nature" or a deliberate act by the associated God — the distinction only
