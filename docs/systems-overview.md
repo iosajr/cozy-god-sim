@@ -159,9 +159,11 @@ The gap between that and everything below is most of the project.
   Buildings/Farm above), succeeding only if there's enough. If there
   isn't, the Villager needs to find food locally instead — this is
   "basic logic to try to avoid" a Villager going hungry, not a
-  punishment: **still no consequence for failing**, per the user's
-  explicit instruction (no starvation penalty, no Faith/Favored/Renown
-  effect — just the attempt itself).
+  punishment: **still no consequence for failing** (no starvation
+  penalty, no Faith/Favored/Renown effect — just the attempt itself) —
+  **explicitly scoped to this slice only, not a permanent decision**
+  (user-clarified); real consequences are intended eventually. Spec'd
+  as issue #16, alongside the Hungry/Starving unification below.
 - **Hungry/Starving (user-confirmed, unifies the outcome model)**: a
   single hunger-progression concept — "possibly a progression" per the
   user, i.e. Hungry escalating to Starving, not necessarily a flat
@@ -174,19 +176,19 @@ The gap between that and everything below is most of the project.
   those can still describe *why* (context/flavor), but Hungry/Starving
   is the unified state that actually matters. Still open: how many
   misses escalate Hungry → Starving, whether/how it decays on a
-  successful eat, and — restated — it still carries no consequence
-  right now, it's tracked state, not a penalty.
-- **Sleeping, newly in scope, same shape as eating (user-confirmed)**:
-  same "periodic check against a real resource/place, try to avoid
-  failure, no consequence if it fails" treatment as eating — but the
-  underlying resource is different in kind. Food is genuinely scarce
-  (a store that can run out); Shelter, per its own definition above, is
-  "as minimal as a nearby tree" — close to always available near a
-  Village. So it's not obvious sleeping has a real failure mode at all
-  in the at-Village case the way eating does; it may only meaningfully
-  "fail" in the away-and-truly-stranded case, mirroring eating's third
-  branch. Flagging this asymmetry rather than forcing sleeping into
-  eating's exact shape — genuinely open, not resolved.
+  successful eat. Consequence-free is restated as temporary, not
+  final — same caveat as directly above. Spec'd as issue #16.
+- **Sleeping, resolved: Tired/Exhausted, mirrors Eating (user-confirmed,
+  spec'd as issue #18)**: same shape as Hungry/Starving — a unified
+  Tired → Exhausted progression, no stage beyond Exhausted yet (no
+  death/collapse mechanic), no consequence for reaching either state,
+  **explicitly temporary/not final, same as Eating's caveat**. The
+  at-Village branch trivially succeeds (Shelter's "as minimal as a
+  nearby tree" framing means it's not meant to be a real gate this
+  slice); the real failure mode is the away-and-unprovisioned case,
+  mirroring Eating's foraging-failure branch. `Villager.house` (issue
+  #17) is readable from the check but doesn't branch on anything yet —
+  future refinement, not this slice.
 - **Ownership stays on Village for now (provisional, matching Housing's
   pointer)**: both checks keep living on `Village` (the same pattern
   `check_eating()`/`advance_eating_checks()` already use), not a new
@@ -227,21 +229,17 @@ The gap between that and everything below is most of the project.
   for itself. Housing (see Survival's Shelter/Housing distinction above)
   and a Farm (food production, below) are the first two kinds identified
   — more may follow.
-- **Housing — genuinely unsettled, not a confirmed shape (user
-  correction)**: the user's instinct leans per-house (each House its own
-  entity, 2-8 occupants) over a per-Village aggregate or per-Villager
-  tracking, but flagged this as unsure, not decided — the shape itself
-  is still open. Don't treat "per-house" as settled when scoping work
-  from this doc.
-- **Provisional placeholder (user-confirmed, explicitly NOT permanent)**:
-  a Villager needs to know where their House is *somehow*, so for now
-  that's a reference living directly on Villager (either a pointer
-  straight to the House, or to whatever manager tracks it — deliberately
-  left to whichever is simplest to implement, since the choice itself
-  isn't meant to be load-bearing). This is only there so something can
-  be built; it is explicitly not the final ownership answer to the
-  question above, and should be revisited once House/Building logic is
-  actually designed rather than assumed settled because code exists.
+- **Housing — genuinely unsettled, shipped as a placeholder anyway
+  (user correction, then direct instruction)**: the user's instinct
+  leans per-house (each House its own entity, 2-8 occupants) over a
+  per-Village aggregate or per-Villager tracking, but flagged this as
+  unsure, not decided. Rather than stay blocked on that, the user asked
+  for something concrete anyway, explicitly marked not-final — spec'd
+  as **issue #17**: a minimal `House` (capacity 2-8) + a direct
+  `Villager.house` pointer (whichever's simplest to implement, not a
+  considered ownership model), no assignment logic, no construction
+  trigger. Every piece of it is marked provisional in its own doc
+  comments so it isn't mistaken for a settled decision later.
 - **Shelter ≠ Housing, resolved (user-confirmed)**: a tree (or other
   minimal natural Shelter, per the Survival section above) is never
   Housing and never manages/owns a Villager the way a House would.
