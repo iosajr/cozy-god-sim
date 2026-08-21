@@ -43,8 +43,7 @@ func _ready() -> void:
 
 	_pivot = _find_pivot()
 	if _pivot:
-		_pitch = clamp(_pivot.rotation.x, deg_to_rad(min_pitch_deg), deg_to_rad(max_pitch_deg))
-		_pivot.rotation.x = _pitch
+		_set_pitch(_pivot.rotation.x)
 
 
 func _find_camera(node: Node) -> Camera3D:
@@ -72,6 +71,14 @@ func _find_pivot() -> Node3D:
 	return parent as Node3D
 
 
+## Clamps radians to [min_pitch_deg, max_pitch_deg], stores it in _pitch,
+## and applies it to the Pivot. Shared by the initial seed in _ready()
+## and every per-frame update in _unhandled_input().
+func _set_pitch(radians: float) -> void:
+	_pitch = clamp(radians, deg_to_rad(min_pitch_deg), deg_to_rad(max_pitch_deg))
+	_pivot.rotation.x = _pitch
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_RIGHT:
@@ -92,12 +99,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			# dragging the mouse down (relative.y > 0) should tilt further
 			# down (more negative), and dragging up should tilt toward the
 			# horizon (less negative) — an FPS-mouselook-style convention.
-			_pitch = clamp(
-				_pitch - event.relative.y * pitch_sensitivity,
-				deg_to_rad(min_pitch_deg),
-				deg_to_rad(max_pitch_deg)
-			)
-			_pivot.rotation.x = _pitch
+			_set_pitch(_pitch - event.relative.y * pitch_sensitivity)
 
 
 func _on_left_click(pressed: bool) -> void:
