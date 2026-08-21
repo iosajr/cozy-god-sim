@@ -161,9 +161,21 @@ The gap between that and everything below is most of the project.
   "basic logic to try to avoid" a Villager going hungry, not a
   punishment: **still no consequence for failing**, per the user's
   explicit instruction (no starvation penalty, no Faith/Favored/Renown
-  effect — just the attempt itself). Open, not yet named: whether
-  "couldn't get enough from the store" is its own new outcome, or reuses
-  EATING_FORAGING even though the Villager isn't technically "away."
+  effect — just the attempt itself).
+- **Hungry/Starving (user-confirmed, unifies the outcome model)**: a
+  single hunger-progression concept — "possibly a progression" per the
+  user, i.e. Hungry escalating to Starving, not necessarily a flat
+  binary — that covers **every** way a Villager can fail to eat, not
+  just one branch. Empty store at the Village, failed foraging while
+  away, anything else that comes later — all the same underlying
+  concept, not separate outcomes to track independently. This
+  effectively retires the old EATING_AT_VILLAGE/EATING_PROVISIONED/
+  EATING_FORAGING three-outcome split as *the* model for what happened —
+  those can still describe *why* (context/flavor), but Hungry/Starving
+  is the unified state that actually matters. Still open: how many
+  misses escalate Hungry → Starving, whether/how it decays on a
+  successful eat, and — restated — it still carries no consequence
+  right now, it's tracked state, not a penalty.
 - **Sleeping, newly in scope, same shape as eating (user-confirmed)**:
   same "periodic check against a real resource/place, try to avoid
   failure, no consequence if it fails" treatment as eating — but the
@@ -254,22 +266,40 @@ The gap between that and everything below is most of the project.
 - **Farm (user-confirmed mechanic)**: a cycle — seed, grow (needs periodic
   watering to progress, not continuous staffing), harvest (produces
   food), then re-seed to go again. Watering comes from rain, a Villager
-  manually watering it, or a river — the river option specifically means
-  a Known Territory Location tagged `water` that the Village already
-  knows about (reuses issue #8's Location/tag system rather than
-  inventing a separate one); a Village with no known `water`-tagged
-  Location can't rely on it. Explicitly does **not** require constant
-  Villager attendance to progress. Growth itself advances on the same
-  periodic-check cadence as Survival Needs above — not per-frame
-  (user-confirmed).
+  manually watering it, or a river. **Which "river" means is now an open
+  question, not settled** — originally assumed to be a Known Territory
+  Location tagged `water`, but the Village Location concept below
+  complicates that (a river relevant to farm-watering is arguably a
+  Village-local thing, not a wider-World Known Territory entry) — see
+  the water-source overlap flagged under Village Location. Explicitly
+  does **not** require constant Villager attendance to progress. Growth
+  itself advances on the same periodic-check cadence as Survival Needs
+  above — not per-frame (user-confirmed).
 - **Harvest is autonomous, and costs trips (user-confirmed)**: no Player
-  trigger — a Villager harvests and carries the food to "the store"
-  (the Village's food stock; whether that's literally
-  `GameState.resources.food` under a new name, or a distinct entity, is
-  still open — a naming/data question, not a mechanic question). A
+  trigger — a Villager harvests and carries the food to "the store." A
   Villager can only carry a limited amount per trip, so a large harvest
   takes multiple trips rather than moving all at once — a real
   logistics/time cost, not an instant transfer.
+- **The store is a place, and which place depends on progression
+  (user-confirmed)**: not one fixed thing — a Village's food gets stored
+  wherever it currently can be: a literal spot on the ground (earliest/
+  simplest), a Villager's own House once Housing exists, or a dedicated
+  communal storehouse Building later. Which tier is active/how a Village
+  progresses between them isn't designed — deliberately deferred, per
+  the user, not a gap to fill now.
+- **Village Location — a proposed sibling concept to Known Territory's
+  Location, NOT the same thing (user-confirmed)**: Known Territory's
+  `Location` (issue #8) is specifically about the wider World a Village
+  knows *about*; a storage spot/House/Farm is a place *at* the Village
+  itself — different concept, "similar lines" per the user. Naming
+  itself is only loosely proposed ("village locations vs. territory
+  locations") — not committed, and reusing the bare term "Location" for
+  both would blur two genuinely different things. **Real overlap case,
+  flagged not resolved**: a water source (river) could plausibly matter
+  to *both* — a Known Territory Location tagged `water` for the wider
+  World, and something a Farm/Village Location needs to be near for
+  watering. Whether that's the same underlying thing referenced twice,
+  two related-but-distinct things, or something else isn't decided.
 - **Needs should have real consequences (user-confirmed, direction only)**:
   now that Villages are meant to actually build things, the Survival
   Needs check (see above) shouldn't stay purely "recorded, no
