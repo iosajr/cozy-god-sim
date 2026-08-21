@@ -373,15 +373,62 @@ threshold at which Hungry/Starving or Tired/Exhausted crosses into
 Must-do territory (ties to #16/#18's still-open escalation-threshold
 questions). Don't guess — ask.
 
-## Daily Routine _(proposed term, not committed)_ — one piece of Task Priority
+### Architecture, resolved (2026-08-22)
+
+- **Task**: the queryable unit of work a Folk member is or could be
+  doing — this is what Daily Routine's "current activity" state below
+  actually is, formalized. Its **Priority is a numeric urgency score,
+  not a fixed enum field** — this is what makes "Band is dynamic"
+  (above) cheap: escalating urgency is just recomputing a number, not
+  mutating a category. **Must-do / Important / Passtime stay as
+  vocabulary**, not stored data — a way to talk about *ranges* of that
+  score (e.g. the interruption heuristic asks "does this priority clear
+  the Must-do threshold," it doesn't check a `band` field).
+- **TaskProvider** _(proposed term, not committed)_ — ownership,
+  generalized on purpose: rather than hard-requiring a `Village`, a more
+  general "whoever groups a set of Folk and hands out tasks" concept
+  owns the per-group task pool and a pure query,
+  `query_next_task(folk) -> Task`. `Village` is the first/main
+  implementation of it — mirroring the existing `check_eating`/
+  `advance_eating_checks` split (`check_eating` is a pure, per-Villager
+  query; `advance_eating_checks` is the driver loop that calls it at the
+  right cadence). A Folk member calls into its TaskProvider at real
+  decision points — its current Task finished, got interrupted by a
+  Must-do escalation, or its own periodic tick fires — **not** a
+  continuous loop that proactively re-scores and re-assigns every Folk
+  member every tick. This scales by construction: cost is proportional
+  to how many Folk actually need a new decision this tick, not to
+  population size.
+  - **Why generalized past Village**: a lone Folk member with no Village
+    still needs tasking. This is the same shape as the still-open
+    Buildings-section question — "is a solitary Folk with just their
+    own Shelter a Village of population 1, or not a Village at all?" —
+    and TaskProvider deliberately sidesteps needing an answer to that
+    rather than picking one: a true loner just gets its own minimal
+    pool-of-one (or none) as its own TaskProvider, instead of being
+    forced to resolve as a Village either way. Same "generalize only
+    once a second concrete need actually requires it" spirit as the
+    `Folk` base-class extraction (issue #11), not a preemptive
+    abstraction.
+- **Sequencing (user-confirmed)**: Ageing lands first (simple enough to
+  spec on its own, see the Roadmap section below), then this Task/
+  TaskProvider core, then Reproducing is layered in as one Task kind
+  once the core exists — not built standalone.
+
+## Daily Routine — merged into Task Priority (2026-08-22), kept for history
 
 Prompted by a real gap the user spotted: with Farm work (#15), Eating
 (#16), and Sleeping (#18) all forming as separate mechanics, nothing
 coordinates what a single Villager is actually *doing* at any given
 moment — each currently fires on its own independent random periodic
-countdown, with no shared notion of "current activity" at all. Now
-understood as living inside Task Priority above, not a standalone
-system of its own.
+countdown, with no shared notion of "current activity" at all. Fully
+merged now, not just "living inside" Task Priority: there is no
+separate Daily Routine concept anymore — Eating and Sleeping are
+specific **Task** kinds (user-confirmed: "eating sleeping should be
+tasks"), scored and interrupted the same way as any other Task. The
+mechanic details below (nightfall lookahead, twice-daily eating, etc.)
+are all still accurate, just reframed as Task-kind specifics rather
+than a parallel system.
 
 - **Scope: one general concept, not a farm-specific one
   (user-confirmed)**: a single per-Villager "what am I doing right now"
