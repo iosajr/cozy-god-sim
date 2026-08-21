@@ -246,3 +246,81 @@ func test_same_seed_produces_the_same_wish_vs_flavor_choice_and_outcome() -> voi
 		assert_not_null(villager_b.current_wish)
 		assert_eq(villager_a.current_wish.domain, villager_b.current_wish.domain)
 		assert_eq(villager_a.current_wish.outcome, villager_b.current_wish.outcome)
+
+
+func test_villager_defaults_is_away_and_is_provisioned_to_false() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	assert_false(villager.is_away)
+	assert_false(villager.is_provisioned)
+
+
+func test_villager_defaults_last_eating_outcome_to_empty_string() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	assert_eq(villager.last_eating_outcome, "")
+
+
+func test_check_eating_returns_at_village_outcome_when_not_away_regardless_of_food() -> void:
+	var village := Village.new()
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	assert_eq(village.check_eating(villager, true), Village.EATING_AT_VILLAGE)
+	assert_eq(village.check_eating(villager, false), Village.EATING_AT_VILLAGE)
+
+
+func test_check_eating_returns_provisioned_outcome_when_away_and_provisioned() -> void:
+	var village := Village.new()
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_away = true
+	villager.is_provisioned = true
+
+	assert_eq(village.check_eating(villager, false), Village.EATING_PROVISIONED)
+
+
+func test_check_eating_returns_foraging_outcome_when_away_and_unprovisioned() -> void:
+	var village := Village.new()
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_away = true
+	villager.is_provisioned = false
+
+	assert_eq(village.check_eating(villager, true), Village.EATING_FORAGING)
+
+
+func test_advance_eating_checks_does_not_record_an_outcome_before_the_countdown_elapses() -> void:
+	var village := Village.new()
+	village.eating_check_interval_min = 100.0
+	village.eating_check_interval_max = 100.0
+	village.populate(1)
+	var villager: Villager = village.villagers[0]
+
+	village.advance_eating_checks(1.0, true)
+
+	assert_eq(villager.last_eating_outcome, "")
+
+
+func test_advance_eating_checks_records_an_outcome_once_the_countdown_elapses() -> void:
+	var village := Village.new()
+	village.eating_check_interval_min = 1.0
+	village.eating_check_interval_max = 1.0
+	village.populate(1)
+	var villager: Villager = village.villagers[0]
+
+	village.advance_eating_checks(2.0, true)
+
+	assert_eq(villager.last_eating_outcome, Village.EATING_AT_VILLAGE)
+
+
+func test_advance_eating_checks_ticks_down_the_countdown_by_delta() -> void:
+	var village := Village.new()
+	village.eating_check_interval_min = 10.0
+	village.eating_check_interval_max = 10.0
+	village.populate(1)
+	var villager: Villager = village.villagers[0]
+
+	village.advance_eating_checks(4.0, true)
+	assert_eq(villager.last_eating_outcome, "")
+	village.advance_eating_checks(4.0, true)
+	assert_eq(villager.last_eating_outcome, "")
+	village.advance_eating_checks(4.0, true)
+	assert_eq(villager.last_eating_outcome, Village.EATING_AT_VILLAGE)

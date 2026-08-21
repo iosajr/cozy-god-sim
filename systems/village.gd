@@ -57,6 +57,31 @@ var reroll_interval_max: float = 24.0
 ## roll one way.
 var wish_chance: float = 0.15
 
+## Cadence for the periodic per-Villager eating check (issue #10, docs/
+## systems-overview.md's Survival section: "roughly 1-2 times a day...
+## not a continuously depleting meter"). Mirrors reroll_interval_min/max
+## above exactly — a separate countdown (see _eating_countdowns) so Thought
+## rerolls and eating checks tick independently. Deliberately larger than
+## reroll_interval_min/max since eating is checked far less often than a
+## Thought reroll; like reroll_interval_min/max, the exact translation from
+## GameState.day_speed/time_of_day into a concrete real-time interval is an
+## implementer's call (issue #10's Implementation Decisions) — a tunable
+## placeholder, not a tuned design value.
+var eating_check_interval_min: float = 60.0
+var eating_check_interval_max: float = 90.0
+
+## Named outcomes check_eating() can return — the three branches issue #10
+## (docs/systems-overview.md's Survival section) calls for the periodic
+## eating check. Only EATING_AT_VILLAGE does anything real this slice;
+## EATING_PROVISIONED and EATING_FORAGING are reached and recorded (see
+## Villager.last_eating_outcome) but carry no success/fail logic, no
+## consequence, yet (issue #10's Out of Scope) — real hunting/foraging
+## behavior is a separate, later, larger slice.
+const EATING_AT_VILLAGE := "at_village"
+const EATING_PROVISIONED := "provisioned"
+const EATING_FORAGING := "foraging"
+const EATING_OUTCOMES: Array[String] = [EATING_AT_VILLAGE, EATING_PROVISIONED, EATING_FORAGING]
+
 ## Placeholder name for the starting Location a new Village already knows
 ## about (its own site) — see known_locations below. Village currently has
 ## no name field of its own, so this is a placeholder value, not a design
@@ -74,6 +99,7 @@ var known_locations: Array[Location] = []
 
 var _rng := RandomNumberGenerator.new()
 var _reroll_countdowns: Dictionary = {}  # Villager -> float seconds remaining
+var _eating_countdowns: Dictionary = {}  # Villager -> float seconds remaining
 
 
 ## `seed_value`: pass a non-negative int to make Faith flips and Thought
@@ -96,6 +122,7 @@ func populate(count: int) -> void:
 		)
 		villagers.append(villager)
 		_reroll_countdowns[villager] = _random_reroll_interval()
+		_eating_countdowns[villager] = _random_eating_check_interval()
 
 
 ## Re-rolls a given Villager onto a new random Thought — most of the time
@@ -130,6 +157,47 @@ func advance_thoughts(delta: float, pantheon: Pantheon) -> void:
 			reroll_thought(villager, pantheon)
 			remaining = _random_reroll_interval()
 		_reroll_countdowns[villager] = remaining
+
+
+## Answers "is this Villager in a position to eat?" (issue #10, docs/
+## systems-overview.md's Survival section) with one of the three EATING_*
+## outcomes above. `village_has_food` is accepted — and forwarded by
+## village_spawner.gd from GameState.resources.food, mirroring how
+## `pantheon` is forwarded into reroll_thought() (User Story 6) — for the
+## seam's sake, but this slice's only real branch (an at-the-Village
+## Villager) is trivially fine regardless of its value (User Story 4); it's
+## not yet consulted by either away branch either, since both are reached
+## and recorded only, with no success/fail logic (issue #10's Testing
+## Decisions / Out of Scope). `village_has_food` starts mattering once a
+## Villager can actually go hungry, which is exactly what this slice
+## deliberately leaves unresolved.
+func check_eating(villager: Villager, village_has_food: bool) -> String:
+	if not villager.is_away:
+		return EATING_AT_VILLAGE
+	if villager.is_provisioned:
+		return EATING_PROVISIONED
+	return EATING_FORAGING
+
+
+## Advances every Villager's eating-check countdown by `delta` seconds,
+## calling check_eating() for any Villager whose countdown has elapsed and
+## recording the result on Villager.last_eating_outcome (issue #10's User
+## Story 7 — reached and recorded, not acted on). Mirrors advance_thoughts()
+## above exactly, just against `_eating_countdowns` instead of
+## `_reroll_countdowns` — a separate timer per issue #10's User Story 2, so
+## Thought rerolls and eating checks tick independently. Same "call once
+## per frame/tick, Village itself has no _process" contract as
+## advance_thoughts(). `village_has_food` is forwarded straight through to
+## check_eating() — see its doc comment.
+func advance_eating_checks(delta: float, village_has_food: bool) -> void:
+	for villager in villagers:
+		if not _eating_countdowns.has(villager):
+			_eating_countdowns[villager] = _random_eating_check_interval()
+		var remaining: float = _eating_countdowns[villager] - delta
+		if remaining <= 0.0:
+			villager.last_eating_outcome = check_eating(villager, village_has_food)
+			remaining = _random_eating_check_interval()
+		_eating_countdowns[villager] = remaining
 
 
 ## Links `wish` to whichever God in `pantheon` claims its Domain (via the
@@ -174,6 +242,10 @@ func knows_location_with_tag(tag: String) -> bool:
 
 func _random_reroll_interval() -> float:
 	return _rng.randf_range(reroll_interval_min, reroll_interval_max)
+
+
+func _random_eating_check_interval() -> float:
+	return _rng.randf_range(eating_check_interval_min, eating_check_interval_max)
 
 
 func _random_thought() -> String:
