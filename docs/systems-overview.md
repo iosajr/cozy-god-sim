@@ -355,6 +355,17 @@ does at any given moment, sorted into bands:
   interrupt, full stop. This is a real heuristic, not a precise
   algorithm — don't over-formalize it into strict rules beyond what's
   actually been said.
+- **Ownership — "probably" Village/Manager-owned, hands out tasks
+  (user-confirmed, leaning not a hard commitment)**: "task priority
+  probably to be handled by village or some manager, handing out
+  tasks" — a top-down distributor deciding what each Villager does,
+  rather than each Villager independently deciding for itself. Mirrors
+  the existing pattern of `Village` owning periodic checks
+  (`advance_thoughts`/`advance_eating_checks`/etc.) rather than a new
+  ownership model — consistent with, not a departure from, how
+  everything else in this project is structured. Still a "probably,"
+  same non-final spirit as Housing's own ownership question (issue
+  #17).
 
 **Still genuinely open, not yet asked**: how ties within a band resolve
 if multiple Must-do needs are critical simultaneously; the exact
@@ -468,16 +479,34 @@ Roadmap items below.
   exploring. See the Task Priority section above. Actual
   hunting-for-real (for people or wild animals like wolves) is still
   flagged separately above under Survival as its own later slice.
-- **Ageing — reprioritized, "should be added somewhat soon"
-  (user-confirmed)**: no longer indefinitely deferred, but still
-  genuinely undesigned — to what end (life stages, death, work capacity,
-  Favored/Renown eligibility, something else) isn't decided. Don't
-  invent a mechanism; ask directly before speccing.
-- **Reproducing — new, "should be added somewhat soon" (user-raised,
-  first mention this session)**: Villagers having offspring / population
-  growth. Completely undesigned — no mechanic, no relationship to
-  Housing/Ageing/anything else confirmed yet. Don't invent; ask
-  directly before speccing.
+- **Ageing — "should be added somewhat soon," partially resolved
+  (user-confirmed)**: **"things age, tracked yearly"** — a simple
+  age-in-years counter, applied broadly ("things," not confirmed
+  Villager-only — read as likely Folk-general, not just Villagers, but
+  that reading isn't explicitly confirmed either). Real-time-to-in-game-
+  year conversion is explicitly an implementer's-call placeholder — the
+  user's own words, **"time to be determined, pick something for now"**
+  — don't treat whatever number gets picked as a design decision worth
+  defending, it's a tunable placeholder like `reroll_interval_min/max`
+  and friends. **Still genuinely undesigned**: what age actually *does*
+  — life stages, death, work capacity, Favored/Renown eligibility,
+  Reproducing-eligibility (see below) — none of that is decided. Don't
+  invent a mechanism.
+- **Reproducing — "should be added somewhat soon," real shape given
+  (user-confirmed)**: **"male-female → time → baby, B&W style"** —
+  Villagers get a Male/Female attribute, a pairing plus time produces
+  offspring, and — per the "B&W style" reference (Black & White's own
+  ambient, non-menu-driven villager behavior, matching this project's
+  existing "no menus" principle elsewhere) — this is meant to happen
+  autonomously in the background of the simulation, not as a Player-
+  triggered mechanic. **Genuinely open, not yet asked**: how two
+  Villagers actually get paired (proximity? an existing relationship
+  concept, none of which exist yet? random?), how long "time" actually
+  is, and — a real cross-dependency — whether a newborn needs some
+  minimum maturity/life-stage from Ageing above before it can itself
+  reproduce, which Ageing doesn't define yet. Don't invent any of this;
+  Ageing may need at least a minimal life-stage concept before
+  Reproducing is fully spec-able.
 
 ## Listening and Acting
 
