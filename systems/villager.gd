@@ -55,6 +55,25 @@ var favored: float = 0.0
 ## here — that's the next slice (issue #7's Out of Scope).
 var is_renowned: bool = false
 
+## Whether this Villager is currently away from the Village (issue #10's
+## Survival Needs eating-check slice — CONTEXT.md doesn't cover Survival
+## yet, see docs/systems-overview.md's Survival section). Gates which
+## Village.check_eating() branch applies: false (the default) always takes
+## the trivial at-the-Village branch. Nothing sets this to true yet — no
+## expedition mechanic exists — it's purely the data shape the future
+## Known Territory expedition slice will set (issue #10's Out of Scope).
+var is_away: bool = false
+## Only meaningful when `is_away` is true — whether this Villager brought
+## food for the journey (issue #10). Nothing sets this to true yet, same
+## "seam, not behavior" reasoning as `is_away` above.
+var is_provisioned: bool = false
+## Last outcome Village.check_eating() recorded for this Villager, via
+## Village.advance_eating_checks() — one of Village.EATING_OUTCOMES, or
+## empty string before the first periodic check ever fires. Recorded for
+## observability only; no Faith/Favored/Renown/Wish/resource consequence
+## is attached to any outcome this slice (issue #10's Out of Scope).
+var last_eating_outcome: String = ""
+
 
 func _init(p_id: String, p_has_faith: bool, p_current_thought: String, p_current_wish: Wish = null) -> void:
 	id = p_id
