@@ -306,14 +306,52 @@ The gap between that and everything below is most of the project.
   effects? Faith effects? something else?) is explicitly not decided —
   flagged here rather than invented.
 
-## Daily Routine _(proposed term, not committed)_ — not in CONTEXT.md yet
+## Task Priority _(proposed term, not committed)_ — the real parent concept
 
-New domain thread, prompted by a real gap the user spotted: with Farm
-work (#15), Eating (#16), and Sleeping (#18) all forming as separate
-mechanics, nothing coordinates what a single Villager is actually
-*doing* at any given moment — each currently fires on its own
-independent random periodic countdown, with no shared notion of
-"current activity" at all.
+**Reframe (user-confirmed): Daily Routine below is a subset of this,
+not its own separate thing** — "daily routine stuff is more so a loose
+idea and moreso tied into this ai task divider/logic stuff." The real
+underlying concept is a priority system that decides what a Villager
+does at any given moment, sorted into bands:
+
+- **Must-do**: survival-critical, avoiding-death-tier urgency. The
+  user's own illustrative example (not a designed mechanic): "putting
+  out fires." Presumably where a Hungry/Starving or Tired/Exhausted
+  Villager (issues #16/#18) escalating far enough would eventually
+  land, though that connection isn't explicitly confirmed yet — see
+  open questions below.
+- **Important tasks**: scheduled needs and assigned work that matter
+  but aren't emergencies — Eating/Sleeping's normal (non-crisis)
+  schedule (Daily Routine below) most likely lives here, though not
+  explicitly confirmed.
+- **Passtime / idle / lazy tasks**: optional filler for whatever time
+  isn't claimed by the bands above. **This is where Shepherding now
+  actually lives** — resolving its earlier "roadmap, not designed"
+  status: it's not a separate system, just one passtime-tier task
+  option among others the user named together: gathering, harvesting,
+  exploring. Farm gathering/harvesting itself is treated as passtime-
+  tier **"as long as you consider gathering food non-necessary"** — the
+  user's own hedge, meaning this could plausibly become
+  urgency-dependent (a Village critically short on food might need
+  gathering to escalate out of passtime) but that dynamic isn't
+  confirmed, just flagged as a live possibility.
+
+**Genuinely open, not yet asked**: whether a task's band is fixed per
+task-type or can shift with context (the food-gathering hedge above
+suggests maybe); whether a Must-do task can interrupt an
+already-in-progress lower-tier task, or waits for a natural stopping
+point; how ties within a band resolve if multiple Must-do needs are
+critical simultaneously. Don't guess any of these — ask.
+
+## Daily Routine _(proposed term, not committed)_ — one piece of Task Priority
+
+Prompted by a real gap the user spotted: with Farm work (#15), Eating
+(#16), and Sleeping (#18) all forming as separate mechanics, nothing
+coordinates what a single Villager is actually *doing* at any given
+moment — each currently fires on its own independent random periodic
+countdown, with no shared notion of "current activity" at all. Now
+understood as living inside Task Priority above, not a standalone
+system of its own.
 
 - **Scope: one general concept, not a farm-specific one
   (user-confirmed)**: a single per-Villager "what am I doing right now"
@@ -406,13 +444,21 @@ Roadmap items below.
 
 ## Roadmap, not designed yet (user-flagged, don't spec until sharpened)
 
-- **Shepherding**: a Villager tending/managing Sheep (or future domesticated
-  animals) — not designed. Actual hunting-for-real (for people or wild
-  animals like wolves) is already flagged above under Survival as its own
-  later slice.
-- **Ageing**: Folk (starting with Villagers?) ageing over time — to what
-  end (life stages, death, something else) isn't decided. Genuinely new
-  territory; don't invent a mechanism.
+- ~~Shepherding~~ — **resolved, moved above**: not its own system, just
+  a passtime-tier Task Priority option alongside gathering/harvesting/
+  exploring. See the Task Priority section above. Actual
+  hunting-for-real (for people or wild animals like wolves) is still
+  flagged separately above under Survival as its own later slice.
+- **Ageing — reprioritized, "should be added somewhat soon"
+  (user-confirmed)**: no longer indefinitely deferred, but still
+  genuinely undesigned — to what end (life stages, death, work capacity,
+  Favored/Renown eligibility, something else) isn't decided. Don't
+  invent a mechanism; ask directly before speccing.
+- **Reproducing — new, "should be added somewhat soon" (user-raised,
+  first mention this session)**: Villagers having offspring / population
+  growth. Completely undesigned — no mechanic, no relationship to
+  Housing/Ageing/anything else confirmed yet. Don't invent; ask
+  directly before speccing.
 
 ## Listening and Acting
 
