@@ -316,10 +316,17 @@ does at any given moment, sorted into bands:
 
 - **Must-do**: survival-critical, avoiding-death-tier urgency. The
   user's own illustrative example (not a designed mechanic): "putting
-  out fires." Presumably where a Hungry/Starving or Tired/Exhausted
-  Villager (issues #16/#18) escalating far enough would eventually
-  land, though that connection isn't explicitly confirmed yet — see
-  open questions below.
+  out fires." **Confirmed connection**: genuinely life-threatening
+  Hungry/Starving or Tired/Exhausted escalation (issues #16/#18) — "if
+  starving about to die... should probably do that" — is exactly this
+  band, and so is another Villager being in mortal danger that this
+  Villager could help with ("someone else about to die and can save
+  them"). Consistent with, not a change to, #16/#18's already-published
+  "no consequence yet, not final" scoping — this is what those real
+  consequences will eventually look like, not a contradiction. **New,
+  unspec'd idea surfaced here**: a Villager helping/saving another
+  Villager in mortal danger — genuinely new, don't design or invent
+  further than this example.
 - **Important tasks**: scheduled needs and assigned work that matter
   but aren't emergencies — Eating/Sleeping's normal (non-crisis)
   schedule (Daily Routine below) most likely lives here, though not
@@ -331,17 +338,29 @@ does at any given moment, sorted into bands:
   option among others the user named together: gathering, harvesting,
   exploring. Farm gathering/harvesting itself is treated as passtime-
   tier **"as long as you consider gathering food non-necessary"** — the
-  user's own hedge, meaning this could plausibly become
-  urgency-dependent (a Village critically short on food might need
-  gathering to escalate out of passtime) but that dynamic isn't
-  confirmed, just flagged as a live possibility.
+  user's own hedge.
+- **Band is dynamic, not fixed per task-type (user-confirmed)**: a
+  task's band can shift with context/urgency — e.g. gathering food
+  escalating out of passtime if the Village is critically short.
+  Confirms the hedge above rather than leaving it a maybe.
+- **Interruption — nuanced, not a simple always/never rule
+  (user-confirmed, concrete examples given)**: a task close to
+  completion, or one where abandoning it mid-way causes a bad outcome,
+  should generally be allowed to finish — the user's own example: a
+  Villager nearly done herding sheep back shouldn't drop everything and
+  let them go free just to hit a Sleeping schedule slot on time.
+  Merely-Important scheduled needs (like normal bedtime) do NOT
+  auto-interrupt a near-finished lower-tier task. Genuine Must-do
+  emergencies (real, near-death urgency — see above) DO override and
+  interrupt, full stop. This is a real heuristic, not a precise
+  algorithm — don't over-formalize it into strict rules beyond what's
+  actually been said.
 
-**Genuinely open, not yet asked**: whether a task's band is fixed per
-task-type or can shift with context (the food-gathering hedge above
-suggests maybe); whether a Must-do task can interrupt an
-already-in-progress lower-tier task, or waits for a natural stopping
-point; how ties within a band resolve if multiple Must-do needs are
-critical simultaneously. Don't guess any of these — ask.
+**Still genuinely open, not yet asked**: how ties within a band resolve
+if multiple Must-do needs are critical simultaneously; the exact
+threshold at which Hungry/Starving or Tired/Exhausted crosses into
+Must-do territory (ties to #16/#18's still-open escalation-threshold
+questions). Don't guess — ask.
 
 ## Daily Routine _(proposed term, not committed)_ — one piece of Task Priority
 
