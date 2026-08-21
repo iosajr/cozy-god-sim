@@ -3,23 +3,33 @@ extends Node3D
 ## A simple RTS/god-sim style camera:
 ##   - WASD / arrow keys to pan across the ground plane
 ##   - Mouse wheel to zoom in/out
-##   - Hold right mouse button and drag to rotate (yaw)
+##   - Hold right mouse button and drag to rotate (yaw) and tilt (pitch,
+##     issue #9) — one gesture for the whole "look around" feel.
 ##   - Hold left mouse button and drag to pan 1:1 — the ground point
 ##     grabbed at press-time stays under the cursor (issue #5), additive
 ##     to the WASD/edge-pan above, not a replacement.
 ## Attach to a Node3D that contains a Pivot (Node3D) -> Camera3D chain,
-## or just a direct Camera3D child — either works with this script.
+## or just a direct Camera3D child — either works with this script. Pitch
+## is only applied when a separate Pivot node exists: applying it to the
+## CameraRig root itself (the direct-Camera3D-child layout) would
+## contaminate the yaw-only assumption `_physics_process()`'s WASD/
+## edge-pan/drag-pan math makes about `global_transform.basis`.
 
 @export var pan_speed: float = 18.0
 @export var zoom_speed: float = 2.0
 @export var min_zoom: float = 6.0
 @export var max_zoom: float = 60.0
 @export var rotate_sensitivity: float = 0.006
+@export var pitch_sensitivity: float = 0.006
+@export var min_pitch_deg: float = -80.0
+@export var max_pitch_deg: float = -10.0
 @export var edge_pan_enabled: bool = true
 @export var edge_pan_margin: float = 12.0
 
 var _camera: Camera3D
+var _pivot: Node3D
 var _zoom_distance: float = 24.0
+var _pitch: float = 0.0
 var _rotating: bool = false
 var _dragging: bool = false
 var _drag_grab_point: Vector3 = Vector3.ZERO
@@ -31,6 +41,11 @@ func _ready() -> void:
 		_zoom_distance = _camera.position.z if _camera.position.z > 0.1 else _zoom_distance
 		_apply_zoom()
 
+	_pivot = _find_pivot()
+	if _pivot:
+		_pitch = clamp(_pivot.rotation.x, deg_to_rad(min_pitch_deg), deg_to_rad(max_pitch_deg))
+		_pivot.rotation.x = _pitch
+
 
 func _find_camera(node: Node) -> Camera3D:
 	for child in node.get_children():
@@ -40,6 +55,21 @@ func _find_camera(node: Node) -> Camera3D:
 		if found:
 			return found
 	return null
+
+
+## Resolves the Camera3D's parent as the pitch target — but only when
+## that parent is a separate Pivot node, not the CameraRig root itself.
+## A direct-Camera3D-child layout (no Pivot) is a valid scene shape per
+## this script's own doc comment, and pitching the root would corrupt
+## the yaw-only `global_transform.basis` assumption the WASD/edge-pan/
+## drag-pan math relies on — so that layout gets no pitch at all.
+func _find_pivot() -> Node3D:
+	if not _camera:
+		return null
+	var parent := _camera.get_parent()
+	if parent == self:
+		return null
+	return parent as Node3D
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -56,6 +86,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			_apply_zoom()
 	elif event is InputEventMouseMotion and _rotating:
 		rotate_y(-event.relative.x * rotate_sensitivity)
+		if _pivot:
+			# Pivot pitch is negative-down in this scene's authored layout
+			# (Camera3D sits behind Pivot along +Z, looking down -Z), so
+			# dragging the mouse down (relative.y > 0) should tilt further
+			# down (more negative), and dragging up should tilt toward the
+			# horizon (less negative) — an FPS-mouselook-style convention.
+			_pitch = clamp(
+				_pitch - event.relative.y * pitch_sensitivity,
+				deg_to_rad(min_pitch_deg),
+				deg_to_rad(max_pitch_deg)
+			)
+			_pivot.rotation.x = _pitch
 
 
 func _on_left_click(pressed: bool) -> void:
