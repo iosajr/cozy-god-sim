@@ -153,6 +153,34 @@ The gap between that and everything below is most of the project.
   animal, would need *more* systems, not fewer — the "fewer systems"
   principle applies to *domesticated* Folk specifically, not to every
   animal).
+- **Eating now checks/consumes real stock (user-confirmed, revises
+  issue #10)**: the at-Village branch stops trivially succeeding
+  regardless of food — it now actually consumes from the store (see
+  Buildings/Farm above), succeeding only if there's enough. If there
+  isn't, the Villager needs to find food locally instead — this is
+  "basic logic to try to avoid" a Villager going hungry, not a
+  punishment: **still no consequence for failing**, per the user's
+  explicit instruction (no starvation penalty, no Faith/Favored/Renown
+  effect — just the attempt itself). Open, not yet named: whether
+  "couldn't get enough from the store" is its own new outcome, or reuses
+  EATING_FORAGING even though the Villager isn't technically "away."
+- **Sleeping, newly in scope, same shape as eating (user-confirmed)**:
+  same "periodic check against a real resource/place, try to avoid
+  failure, no consequence if it fails" treatment as eating — but the
+  underlying resource is different in kind. Food is genuinely scarce
+  (a store that can run out); Shelter, per its own definition above, is
+  "as minimal as a nearby tree" — close to always available near a
+  Village. So it's not obvious sleeping has a real failure mode at all
+  in the at-Village case the way eating does; it may only meaningfully
+  "fail" in the away-and-truly-stranded case, mirroring eating's third
+  branch. Flagging this asymmetry rather than forcing sleeping into
+  eating's exact shape — genuinely open, not resolved.
+- **Ownership stays on Village for now (provisional, matching Housing's
+  pointer)**: both checks keep living on `Village` (the same pattern
+  `check_eating()`/`advance_eating_checks()` already use), not a new
+  Manager class — reusing what's already there rather than introducing
+  a new owner for the same reason the Villager→House pointer above is a
+  placeholder, not a final answer.
 - **Real dependency, not deferred**: branches 2 and 3 both require the
   Known Territory expedition mechanic (issue #8's follow-up, not built
   yet) to mean anything — there's no "away from the Village" state to
