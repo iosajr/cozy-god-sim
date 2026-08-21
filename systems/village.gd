@@ -57,7 +57,20 @@ var reroll_interval_max: float = 24.0
 ## roll one way.
 var wish_chance: float = 0.15
 
+## Placeholder name for the starting Location a new Village already knows
+## about (its own site) — see known_locations below. Village currently has
+## no name field of its own, so this is a placeholder value, not a design
+## decision (issue #8's Implementation Decisions).
+const STARTING_LOCATION_NAME := "the Village"
+
 var villagers: Array[Villager] = []
+
+## A Village's shared, known-to-the-whole-community Known Territory
+## (CONTEXT.md's Known Territory entry) — not tracked per-Villager. Starts
+## with exactly one Location representing the Village's own site (issue
+## #8's User Story 5); grows only via the (not-yet-built) expedition
+## mechanic. See knows_location_with_tag() below for the query helper.
+var known_locations: Array[Location] = []
 
 var _rng := RandomNumberGenerator.new()
 var _reroll_countdowns: Dictionary = {}  # Villager -> float seconds remaining
@@ -70,6 +83,8 @@ var _reroll_countdowns: Dictionary = {}  # Villager -> float seconds remaining
 func _init(seed_value: int = -1) -> void:
 	if seed_value >= 0:
 		_rng.seed = seed_value
+	var starting_tags: Array[String] = ["village"]
+	known_locations.append(Location.new(STARTING_LOCATION_NAME, starting_tags))
 
 
 func populate(count: int) -> void:
@@ -142,6 +157,19 @@ func resolve_wish(wish: Wish, pantheon: Pantheon) -> void:
 		# decides anything; wishes should not always be granted (User
 		# Story 5).
 		wish.outcome = Wish.OUTCOME_RESOLVED if _rng.randf() < 0.5 else Wish.OUTCOME_IGNORED
+
+
+## Returns true if any Location in known_locations (this Village's Known
+## Territory) carries `tag` among its context_tags. No caller yet this
+## slice — a seam for later systems (a foraging restriction, the
+## expedition mechanic) to call into, the same "give it a seam before it
+## has a consumer" precedent as Pantheon.get_by_domain() had in issue #3
+## (issue #8's Implementation Decisions).
+func knows_location_with_tag(tag: String) -> bool:
+	for location: Location in known_locations:
+		if tag in location.context_tags:
+			return true
+	return false
 
 
 func _random_reroll_interval() -> float:

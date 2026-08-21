@@ -202,6 +202,27 @@ func test_reroll_thought_never_draws_a_wish_when_wish_chance_is_zero() -> void:
 	assert_has(Village.THOUGHT_POOL, villager.current_thought)
 
 
+func test_new_village_starts_knowing_exactly_one_location_its_own_site() -> void:
+	var village := Village.new()
+
+	assert_eq(village.known_locations.size(), 1)
+	assert_true(village.known_locations[0] is Location)
+
+
+func test_knows_location_with_tag_finds_a_tag_present_on_a_known_location() -> void:
+	var village := Village.new()
+	var starting_tags: Array[String] = village.known_locations[0].context_tags
+
+	for tag in starting_tags:
+		assert_true(village.knows_location_with_tag(tag))
+
+
+func test_knows_location_with_tag_reports_absence_for_an_unknown_tag() -> void:
+	var village := Village.new()
+
+	assert_false(village.knows_location_with_tag("this-tag-does-not-exist"))
+
+
 func test_same_seed_produces_the_same_wish_vs_flavor_choice_and_outcome() -> void:
 	var pantheon := Pantheon.new()
 
