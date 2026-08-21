@@ -1,3 +1,4 @@
+class_name CameraRig
 extends Node3D
 ## CameraRig
 ## A simple RTS/god-sim style camera:
@@ -8,12 +9,35 @@ extends Node3D
 ##   - Hold left mouse button and drag to pan 1:1 — the ground point
 ##     grabbed at press-time stays under the cursor (issue #5), additive
 ##     to the WASD/edge-pan above, not a replacement.
+##   - A plain left click (button down then up with barely any mouse
+##     movement — see `click_threshold_px`) on a body in the
+##     `DIALOGUE_CLICK_GROUP` group emits `dialogue_target_clicked`
+##     instead (issue #12), so a click-to-open-dialogue and a drag-pan
+##     that merely starts on top of the same body don't fight each other
+##     (issue #12's User Story 7).
 ## Attach to a Node3D that contains a Pivot (Node3D) -> Camera3D chain,
 ## or just a direct Camera3D child — either works with this script. Pitch
 ## is only applied when a separate Pivot node exists: applying it to the
 ## CameraRig root itself (the direct-Camera3D-child layout) would
 ## contaminate the yaw-only assumption `_physics_process()`'s WASD/
 ## edge-pan/drag-pan math makes about `global_transform.basis`.
+
+## Any StaticBody3D added to this group is a valid `dialogue_target_clicked`
+## target (issue #12's Implementation Decisions). Deliberately generic:
+## CameraRig doesn't know about Villagers, Renown, or dialogue content at
+## all — only "was a body in this group hit by a plain click, not a
+## drag?" Whoever adds bodies to this group (village_spawner.gd) and
+## whoever listens to the signal (also village_spawner.gd) owns what that
+## means; a future Renowned-sheep click (issue #11's natural follow-up)
+## can reuse the same group with no CameraRig change at all.
+const DIALOGUE_CLICK_GROUP := "dialogue_clickable"
+
+## Emitted once per completed left-click — button down then up with total
+## mouse movement no more than `click_threshold_px` (i.e. a click, not a
+## drag; issue #12's User Story 7) — that started on a body in
+## `DIALOGUE_CLICK_GROUP`. Carries that body so the listener can map it
+## back to whatever it represents.
+signal dialogue_target_clicked(body: Node3D)
 
 @export var pan_speed: float = 18.0
 @export var zoom_speed: float = 2.0
@@ -25,6 +49,10 @@ extends Node3D
 @export var max_pitch_deg: float = -10.0
 @export var edge_pan_enabled: bool = true
 @export var edge_pan_margin: float = 12.0
+## Max mouse movement (pixels, press to release) for a left click to
+## still count as a click rather than a drag (issue #12's User Story 7).
+## Tunable placeholder, same spirit as pan_speed/rotate_sensitivity above.
+@export var click_threshold_px: float = 6.0
 
 var _camera: Camera3D
 var _pivot: Node3D
@@ -33,6 +61,12 @@ var _pitch: float = 0.0
 var _rotating: bool = false
 var _dragging: bool = false
 var _drag_grab_point: Vector3 = Vector3.ZERO
+var _press_mouse_pos: Vector2 = Vector2.ZERO
+## Set at left-button press time to whatever DIALOGUE_CLICK_GROUP body a
+## physics raycast hit under the cursor, or null if none (see
+## _raycast_mouse_to_dialogue_target()). Only acted on at release, and
+## only if the click didn't turn into a drag (see _on_left_click()).
+var _press_hit_dialogue_body: Node3D = null
 
 
 func _ready() -> void:
@@ -103,14 +137,28 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _on_left_click(pressed: bool) -> void:
-	if not pressed:
-		_dragging = false
+	var viewport := get_viewport()
+	var mouse_pos: Vector2 = viewport.get_mouse_position() if viewport else Vector2.ZERO
+
+	if pressed:
+		_press_mouse_pos = mouse_pos
+		_press_hit_dialogue_body = _raycast_mouse_to_dialogue_target()
+
+		var hit := _raycast_mouse_to_ground()
+		if hit["hit"]:
+			_dragging = true
+			_drag_grab_point = hit["point"]
 		return
 
-	var hit := _raycast_mouse_to_ground()
-	if hit["hit"]:
-		_dragging = true
-		_drag_grab_point = hit["point"]
+	# Released. A drag-pan may have run this whole time regardless (the
+	# ground-plane raycast above doesn't know or care what else is under
+	# the cursor) — whether this also counts as a "click" on a dialogue
+	# target is decided here, purely by how far the mouse actually moved
+	# (issue #12's User Story 7), not by what was hit at press-time alone.
+	_dragging = false
+	if _press_hit_dialogue_body != null and mouse_pos.distance_to(_press_mouse_pos) <= click_threshold_px:
+		dialogue_target_clicked.emit(_press_hit_dialogue_body)
+	_press_hit_dialogue_body = null
 
 
 func _physics_process(delta: float) -> void:
@@ -159,20 +207,59 @@ func _apply_drag_pan() -> void:
 	global_position += motion
 
 
-## Raycasts the current mouse position against the y = 0 ground plane via
-## Camera3D.project_ray_origin/project_ray_normal and GroundRay. Shared
-## by drag-pan's press-time grab and its per-frame recompute.
-func _raycast_mouse_to_ground() -> Dictionary:
+## Computes the current mouse position's world-space ray (origin +
+## direction) from `_camera`, shared by both raycast helpers below so
+## the mouse-pos/project_ray_origin/project_ray_normal setup only lives
+## in one place. Returns an empty Dictionary if `_camera` or the
+## viewport isn't available yet.
+func _mouse_ray() -> Dictionary:
 	if not _camera:
-		return {"hit": false, "point": Vector3.ZERO}
+		return {}
 	var viewport := get_viewport()
 	if not viewport:
-		return {"hit": false, "point": Vector3.ZERO}
+		return {}
 
 	var mouse_pos := viewport.get_mouse_position()
-	var ray_origin := _camera.project_ray_origin(mouse_pos)
-	var ray_direction := _camera.project_ray_normal(mouse_pos)
-	return GroundRay.intersect_ground_plane(ray_origin, ray_direction)
+	return {
+		"origin": _camera.project_ray_origin(mouse_pos),
+		"direction": _camera.project_ray_normal(mouse_pos),
+	}
+
+
+## Raycasts the current mouse position against the y = 0 ground plane via
+## GroundRay. Shared by drag-pan's press-time grab and its per-frame
+## recompute.
+func _raycast_mouse_to_ground() -> Dictionary:
+	var ray := _mouse_ray()
+	if ray.is_empty():
+		return {"hit": false, "point": Vector3.ZERO}
+	return GroundRay.intersect_ground_plane(ray["origin"], ray["direction"])
+
+
+## Physics raycast (a real 3D query against actual colliders, distinct
+## from `_raycast_mouse_to_ground()`'s pure ground-plane math above)
+## against the current mouse position, used only to detect a
+## DIALOGUE_CLICK_GROUP hit at left-click press time (issue #12). Returns
+## the hit collider when it's in that group, else null — never errors on
+## a missing camera/viewport/physics space, same defensive shape as
+## `_raycast_mouse_to_ground()`.
+func _raycast_mouse_to_dialogue_target() -> Node3D:
+	var ray := _mouse_ray()
+	if ray.is_empty():
+		return null
+	var space_state := get_world_3d().direct_space_state
+	if not space_state:
+		return null
+
+	var query := PhysicsRayQueryParameters3D.create(ray["origin"], ray["origin"] + ray["direction"] * 1000.0)
+	var result := space_state.intersect_ray(query)
+	if result.is_empty():
+		return null
+
+	var collider: Object = result.get("collider")
+	if collider is Node3D and collider.is_in_group(DIALOGUE_CLICK_GROUP):
+		return collider
+	return null
 
 
 func _edge_pan_direction() -> Vector2:

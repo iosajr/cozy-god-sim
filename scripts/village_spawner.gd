@@ -42,6 +42,20 @@ extends Node3D
 ## visible effect this slice: the check is computed and recorded on
 ## Villager.last_eating_outcome only (see systems/village.gd's
 ## check_eating()).
+##
+## Also the bridge for the Renown dialogue trigger (issue #12): each
+## spawned body now also gets a StaticBody3D/CollisionShape3D (User
+## Story 5), and the same per-frame loop that already syncs a Villager's
+## `is_renowned` to their nameplate tint also adds that body to
+## CameraRig.DIALOGUE_CLICK_GROUP the moment it flips true — nothing
+## before that point is clickable (User Story 6). CameraRig owns
+## detecting a plain click (vs. a drag) on a body in that group and
+## emits `dialogue_target_clicked`; this spawner is what maps the clicked
+## body back to a Villager and opens `dialogue_box_path`'s DialogueBox
+## with that Villager's content (User Story 8: reuses `current_thought`/
+## `current_wish.text` only, no invented writing). The speaker name shown
+## is a generic, non-individual label (see RENOWNED_VILLAGER_SPEAKER_NAME
+## below) — User Story 9's explicit implementer's call.
 
 @export var villager_count: int = 6
 ## Fallback ground size, used only if `world_gen_path` doesn't resolve to
@@ -78,12 +92,28 @@ extends Node3D
 ## spirit as wish_chance/reroll_interval_min/max — exact number is an
 ## implementer's call (issue #6's Implementation Decisions).
 @export var favored_gain_rate: float = 5.0
+## Sibling node (scenes/dialogue_box.tscn's instanced DialogueBox) opened
+## when a Renowned Villager's body is clicked (issue #12). Resolved the
+## same way world_gen_path/camera_rig_path already are above.
+@export var dialogue_box_path: NodePath = ^"../DialogueBox"
+
+## Speaker name shown in the dialogue box for any Renowned Villager
+## (issue #12's User Story 9 — an explicit implementer's call, since
+## `Villager.id` is documented as "not an in-world visible name" and no
+## real per-Villager name has been designed or written). Chose a generic,
+## non-individual label over the issue's other allowed option — a small
+## placeholder name pool mirroring THOUGHT_POOL/WISH_POOL — to avoid
+## inventing any individual character identity this spec doesn't ask for.
+## Revisit freely once real Villager names exist.
+const RENOWNED_VILLAGER_SPEAKER_NAME := "A Renowned Villager"
 
 var village: Village
 
 var _rng := RandomNumberGenerator.new()
 var _nameplates: Dictionary = {}  # Villager -> VillagerNameplate
 var _bodies: Dictionary = {}  # Villager -> MeshInstance3D (spawned body)
+var _click_bodies: Dictionary = {}  # Villager -> StaticBody3D (collision body)
+var _villagers_by_click_body: Dictionary = {}  # StaticBody3D -> Villager
 
 
 func _ready() -> void:
@@ -98,6 +128,10 @@ func _ready() -> void:
 
 	_spawn_villagers()
 
+	var camera_rig: CameraRig = get_node_or_null(camera_rig_path)
+	if camera_rig:
+		camera_rig.dialogue_target_clicked.connect(_on_dialogue_target_clicked)
+
 
 func _process(delta: float) -> void:
 	village.advance_thoughts(delta, GameState.pantheon)
@@ -109,6 +143,9 @@ func _process(delta: float) -> void:
 			nameplate.show_thought(villager.current_thought)
 		if villager.is_renowned and nameplate.modulate != VillagerNameplate.RENOWNED_COLOR:
 			nameplate.set_renowned(true)
+			var click_body: StaticBody3D = _click_bodies.get(villager)
+			if click_body and not click_body.is_in_group(CameraRig.DIALOGUE_CLICK_GROUP):
+				click_body.add_to_group(CameraRig.DIALOGUE_CLICK_GROUP)
 		_maybe_gain_favored(villager, camera_rig, delta)
 
 
@@ -133,6 +170,13 @@ func _spawn_villagers() -> void:
 	var body_mat := StandardMaterial3D.new()
 	body_mat.albedo_color = Color(0.85, 0.72, 0.58)
 
+	# Shared collision shape resource — every Villager body is the same
+	# placeholder capsule, so one CapsuleShape3D is safe to reuse across
+	# all of them (mirrors sharing `body_mat` above).
+	var click_shape := CapsuleShape3D.new()
+	click_shape.radius = 0.3
+	click_shape.height = 1.6
+
 	for villager in village.villagers:
 		var root := Node3D.new()
 		root.name = villager.id
@@ -149,6 +193,19 @@ func _spawn_villagers() -> void:
 		root.add_child(body)
 		_bodies[villager] = body
 
+		# Collision shape (issue #12's User Story 5) — not added to
+		# CameraRig.DIALOGUE_CLICK_GROUP until this Villager is actually
+		# Renowned (see _process() above), so an ordinary Villager's body
+		# exists to click on but a click there is a no-op (User Story 6).
+		var click_body := StaticBody3D.new()
+		click_body.position.y = 0.8
+		root.add_child(click_body)
+		var collision_shape := CollisionShape3D.new()
+		collision_shape.shape = click_shape
+		click_body.add_child(collision_shape)
+		_click_bodies[villager] = click_body
+		_villagers_by_click_body[click_body] = villager
+
 		var nameplate := VillagerNameplate.new()
 		nameplate.position.y = 1.9
 		nameplate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -158,3 +215,30 @@ func _spawn_villagers() -> void:
 		root.add_child(nameplate)
 
 		_nameplates[villager] = nameplate
+
+
+## Handles CameraRig.dialogue_target_clicked (issue #12): maps the
+## clicked body back to a Villager and opens the DialogueBox with their
+## content. `villager.is_renowned` is re-checked defensively even though
+## only a Renowned Villager's body is ever added to
+## CameraRig.DIALOGUE_CLICK_GROUP in the first place (User Story 6) — a
+## cheap safety net against future timing changes, not load-bearing.
+func _on_dialogue_target_clicked(body: Node3D) -> void:
+	var villager: Villager = _villagers_by_click_body.get(body)
+	if villager == null or not villager.is_renowned:
+		return
+	var dialogue_box: DialogueBox = get_node_or_null(dialogue_box_path)
+	if dialogue_box == null:
+		return
+	dialogue_box.show_dialogue(RENOWNED_VILLAGER_SPEAKER_NAME, _dialogue_lines_for(villager))
+
+
+## Builds this Renowned Villager's dialogue lines by reusing existing
+## data only (issue #12's User Story 8 / Implementation Decisions — no
+## invented "Renown dialogue" writing): `current_thought` always, plus
+## `current_wish.text` when a Wish is currently active.
+func _dialogue_lines_for(villager: Villager) -> Array[String]:
+	var lines: Array[String] = [villager.current_thought]
+	if villager.current_wish != null:
+		lines.append(villager.current_wish.text)
+	return lines
