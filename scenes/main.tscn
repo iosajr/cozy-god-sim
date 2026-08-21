@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/world_gen.gd" id="2_worldgen"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/village_spawner.gd" id="5_villagespawner"]
 [ext_resource type="Script" path="res://scripts/presence_cursor.gd" id="6_presencecursor"]
 [ext_resource type="Script" path="res://scripts/presence_light.gd" id="7_presencelight"]
+[ext_resource type="Script" path="res://scripts/sheep_spawner.gd" id="8_sheepspawner"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
 size = Vector2(200, 200)
@@ -74,6 +75,9 @@ environment = SubResource("Environment_env")
 
 [node name="VillageSpawner" type="Node3D" parent="."]
 script = ExtResource("5_villagespawner")
+
+[node name="SheepSpawner" type="Node3D" parent="."]
+script = ExtResource("8_sheepspawner")
 
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("3_camrig")
