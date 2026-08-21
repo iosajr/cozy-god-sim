@@ -32,6 +32,16 @@ extends Node3D
 ## Renown is permanent this slice, so this is a one-way sync (see
 ## Villager.gain_favored()); no narrative/God-attribution logic lives
 ## here, that's the next (dialogue UI) slice.
+##
+## Also the bridge for the periodic eating check (issue #10, docs/
+## systems-overview.md's Survival section): the existing per-frame loop
+## reads `GameState.resources.food` (untouched by this slice) and forwards
+## `food > 0` into Village.advance_eating_checks(), mirroring exactly how
+## `GameState.pantheon` is forwarded into advance_thoughts() above —
+## Village/Villager (Seam 1) never reach into GameState directly. No
+## visible effect this slice: the check is computed and recorded on
+## Villager.last_eating_outcome only (see systems/village.gd's
+## check_eating()).
 
 @export var villager_count: int = 6
 ## Fallback ground size, used only if `world_gen_path` doesn't resolve to
@@ -91,6 +101,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	village.advance_thoughts(delta, GameState.pantheon)
+	village.advance_eating_checks(delta, GameState.resources.food > 0)
 	var camera_rig: Node3D = get_node_or_null(camera_rig_path)
 	for villager in village.villagers:
 		var nameplate: VillagerNameplate = _nameplates[villager]
