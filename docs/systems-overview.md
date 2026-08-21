@@ -306,6 +306,63 @@ The gap between that and everything below is most of the project.
   effects? Faith effects? something else?) is explicitly not decided —
   flagged here rather than invented.
 
+## Daily Routine _(proposed term, not committed)_ — not in CONTEXT.md yet
+
+New domain thread, prompted by a real gap the user spotted: with Farm
+work (#15), Eating (#16), and Sleeping (#18) all forming as separate
+mechanics, nothing coordinates what a single Villager is actually
+*doing* at any given moment — each currently fires on its own
+independent random periodic countdown, with no shared notion of
+"current activity" at all.
+
+- **Scope: one general concept, not a farm-specific one
+  (user-confirmed)**: a single per-Villager "what am I doing right now"
+  state, of which Farm work is just one case — not a separate
+  worker-assignment system built in isolation from Eating/Sleeping/idle
+  time.
+- **Sleeping is schedule-driven, not a random countdown
+  (user-confirmed, concrete mechanic)**: fires at nightfall (tied to
+  `GameState.time_of_day`, which already exists — 0.0-24.0, wraps,
+  12.0 = noon), lasts roughly 8 hours. Real lookahead, not just
+  "arrive at nightfall and then start walking": a Villager needs to
+  calculate backward from the target sleep-start time, subtract however
+  long travel to their sleep location (their House, via `Villager.house`
+  — issue #17 — or Shelter otherwise) will take, and depart early enough
+  to actually *be* asleep by nightfall, not just starting the walk then.
+  Uses Movement (issue #14) for the actual travel, and its `arrived`
+  signal as the point sleep itself begins.
+- **Eating is schedule-driven too — twice a day (user-confirmed)**: not
+  the random `eating_check_interval_min/max` countdown issue #16
+  currently specifies — fixed to roughly twice per day instead. This
+  directly conflicts with #16's already-published shape; see the
+  refactor note below.
+- **Everything else: "find something/anything to do" (user's own
+  words, deliberately vague)**: whatever time isn't Sleeping, Eating, or
+  assigned work (Farm delivery, etc.) gets filled with *something* —
+  the user was explicit this is unspecified, not a real behavior to
+  design or invent. Might end up being satisfied by existing ambient
+  behavior (Thought-cycling, proximity-Favored) or a future
+  idle/wander state — don't guess which.
+- **Complexity, for a first slice (user-confirmed)**: a simple
+  current-activity flag/state per Villager — not real priority/decision
+  logic (a Villager weighing Hungry vs. Tired vs. assigned work and
+  choosing). Something else (a Village-level scheduler, or nothing yet)
+  decides transitions; this thread is about the state/schedule shape,
+  not a full decision-making AI. Matches how every other slice so far
+  (Eating, Sleeping, Farm) shipped data/mechanism before real
+  cross-need coordination existed.
+- **#15/#16/#18 explicitly left as-is for now, flagged for later
+  rework (user-confirmed, direct instruction — do not revise them
+  speculatively)**: those three specs' independent random-countdown
+  triggering (matching issue #10's original periodic-check pattern) is
+  now known to be at odds with a schedule-driven Daily Routine —
+  Sleeping in particular was designed before this thread existed and
+  doesn't yet know about nightfall/lookahead at all. This is a real,
+  acknowledged gap between what's already published and where the
+  design is heading, not an oversight — revisit #16/#18's triggering
+  mechanism once Daily Routine actually gets spec'd and built, don't
+  patch them piecemeal before then.
+
 ## Known duplication, deferred to a later refactor issue (user-flagged)
 
 The user's noticed a real pattern: growing duplication between parallel
