@@ -187,12 +187,19 @@ The gap between that and everything below is most of the project.
   for itself. Housing (see Survival's Shelter/Housing distinction above)
   and a Farm (food production, below) are the first two kinds identified
   — more may follow.
-- **Housing (user-confirmed shape)**: per-house, not a per-Village
-  aggregate count and not per-Villager individual tracking — each House
-  is its own entity holding 2-8 occupants. Villagers get assigned into a
-  House. **Genuinely undecided (user flagged, don't invent)**: whether
-  the House, the Village, or the Villager owns the assignment
-  logic/decision.
+- **Housing — genuinely unsettled, not a confirmed shape (user
+  correction)**: the user's instinct leans per-house (each House its own
+  entity, 2-8 occupants) over a per-Village aggregate or per-Villager
+  tracking, but flagged this as unsure, not decided — both the shape
+  itself and who owns the occupant-assignment logic (House, Village, or
+  Villager) are open. Don't treat "per-house" as settled when scoping
+  work from this doc.
+- **Shelter ≠ Housing, resolved (user-confirmed)**: a tree (or other
+  minimal natural Shelter, per the Survival section above) is never
+  Housing and never manages/owns a Villager the way a House would.
+  Housing specifically means something constructed; natural Shelter
+  stays outside the Building/House system entirely, however a Folk
+  member satisfies it.
 - **Open question on "Village" itself (user-raised, explicitly left
   open)**: is a solitary Folk member with only their own Shelter (no
   House, no other Folk nearby) a Village of population 1, or not a
@@ -216,9 +223,17 @@ The gap between that and everything below is most of the project.
   knows about (reuses issue #8's Location/tag system rather than
   inventing a separate one); a Village with no known `water`-tagged
   Location can't rely on it. Explicitly does **not** require constant
-  Villager attendance to progress. Still open: exactly how a harvest
-  turns into `GameState.resources.food` (a lump sum? spread out?), and
-  what happens if a mature farm goes too long unwatered or unharvested.
+  Villager attendance to progress. Growth itself advances on the same
+  periodic-check cadence as Survival Needs above — not per-frame
+  (user-confirmed).
+- **Harvest is autonomous, and costs trips (user-confirmed)**: no Player
+  trigger — a Villager harvests and carries the food to "the store"
+  (the Village's food stock; whether that's literally
+  `GameState.resources.food` under a new name, or a distinct entity, is
+  still open — a naming/data question, not a mechanic question). A
+  Villager can only carry a limited amount per trip, so a large harvest
+  takes multiple trips rather than moving all at once — a real
+  logistics/time cost, not an instant transfer.
 - **Needs should have real consequences (user-confirmed, direction only)**:
   now that Villages are meant to actually build things, the Survival
   Needs check (see above) shouldn't stay purely "recorded, no
@@ -226,6 +241,22 @@ The gap between that and everything below is most of the project.
   actually matter. What the consequence actually *is* (population
   effects? Faith effects? something else?) is explicitly not decided —
   flagged here rather than invented.
+
+## Known duplication, deferred to a later refactor issue (user-flagged)
+
+The user's noticed a real pattern: growing duplication between parallel
+classes as more Folk types/spawners land, and wants it cleaned up
+*eventually* via its own dedicated issue — not folded into whatever
+feature is in flight when it's noticed, and not tackled right now. One
+concrete, verified example: `village_spawner.gd`'s and
+`sheep_spawner.gd`'s `_maybe_gain_favored()` are near-identical (same
+proximity-detection logic, differing only in which threshold constants
+get passed in) — the same shape of duplication issue #11's code review
+already caught and fixed once for `_resolve_ground_size()` (extracted to
+`GroundScatter.resolve_ground_size()`). Expect more of this as
+Buildings/Farm add their own spawner-adjacent logic. Not spec'd or
+scheduled yet — just flagged so it isn't lost, same treatment as the
+Roadmap items below.
 
 ## Roadmap, not designed yet (user-flagged, don't spec until sharpened)
 
