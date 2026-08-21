@@ -190,10 +190,18 @@ The gap between that and everything below is most of the project.
 - **Housing — genuinely unsettled, not a confirmed shape (user
   correction)**: the user's instinct leans per-house (each House its own
   entity, 2-8 occupants) over a per-Village aggregate or per-Villager
-  tracking, but flagged this as unsure, not decided — both the shape
-  itself and who owns the occupant-assignment logic (House, Village, or
-  Villager) are open. Don't treat "per-house" as settled when scoping
-  work from this doc.
+  tracking, but flagged this as unsure, not decided — the shape itself
+  is still open. Don't treat "per-house" as settled when scoping work
+  from this doc.
+- **Provisional placeholder (user-confirmed, explicitly NOT permanent)**:
+  a Villager needs to know where their House is *somehow*, so for now
+  that's a reference living directly on Villager (either a pointer
+  straight to the House, or to whatever manager tracks it — deliberately
+  left to whichever is simplest to implement, since the choice itself
+  isn't meant to be load-bearing). This is only there so something can
+  be built; it is explicitly not the final ownership answer to the
+  question above, and should be revisited once House/Building logic is
+  actually designed rather than assumed settled because code exists.
 - **Shelter ≠ Housing, resolved (user-confirmed)**: a tree (or other
   minimal natural Shelter, per the Survival section above) is never
   Housing and never manages/owns a Villager the way a House would.
