@@ -239,7 +239,25 @@ The gap between that and everything below is most of the project.
   larger box horizontally covering the model. Gods are imagined as
   distinct from Renown — more grandiose — but that distinction itself is
   still unsure. Reference: `REFERENCES/Imagers/Ui/Screenshot 2026-08-20
-  141016.png`.
+  141016.png`. **Built** (issue #12): one reusable `scripts/
+  dialogue_box.gd` component (`show_dialogue(speaker_name, lines)`),
+  used for both — no separate God vs. Folk variant, since neither's data
+  differs enough to justify one. A Renowned Villager's body is now
+  clickable (a `StaticBody3D`/`CollisionShape3D` added via
+  `scripts/village_spawner.gd`, coordinated against the existing
+  left-drag grab-pan by `scripts/camera_rig.gd`'s click-vs-drag
+  movement-threshold — see its `dialogue_target_clicked` signal) and
+  opens the box with their `current_thought`/`current_wish.text`, no
+  invented writing. Their displayed speaker name is a generic,
+  non-individual label (`"A Renowned Villager"`) rather than a name pool
+  — an explicit implementer's call, since `Villager.id` was never meant
+  to be shown and no real Villager names are designed yet; revisit once
+  they are. A God has no in-world click target this slice (nothing plans
+  to give one) — its half of the component is verified only via a
+  temporary debug key (F1, `scripts/main.gd`), not a real trigger.
+  Distinct-from-Renown grandiosity for Gods, mentioned above, is still
+  unsure and not addressed by this slice — same portrait/box shape for
+  both.
 - **Thought display**: wanted eventually as both proximity-triggered
   audio and a Black & White-style floating nameplate reworked as a
   thought bubble. Built: the nameplate. Audio comes later. Reference:
