@@ -30,6 +30,12 @@ extends Node3D
 ## doesn't affect the others. Reuses VillagerNameplate.RENOWNED_COLOR for
 ## visual consistency with a Renowned Villager's nameplate tint, without
 ## reusing VillagerNameplate itself (Sheep have no Label3D).
+##
+## Also the bridge for Ageing (issue #21): the existing per-frame loop
+## now also calls `a_sheep.advance(delta)` once per Sheep, mirroring
+## village_spawner.gd's identical addition — the one new line issue #21's
+## consolidated `Folk.advance()` entry point asks every spawner's
+## `_process()` to add.
 
 ## Placeholder body color for an ordinary (non-Renowned) Sheep — an
 ## off-white wool tone, deliberately distinct from Villager's tan capsule
@@ -76,6 +82,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	var camera_rig: Node3D = get_node_or_null(camera_rig_path)
 	for a_sheep in flock:
+		a_sheep.advance(delta)
 		_maybe_gain_favored(a_sheep, camera_rig, delta)
 		_sync_renown_tint(a_sheep)
 
