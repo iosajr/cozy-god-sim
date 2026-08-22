@@ -261,30 +261,124 @@ func test_villager_defaults_last_eating_outcome_to_empty_string() -> void:
 	assert_eq(villager.last_eating_outcome, "")
 
 
-func test_check_eating_returns_at_village_outcome_when_not_away_regardless_of_food() -> void:
-	var village := Village.new()
+func test_villager_defaults_hunger_state_to_fine() -> void:
 	var villager := Villager.new("v1", true, "The bread smells almost ready.")
 
-	assert_eq(village.check_eating(villager, true), Village.EATING_AT_VILLAGE)
-	assert_eq(village.check_eating(villager, false), Village.EATING_AT_VILLAGE)
+	assert_eq(villager.hunger_state, Villager.HUNGER_FINE)
 
 
-func test_check_eating_returns_provisioned_outcome_when_away_and_provisioned() -> void:
+func test_villager_defaults_tiredness_state_to_fine() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	assert_eq(villager.tiredness_state, Villager.TIREDNESS_FINE)
+
+
+func test_villager_defaults_position_to_zero() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	assert_eq(villager.position, Vector3.ZERO)
+
+
+func test_village_is_a_task_provider() -> void:
+	var village := Village.new()
+
+	assert_true(village is TaskProvider)
+
+
+# --- check_eating() (issue #22, folds in #16: real food consumption and
+# --- the unified Hungry/Starving progression) ---
+
+
+func test_check_eating_at_village_consumes_food_and_recovers_hunger_when_enough_food() -> void:
+	var village := Village.new()
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.hunger_state = Villager.HUNGER_HUNGRY
+	var resources := {"food": 100}
+
+	var outcome := village.check_eating(villager, resources)
+
+	assert_eq(outcome, Village.EATING_AT_VILLAGE)
+	assert_eq(resources["food"], 100 - Village.FOOD_PER_MEAL)
+	assert_eq(villager.hunger_state, Villager.HUNGER_FINE)
+
+
+func test_check_eating_at_village_escalates_hunger_and_does_not_consume_when_not_enough_food() -> void:
+	var village := Village.new()
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	var resources := {"food": Village.FOOD_PER_MEAL - 1}
+
+	var outcome := village.check_eating(villager, resources)
+
+	assert_eq(outcome, Village.EATING_AT_VILLAGE)
+	assert_eq(resources["food"], Village.FOOD_PER_MEAL - 1)
+	assert_eq(villager.hunger_state, Villager.HUNGER_HUNGRY)
+
+
+func test_check_eating_provisioned_recovers_hunger_without_touching_food() -> void:
 	var village := Village.new()
 	var villager := Villager.new("v1", true, "The bread smells almost ready.")
 	villager.is_away = true
 	villager.is_provisioned = true
+	villager.hunger_state = Villager.HUNGER_HUNGRY
+	var resources := {"food": 100}
 
-	assert_eq(village.check_eating(villager, false), Village.EATING_PROVISIONED)
+	var outcome := village.check_eating(villager, resources)
+
+	assert_eq(outcome, Village.EATING_PROVISIONED)
+	assert_eq(resources["food"], 100)
+	assert_eq(villager.hunger_state, Villager.HUNGER_FINE)
 
 
-func test_check_eating_returns_foraging_outcome_when_away_and_unprovisioned() -> void:
+func test_check_eating_foraging_unprovisioned_escalates_hunger() -> void:
+	# No real hunting/foraging AI exists yet (issue #22's Out of Scope,
+	# carried over from #16) — every away+unprovisioned check is a
+	# failed attempt until it does, same as an empty store at the
+	# Village (an implementer's call, documented on check_eating()).
 	var village := Village.new()
 	var villager := Villager.new("v1", true, "The bread smells almost ready.")
 	villager.is_away = true
 	villager.is_provisioned = false
+	var resources := {"food": 100}
 
-	assert_eq(village.check_eating(villager, true), Village.EATING_FORAGING)
+	var outcome := village.check_eating(villager, resources)
+
+	assert_eq(outcome, Village.EATING_FORAGING)
+	assert_eq(resources["food"], 100)
+	assert_eq(villager.hunger_state, Villager.HUNGER_HUNGRY)
+
+
+func test_check_eating_escalates_hunger_one_stage_at_a_time_up_to_starving() -> void:
+	var village := Village.new()
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	var resources := {"food": 0}
+
+	village.check_eating(villager, resources)
+	assert_eq(villager.hunger_state, Villager.HUNGER_HUNGRY)
+	village.check_eating(villager, resources)
+	assert_eq(villager.hunger_state, Villager.HUNGER_STARVING)
+
+
+func test_check_eating_never_escalates_hunger_past_starving() -> void:
+	var village := Village.new()
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.hunger_state = Villager.HUNGER_STARVING
+	var resources := {"food": 0}
+
+	village.check_eating(villager, resources)
+
+	assert_eq(villager.hunger_state, Villager.HUNGER_STARVING)
+
+
+func test_check_eating_recovers_hunger_one_stage_at_a_time_from_starving() -> void:
+	var village := Village.new()
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.hunger_state = Villager.HUNGER_STARVING
+	var resources := {"food": 100}
+
+	village.check_eating(villager, resources)
+	assert_eq(villager.hunger_state, Villager.HUNGER_HUNGRY)
+	village.check_eating(villager, resources)
+	assert_eq(villager.hunger_state, Villager.HUNGER_FINE)
 
 
 func test_advance_eating_checks_does_not_record_an_outcome_before_the_countdown_elapses() -> void:
@@ -294,7 +388,7 @@ func test_advance_eating_checks_does_not_record_an_outcome_before_the_countdown_
 	village.populate(1)
 	var villager: Villager = village.villagers[0]
 
-	village.advance_eating_checks(1.0, true)
+	village.advance_eating_checks(1.0, {"food": 100})
 
 	assert_eq(villager.last_eating_outcome, "")
 
@@ -306,7 +400,7 @@ func test_advance_eating_checks_records_an_outcome_once_the_countdown_elapses() 
 	village.populate(1)
 	var villager: Villager = village.villagers[0]
 
-	village.advance_eating_checks(2.0, true)
+	village.advance_eating_checks(2.0, {"food": 100})
 
 	assert_eq(villager.last_eating_outcome, Village.EATING_AT_VILLAGE)
 
@@ -317,10 +411,206 @@ func test_advance_eating_checks_ticks_down_the_countdown_by_delta() -> void:
 	village.eating_check_interval_max = 10.0
 	village.populate(1)
 	var villager: Villager = village.villagers[0]
+	var resources := {"food": 100}
 
-	village.advance_eating_checks(4.0, true)
+	village.advance_eating_checks(4.0, resources)
 	assert_eq(villager.last_eating_outcome, "")
-	village.advance_eating_checks(4.0, true)
+	village.advance_eating_checks(4.0, resources)
 	assert_eq(villager.last_eating_outcome, "")
-	village.advance_eating_checks(4.0, true)
+	village.advance_eating_checks(4.0, resources)
 	assert_eq(villager.last_eating_outcome, Village.EATING_AT_VILLAGE)
+
+
+func test_advance_eating_checks_actually_consumes_food_from_the_shared_resources_dict() -> void:
+	var village := Village.new()
+	village.eating_check_interval_min = 1.0
+	village.eating_check_interval_max = 1.0
+	village.populate(1)
+	var resources := {"food": 100}
+
+	village.advance_eating_checks(2.0, resources)
+
+	assert_eq(resources["food"], 100 - Village.FOOD_PER_MEAL)
+
+
+# --- check_sleep() (issue #22, folds in #18: nightfall + Mover lookahead) ---
+
+
+func test_check_sleep_at_village_trivially_recovers_tiredness() -> void:
+	var village := Village.new()
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.tiredness_state = Villager.TIREDNESS_TIRED
+
+	village.check_sleep(villager, 8.0, 1.0)
+
+	assert_eq(villager.tiredness_state, Villager.TIREDNESS_FINE)
+
+
+func test_check_sleep_away_with_enough_time_to_travel_back_recovers_tiredness() -> void:
+	var village := Village.new()
+	village.site_position = Vector3.ZERO
+	village.sleep_start_hour = 20.0
+	village.sleep_travel_speed = 4.0
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_away = true
+	villager.position = Vector3(4, 0, 0)  # 1 second of travel at speed 4.
+	villager.tiredness_state = Villager.TIREDNESS_TIRED
+
+	# 12 in-game hours remain before sleep_start_hour, at day_speed 1.0
+	# (1 in-game hour / real second) that's 12 real seconds — plenty.
+	village.check_sleep(villager, 8.0, 1.0)
+
+	assert_eq(villager.tiredness_state, Villager.TIREDNESS_FINE)
+
+
+func test_check_sleep_away_without_enough_time_to_travel_back_escalates_tiredness() -> void:
+	var village := Village.new()
+	village.site_position = Vector3.ZERO
+	village.sleep_start_hour = 20.0
+	village.sleep_travel_speed = 1.0
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_away = true
+	villager.position = Vector3(1000, 0, 0)  # far too far to make it back.
+
+	village.check_sleep(villager, 19.0, 1.0)
+
+	assert_eq(villager.tiredness_state, Villager.TIREDNESS_TIRED)
+
+
+func test_check_sleep_already_past_sleep_start_hour_and_still_far_escalates_tiredness() -> void:
+	# A regression check for the wraparound trap: once time_of_day has
+	# already passed sleep_start_hour, _hours_until() must NOT treat the
+	# Villager as having "almost 24 hours until tomorrow's bedtime" — an
+	# already-overdue, still-far-away Villager has zero time left, not a
+	# full day.
+	var village := Village.new()
+	village.site_position = Vector3.ZERO
+	village.sleep_start_hour = 20.0
+	village.sleep_travel_speed = 4.0
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_away = true
+	villager.position = Vector3(20, 0, 0)  # 5 seconds of travel at speed 4.
+
+	village.check_sleep(villager, 20.5, 1.0)  # 30 minutes past bedtime.
+
+	assert_eq(villager.tiredness_state, Villager.TIREDNESS_TIRED)
+
+
+func test_check_sleep_escalates_tiredness_one_stage_at_a_time_up_to_exhausted() -> void:
+	var village := Village.new()
+	village.site_position = Vector3.ZERO
+	village.sleep_travel_speed = 1.0
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_away = true
+	villager.position = Vector3(1000, 0, 0)
+
+	village.check_sleep(villager, 19.0, 1.0)
+	assert_eq(villager.tiredness_state, Villager.TIREDNESS_TIRED)
+	village.check_sleep(villager, 19.0, 1.0)
+	assert_eq(villager.tiredness_state, Villager.TIREDNESS_EXHAUSTED)
+
+
+func test_check_sleep_never_escalates_tiredness_past_exhausted() -> void:
+	var village := Village.new()
+	village.site_position = Vector3.ZERO
+	village.sleep_travel_speed = 1.0
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_away = true
+	villager.position = Vector3(1000, 0, 0)
+	villager.tiredness_state = Villager.TIREDNESS_EXHAUSTED
+
+	village.check_sleep(villager, 19.0, 1.0)
+
+	assert_eq(villager.tiredness_state, Villager.TIREDNESS_EXHAUSTED)
+
+
+func test_advance_sleep_checks_does_not_evaluate_before_the_countdown_elapses() -> void:
+	var village := Village.new()
+	village.sleep_check_interval_min = 100.0
+	village.sleep_check_interval_max = 100.0
+	village.populate(1)
+	var villager: Villager = village.villagers[0]
+	villager.tiredness_state = Villager.TIREDNESS_TIRED
+
+	village.advance_sleep_checks(1.0, 8.0, 1.0)
+
+	assert_eq(villager.tiredness_state, Villager.TIREDNESS_TIRED)
+
+
+func test_advance_sleep_checks_evaluates_once_the_countdown_elapses() -> void:
+	var village := Village.new()
+	village.sleep_check_interval_min = 1.0
+	village.sleep_check_interval_max = 1.0
+	village.populate(1)
+	var villager: Villager = village.villagers[0]
+	villager.tiredness_state = Villager.TIREDNESS_TIRED
+
+	village.advance_sleep_checks(2.0, 8.0, 1.0)
+
+	assert_eq(villager.tiredness_state, Villager.TIREDNESS_FINE)
+
+
+# --- query_next_task() (issue #22 — the TaskProvider override) ---
+
+
+func test_query_next_task_returns_null_for_a_non_villager_folk() -> void:
+	var village := Village.new()
+	var folk := Folk.new("f1", true)
+
+	assert_null(village.query_next_task(folk))
+
+
+func test_query_next_task_returns_null_when_nothing_is_urgent() -> void:
+	var village := Village.new()
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	assert_null(village.query_next_task(villager))
+
+
+func test_query_next_task_returns_an_eat_task_when_hungry() -> void:
+	var village := Village.new()
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.hunger_state = Villager.HUNGER_HUNGRY
+
+	var task := village.query_next_task(villager)
+
+	assert_not_null(task)
+	assert_eq(task.kind, Task.KIND_EAT)
+	assert_false(task.is_must_do())
+
+
+func test_query_next_task_returns_a_must_do_eat_task_when_starving() -> void:
+	var village := Village.new()
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.hunger_state = Villager.HUNGER_STARVING
+
+	var task := village.query_next_task(villager)
+
+	assert_not_null(task)
+	assert_eq(task.kind, Task.KIND_EAT)
+	assert_true(task.is_must_do())
+
+
+func test_query_next_task_returns_a_must_do_sleep_task_when_exhausted() -> void:
+	var village := Village.new()
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.tiredness_state = Villager.TIREDNESS_EXHAUSTED
+
+	var task := village.query_next_task(villager)
+
+	assert_not_null(task)
+	assert_eq(task.kind, Task.KIND_SLEEP)
+	assert_true(task.is_must_do())
+
+
+func test_query_next_task_returns_the_higher_priority_candidate_when_both_are_urgent() -> void:
+	var village := Village.new()
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.hunger_state = Villager.HUNGER_STARVING
+	villager.tiredness_state = Villager.TIREDNESS_TIRED
+
+	var task := village.query_next_task(villager)
+
+	assert_not_null(task)
+	assert_eq(task.kind, Task.KIND_EAT)
+	assert_true(task.is_must_do())
