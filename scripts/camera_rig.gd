@@ -1,42 +1,19 @@
 class_name CameraRig
 extends Node3D
-## CameraRig
-## A simple RTS/god-sim style camera:
-##   - WASD / arrow keys to pan across the ground plane
-##   - Mouse wheel to zoom in/out
-##   - Hold right mouse button and drag to rotate (yaw) and tilt (pitch,
-##     issue #9) — one gesture for the whole "look around" feel.
-##   - Hold left mouse button and drag to pan 1:1 — the ground point
-##     grabbed at press-time stays under the cursor (issue #5), additive
-##     to the WASD/edge-pan above, not a replacement.
-##   - A plain left click (button down then up with barely any mouse
-##     movement — see `click_threshold_px`) on a body in the
-##     `DIALOGUE_CLICK_GROUP` group emits `dialogue_target_clicked`
-##     instead (issue #12), so a click-to-open-dialogue and a drag-pan
-##     that merely starts on top of the same body don't fight each other
-##     (issue #12's User Story 7).
-## Attach to a Node3D that contains a Pivot (Node3D) -> Camera3D chain,
-## or just a direct Camera3D child — either works with this script. Pitch
-## is only applied when a separate Pivot node exists: applying it to the
-## CameraRig root itself (the direct-Camera3D-child layout) would
-## contaminate the yaw-only assumption `_physics_process()`'s WASD/
-## edge-pan/drag-pan math makes about `global_transform.basis`.
+## RTS/god-sim camera: WASD/arrows to pan, wheel to zoom, right-drag to
+## rotate+pitch, left-drag to pan 1:1 (grab point stays under the
+## cursor). A plain left click (not a drag) on a body in
+## DIALOGUE_CLICK_GROUP emits dialogue_target_clicked instead.
+##
+## Pitch only applies when the Camera3D has a separate Pivot parent —
+## applying it to this node's own root would corrupt the yaw-only
+## assumption the pan/drag math makes about global_transform.basis.
 
-## Any StaticBody3D added to this group is a valid `dialogue_target_clicked`
-## target (issue #12's Implementation Decisions). Deliberately generic:
-## CameraRig doesn't know about Villagers, Renown, or dialogue content at
-## all — only "was a body in this group hit by a plain click, not a
-## drag?" Whoever adds bodies to this group (village_spawner.gd) and
-## whoever listens to the signal (also village_spawner.gd) owns what that
-## means; a future Renowned-sheep click (issue #11's natural follow-up)
-## can reuse the same group with no CameraRig change at all.
+## Deliberately generic — CameraRig doesn't know what a hit body means,
+## only that it was clicked (not dragged). Whoever adds bodies to this
+## group owns that meaning.
 const DIALOGUE_CLICK_GROUP := "dialogue_clickable"
 
-## Emitted once per completed left-click — button down then up with total
-## mouse movement no more than `click_threshold_px` (i.e. a click, not a
-## drag; issue #12's User Story 7) — that started on a body in
-## `DIALOGUE_CLICK_GROUP`. Carries that body so the listener can map it
-## back to whatever it represents.
 signal dialogue_target_clicked(body: Node3D)
 
 @export var pan_speed: float = 18.0
@@ -49,9 +26,7 @@ signal dialogue_target_clicked(body: Node3D)
 @export var max_pitch_deg: float = -10.0
 @export var edge_pan_enabled: bool = true
 @export var edge_pan_margin: float = 12.0
-## Max mouse movement (pixels, press to release) for a left click to
-## still count as a click rather than a drag (issue #12's User Story 7).
-## Tunable placeholder, same spirit as pan_speed/rotate_sensitivity above.
+## Max press-to-release mouse movement (px) still counted as a click.
 @export var click_threshold_px: float = 6.0
 
 var _camera: Camera3D
@@ -62,11 +37,11 @@ var _rotating: bool = false
 var _dragging: bool = false
 var _drag_grab_point: Vector3 = Vector3.ZERO
 var _press_mouse_pos: Vector2 = Vector2.ZERO
-## Set at left-button press time to whatever DIALOGUE_CLICK_GROUP body a
-## physics raycast hit under the cursor, or null if none (see
-## _raycast_mouse_to_dialogue_target()). Only acted on at release, and
-## only if the click didn't turn into a drag (see _on_left_click()).
 var _press_hit_dialogue_body: Node3D = null
+## Tracks the cursor actually crossing the OS window boundary — distinct
+## from focus, so edge-pan stops the instant the cursor leaves even if
+## the window stays focused.
+var _cursor_in_window: bool = true
 
 
 func _ready() -> void:
@@ -74,6 +49,11 @@ func _ready() -> void:
 	if _camera:
 		_zoom_distance = _camera.position.z if _camera.position.z > 0.1 else _zoom_distance
 		_apply_zoom()
+
+	var window := get_window()
+	if window:
+		window.mouse_entered.connect(func() -> void: _cursor_in_window = true)
+		window.mouse_exited.connect(func() -> void: _cursor_in_window = false)
 
 	_pivot = _find_pivot()
 	if _pivot:
@@ -90,12 +70,9 @@ func _find_camera(node: Node) -> Camera3D:
 	return null
 
 
-## Resolves the Camera3D's parent as the pitch target — but only when
-## that parent is a separate Pivot node, not the CameraRig root itself.
-## A direct-Camera3D-child layout (no Pivot) is a valid scene shape per
-## this script's own doc comment, and pitching the root would corrupt
-## the yaw-only `global_transform.basis` assumption the WASD/edge-pan/
-## drag-pan math relies on — so that layout gets no pitch at all.
+## Null when the Camera3D is a direct child of this node (no separate
+## Pivot) — that layout gets no pitch at all, see this script's doc
+## comment.
 func _find_pivot() -> Node3D:
 	if not _camera:
 		return null
@@ -105,9 +82,6 @@ func _find_pivot() -> Node3D:
 	return parent as Node3D
 
 
-## Clamps radians to [min_pitch_deg, max_pitch_deg], stores it in _pitch,
-## and applies it to the Pivot. Shared by the initial seed in _ready()
-## and every per-frame update in _unhandled_input().
 func _set_pitch(radians: float) -> void:
 	_pitch = clamp(radians, deg_to_rad(min_pitch_deg), deg_to_rad(max_pitch_deg))
 	_pivot.rotation.x = _pitch
@@ -128,11 +102,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and _rotating:
 		rotate_y(-event.relative.x * rotate_sensitivity)
 		if _pivot:
-			# Pivot pitch is negative-down in this scene's authored layout
-			# (Camera3D sits behind Pivot along +Z, looking down -Z), so
-			# dragging the mouse down (relative.y > 0) should tilt further
-			# down (more negative), and dragging up should tilt toward the
-			# horizon (less negative) — an FPS-mouselook-style convention.
 			_set_pitch(_pitch - event.relative.y * pitch_sensitivity)
 
 
@@ -150,11 +119,6 @@ func _on_left_click(pressed: bool) -> void:
 			_drag_grab_point = hit["point"]
 		return
 
-	# Released. A drag-pan may have run this whole time regardless (the
-	# ground-plane raycast above doesn't know or care what else is under
-	# the cursor) — whether this also counts as a "click" on a dialogue
-	# target is decided here, purely by how far the mouse actually moved
-	# (issue #12's User Story 7), not by what was hit at press-time alone.
 	_dragging = false
 	if _press_hit_dialogue_body != null and mouse_pos.distance_to(_press_mouse_pos) <= click_threshold_px:
 		dialogue_target_clicked.emit(_press_hit_dialogue_body)
@@ -180,22 +144,13 @@ func _physics_process(delta: float) -> void:
 		global_position += motion
 
 	if _dragging and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-		# Safety net for a lost mouse-up event (e.g. alt-tabbing away
-		# mid-drag never delivers one to _unhandled_input) — without
-		# this, _dragging could get stuck true and the camera would
-		# keep chasing the last grab point indefinitely.
+		# Safety net for a lost mouse-up (e.g. alt-tab mid-drag).
 		_dragging = false
 
 	if _dragging:
 		_apply_drag_pan()
 
 
-## Recomputes, fresh from the current camera transform, the XZ delta
-## needed to bring the original grab point back under the cursor, and
-## applies it. Never accumulates deltas across frames, so a long drag
-## can't drift. If the current mouse ray doesn't meet the ground plane
-## (GroundRay's defined not-a-hit case), the camera simply doesn't move
-## this frame rather than erroring.
 func _apply_drag_pan() -> void:
 	var hit := _raycast_mouse_to_ground()
 	if not hit["hit"]:
@@ -207,11 +162,6 @@ func _apply_drag_pan() -> void:
 	global_position += motion
 
 
-## Computes the current mouse position's world-space ray (origin +
-## direction) from `_camera`, shared by both raycast helpers below so
-## the mouse-pos/project_ray_origin/project_ray_normal setup only lives
-## in one place. Returns an empty Dictionary if `_camera` or the
-## viewport isn't available yet.
 func _mouse_ray() -> Dictionary:
 	if not _camera:
 		return {}
@@ -226,9 +176,6 @@ func _mouse_ray() -> Dictionary:
 	}
 
 
-## Raycasts the current mouse position against the y = 0 ground plane via
-## GroundRay. Shared by drag-pan's press-time grab and its per-frame
-## recompute.
 func _raycast_mouse_to_ground() -> Dictionary:
 	var ray := _mouse_ray()
 	if ray.is_empty():
@@ -236,13 +183,6 @@ func _raycast_mouse_to_ground() -> Dictionary:
 	return GroundRay.intersect_ground_plane(ray["origin"], ray["direction"])
 
 
-## Physics raycast (a real 3D query against actual colliders, distinct
-## from `_raycast_mouse_to_ground()`'s pure ground-plane math above)
-## against the current mouse position, used only to detect a
-## DIALOGUE_CLICK_GROUP hit at left-click press time (issue #12). Returns
-## the hit collider when it's in that group, else null — never errors on
-## a missing camera/viewport/physics space, same defensive shape as
-## `_raycast_mouse_to_ground()`.
 func _raycast_mouse_to_dialogue_target() -> Node3D:
 	var ray := _mouse_ray()
 	if ray.is_empty():
@@ -263,6 +203,8 @@ func _raycast_mouse_to_dialogue_target() -> Node3D:
 
 
 func _edge_pan_direction() -> Vector2:
+	if not _cursor_in_window:
+		return Vector2.ZERO
 	var viewport := get_viewport()
 	if not viewport:
 		return Vector2.ZERO
