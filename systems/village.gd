@@ -146,6 +146,32 @@ const EAT_PRIORITY_STARVING: float = 90.0
 const SLEEP_PRIORITY_TIRED: float = 50.0
 const SLEEP_PRIORITY_EXHAUSTED: float = 90.0
 
+## Priority query_next_task() assigns the fallback Idle Task
+## (Task.KIND_IDLE) whenever neither Eat nor Sleep applies (issue #29,
+## revising issue #22's original "return null when nothing urgent
+## applies" behavior) — deliberately below EAT_PRIORITY_HUNGRY/
+## SLEEP_PRIORITY_TIRED (the lowest currently-assigned real-need
+## priorities) so Idle never outranks an actual need, per the issue's
+## Implementation Decisions. Well clear of Task.PRIORITY_MUST_DO_THRESHOLD
+## too, so Idle is never mistaken for a Must-do emergency.
+const IDLE_PRIORITY: float = 0.0
+
+## How far (world units) an Idle Task's wander point may land from
+## site_position (issue #29's User Story 4 — "wander radius centered on
+## somewhere sensible... so wandering Villagers don't drift arbitrarily
+## far from home"). Tunable placeholder, same implementer's-call spirit
+## as every other numeric default in this project (reroll_interval_min/
+## max and friends) — not a defended design value.
+const IDLE_WANDER_RADIUS: float = 12.0
+
+## [min, max] real-seconds range a resolving Idle Task stands still once
+## it reaches a wander point, before picking a new one and walking again
+## (issue #29's "wandering, interlaced with standing still" — exact
+## timing left an implementer's call). Same tunable-placeholder spirit
+## as IDLE_WANDER_RADIUS above.
+const IDLE_STAND_SECONDS_MIN: float = 3.0
+const IDLE_STAND_SECONDS_MAX: float = 8.0
+
 ## Placeholder name for the starting Location a new Village already knows
 ## about (its own site) — see known_locations below. Village currently has
 ## no name field of its own, so this is a placeholder value, not a design
@@ -213,6 +239,36 @@ var _farm_countdowns: Dictionary = {}  # Farm -> float seconds remaining
 ## entry while that Villager's current_task is a resolving Sleep Task.
 ## See begin_resolving_task()/advance_sleeping()/interrupt_task() below.
 var _sleep_seconds_remaining: Dictionary = {}  # Villager -> float seconds remaining
+
+## Tracks each Villager currently on an Idle Task's current wander-point
+## destination (issue #29) — Villager -> Vector3. Lazily populated by
+## idle_destination() the first time a fresh Idle Task needs somewhere
+## to walk; replaced by advance_idle() once a standing phase ends and a
+## new leg begins. Erased by interrupt_task() so a freshly (re-)started
+## Idle Task never resumes a stale point.
+var _idle_targets: Dictionary = {}  # Villager -> Vector3
+
+## Tracks a resolving (standing-still) Idle Task's remaining
+## real-seconds countdown (issue #29) — mirrors _sleep_seconds_remaining
+## above exactly, except reaching zero never finishes the Task (see
+## advance_idle()): Idle loops (wander, stand, wander, stand, ...) until
+## something else interrupts it.
+var _idle_stand_seconds_remaining: Dictionary = {}  # Villager -> float seconds remaining
+
+## A single shared Task.KIND_IDLE instance, lazily built and reused by
+## every query_next_task() call that falls through to Idle (issue #29) —
+## Task is immutable plain data once constructed (nothing in this
+## codebase ever mutates `kind`/`priority` after _init()), and Idle's
+## per-Villager state (wander target, stand countdown) lives entirely in
+## the dictionaries above, keyed by Villager, never on the Task instance
+## itself — so every idle Villager sharing the exact same Task object is
+## safe. query_next_task() is called once per Villager per frame (see
+## scripts/village_spawner.gd's _advance_task_execution()), and most of a
+## small population is idle most of the time, so avoiding a fresh
+## allocation there avoids real per-frame GC churn for no behavioral
+## difference (should_interrupt()'s Idle-vs-Idle guard already discarded
+## every such candidate as a non-replacement anyway).
+var _idle_task: Task = null
 
 
 ## `seed_value`: pass a non-negative int to make Faith flips and Thought
@@ -398,14 +454,28 @@ func advance_farms(delta: float) -> void:
 ## finished/consequential tasks generally finish; genuine Must-do
 ## emergencies interrupt, full stop). A Villager with no current Task
 ## always accepts whatever candidate exists (including null, which
-## simply leaves them with nothing assigned — issue #22's Out of Scope,
-## unchanged: no Idle Task this slice); one already executing only
-## accepts a candidate that clears Task.PRIORITY_MUST_DO_THRESHOLD.
+## simply leaves them with nothing assigned).
+##
+## Idle is a deliberate exception (issue #29's User Story 3: "preempted
+## the same way any other Task is — a higher-priority candidate...takes
+## over immediately, since Idle is always the lowest priority by
+## construction"): a Villager currently on an Idle Task accepts *any*
+## non-Idle candidate immediately, not just a Must-do one — wandering
+## has no near-finished/consequential cost worth protecting, unlike a
+## real Task. Idle-vs-Idle (query_next_task() constructs a fresh Task
+## instance every call) deliberately does NOT count as a replacement
+## here — accepting it would re-interrupt (and reset) the wander loop
+## every single frame nothing has actually changed.
+##
+## Any other already-executing Task only accepts a candidate that clears
+## Task.PRIORITY_MUST_DO_THRESHOLD.
 func should_interrupt(current_task: Task, candidate: Task) -> bool:
 	if candidate == null:
 		return false
 	if current_task == null:
 		return true
+	if current_task.kind == Task.KIND_IDLE:
+		return candidate.kind != Task.KIND_IDLE
 	return candidate.is_must_do()
 
 
@@ -478,11 +548,15 @@ static func has_reached_destination(
 ## and recovers hunger if there's enough, escalates hunger without
 ## consuming anything if there isn't. Sleep instead starts its fixed
 ## SLEEP_DURATION_HOURS countdown (User Story 5) rather than resolving on
-## the spot — see advance_sleeping() below to tick it forward.
-## `day_speed` converts SLEEP_DURATION_HOURS into real seconds (GameState.
-## day_speed's own doc comment: "in-game hours per real second"),
-## mirroring the same conversion issue #22's old lookahead used. A no-op
-## if `villager.current_task` is null.
+## the spot — see advance_sleeping() below to tick it forward. Idle
+## (issue #29) starts its own IDLE_STAND_SECONDS_MIN/MAX countdown the
+## same way — see advance_idle() below; unlike Sleep, reaching zero never
+## finishes an Idle Task, it just starts a new wander leg. `day_speed`
+## converts SLEEP_DURATION_HOURS into real seconds (GameState.day_speed's
+## own doc comment: "in-game hours per real second"), mirroring the same
+## conversion issue #22's old lookahead used — Idle's countdown is
+## already in real seconds, so it ignores `day_speed`. A no-op if
+## `villager.current_task` is null.
 func begin_resolving_task(villager: Villager, resources: Dictionary, day_speed: float) -> void:
 	var task := villager.current_task
 	if task == null:
@@ -494,6 +568,8 @@ func begin_resolving_task(villager: Villager, resources: Dictionary, day_speed: 
 			_finish_task(villager)
 		Task.KIND_SLEEP:
 			_sleep_seconds_remaining[villager] = _sleep_duration_seconds(day_speed)
+		Task.KIND_IDLE:
+			_idle_stand_seconds_remaining[villager] = _random_idle_stand_seconds()
 		_:
 			_finish_task(villager)
 
@@ -520,16 +596,69 @@ func advance_sleeping(villager: Villager, delta: float) -> void:
 		_sleep_seconds_remaining[villager] = remaining
 
 
+## Ticks a resolving (standing-still) Idle Task's IDLE_STAND_SECONDS_MIN/
+## MAX countdown forward by `delta` real seconds (issue #29) — mirrors
+## advance_sleeping() above exactly, except reaching zero never finishes
+## the Task: an Idle Task keeps going (wandering interlaced with
+## standing still) until a higher-priority candidate interrupts it via
+## advance_task_assignment()/should_interrupt() above. Instead, it picks
+## a fresh nearby wander point (see _random_idle_point()) and flips
+## task_resolving back to false, so the caller (scripts/
+## village_spawner.gd) resumes driving this Villager's Mover toward it.
+## Returns true exactly on the call that starts a fresh wander leg (the
+## countdown just elapsed) — mirrors advance_task_assignment()'s own
+## "did something actually change" return, so the caller knows to
+## re-command its Mover right away instead of re-issuing move_to() every
+## single frame of an already-underway leg. A no-op (returns false) for
+## any Villager not mid-way through a resolving Idle Task (wrong kind,
+## not yet resolving, or no countdown tracked), same guard shape as
+## advance_sleeping(), so callers can call this unconditionally every
+## frame without guarding it themselves.
+func advance_idle(villager: Villager, delta: float) -> bool:
+	var task := villager.current_task
+	if task == null or task.kind != Task.KIND_IDLE or not villager.task_resolving:
+		return false
+	if not _idle_stand_seconds_remaining.has(villager):
+		return false
+	var remaining: float = _idle_stand_seconds_remaining[villager] - delta
+	if remaining <= 0.0:
+		_idle_stand_seconds_remaining.erase(villager)
+		_idle_targets[villager] = _random_idle_point()
+		villager.task_resolving = false
+		return true
+	_idle_stand_seconds_remaining[villager] = remaining
+	return false
+
+
+## Returns `villager`'s current Idle wander destination (issue #29),
+## lazily picking a fresh point within IDLE_WANDER_RADIUS of
+## site_position (see _random_idle_point()) the first time this
+## Villager's Idle Task needs somewhere to walk. advance_idle() above is
+## what replaces the tracked point once a standing phase ends; this just
+## returns whatever's currently tracked (or creates it, the first time).
+## The caller (scripts/village_spawner.gd) uses this instead of
+## task_destination() for a Task.KIND_IDLE Task, since Idle — unlike
+## Eat/Sleep — has a genuinely per-Villager, changing destination rather
+## than one fixed placeholder position.
+func idle_destination(villager: Villager) -> Vector3:
+	if not _idle_targets.has(villager):
+		_idle_targets[villager] = _random_idle_point()
+	return _idle_targets[villager]
+
+
 ## Cuts `villager`'s currently-executing Task short (issue #28's User
 ## Story 6 — a genuine Must-do interrupt cutting a resolving Sleep Task
-## short rather than forcing it to finish). Clears any in-progress Sleep
-## countdown along with current_task/task_resolving; called by
+## short rather than forcing it to finish; issue #29 extends this to a
+## real Task immediately preempting an Idle one, see should_interrupt()
+## above). Clears any in-progress Sleep countdown and Idle wander
+## state/countdown along with current_task/task_resolving; called by
 ## advance_task_assignment() above right before replacing an interrupted
-## Task with its Must-do successor. A no-op-safe clear regardless of
-## which phase (traveling or resolving) or kind the interrupted Task was
-## in.
+## Task with its successor. A no-op-safe clear regardless of which phase
+## (traveling or resolving) or kind the interrupted Task was in.
 func interrupt_task(villager: Villager) -> void:
 	_sleep_seconds_remaining.erase(villager)
+	_idle_stand_seconds_remaining.erase(villager)
+	_idle_targets.erase(villager)
 	_finish_task(villager)
 
 
@@ -561,18 +690,24 @@ func _sleep_duration_seconds(day_speed: float) -> float:
 
 
 ## TaskProvider override (issue #22's User Story 3) — the single
-## highest-priority real Task `folk` should be doing right now, or null
-## if nothing urgent applies (issue #22's User Story 13: "find
-## something/anything to do" stays unspecified rather than guessed at).
-## Village only tasks its own Villagers; any other Folk type gets null,
-## the same "not my population" answer TaskProvider's own base
-## implementation gives everyone.
+## highest-priority real Task `folk` should be doing right now. As of
+## issue #29, this never returns null for a Villager anymore: once
+## neither Eat nor Sleep applies, it returns a real Task.KIND_IDLE Task
+## (IDLE_PRIORITY) instead of null (revising issue #22's User Story 13,
+## which had originally left "find something/anything to do"
+## unspecified). Village only tasks its own Villagers; any other Folk
+## type still gets null, the same "not my population" answer
+## TaskProvider's own base implementation gives everyone.
 func query_next_task(folk: Folk) -> Task:
 	if not (folk is Villager):
 		return null
 	var villager: Villager = folk
 	var eat_task := _eat_task_for(villager)
 	var sleep_task := _sleep_task_for(villager)
+	if eat_task == null and sleep_task == null:
+		if _idle_task == null:
+			_idle_task = Task.new(Task.KIND_IDLE, IDLE_PRIORITY)
+		return _idle_task
 	if eat_task == null:
 		return sleep_task
 	if sleep_task == null:
@@ -634,6 +769,24 @@ func _random_sleep_check_interval() -> float:
 
 func _random_farm_check_interval() -> float:
 	return _rng.randf_range(farm_check_interval_min, farm_check_interval_max)
+
+
+## A random point within IDLE_WANDER_RADIUS of site_position (issue
+## #29) — uniform over the disc's area (angle uniform over [0, TAU],
+## radius scaled by sqrt() of a uniform sample — the standard disc-
+## sampling correction; a bare linear randf_range(0, R) on the radius
+## would bias points toward the center instead), on the same ground
+## plane as site_position (keeps its y, same "no elevation system"
+## assumption task_destination()'s site_position stand-in already
+## makes).
+func _random_idle_point() -> Vector3:
+	var angle := _rng.randf_range(0.0, TAU)
+	var radius := IDLE_WANDER_RADIUS * sqrt(_rng.randf())
+	return site_position + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
+
+
+func _random_idle_stand_seconds() -> float:
+	return _rng.randf_range(IDLE_STAND_SECONDS_MIN, IDLE_STAND_SECONDS_MAX)
 
 
 ## Shared one-stage-at-a-time progression math behind

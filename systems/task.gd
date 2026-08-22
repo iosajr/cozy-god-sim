@@ -14,13 +14,21 @@ extends RefCounted
 ## as Village/Villager/Folk (see issue #2 / docs/systems-overview.md).
 
 ## Named Task kinds this slice produces (issue #22's Implementation
-## Decisions — mirrors Village.EATING_*'s constant-pool style). Not an
-## exhaustive enum of every Task kind the game will ever have — just
-## what Village.query_next_task() hands out today (Eat, Sleep); more
-## kinds (Farm work, gathering, exploring, ...) are explicitly Out of
-## Scope for this slice.
+## Decisions — mirrors Village.EATING_*'s constant-pool style; KIND_IDLE
+## added by issue #29). Not an exhaustive enum of every Task kind the
+## game will ever have — just what Village.query_next_task() hands out
+## today (Eat, Sleep, Idle); more kinds (Farm work, gathering,
+## exploring, ...) are explicitly Out of Scope for this slice.
 const KIND_EAT := "eat"
 const KIND_SLEEP := "sleep"
+## The always-available fallback Task Village.query_next_task() hands
+## out once neither Eat nor Sleep applies (issue #29, revising issue
+## #22's original "return null when nothing urgent applies" behavior) —
+## real wandering interlaced with standing still (see
+## Village.idle_destination()/advance_idle()), not a fixed animation.
+## Always the lowest-priority Task in play by construction (see
+## Village.IDLE_PRIORITY), so it never outranks a genuine need.
+const KIND_IDLE := "idle"
 
 ## Priority floor a Task must clear to count as Must-do-tier (docs/
 ## systems-overview.md's Task Priority section — "genuinely

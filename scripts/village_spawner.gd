@@ -47,7 +47,10 @@ extends Node3D
 ## Villager's own `Mover` (see `_movers`/`_spawn_villagers()` below)
 ## toward `Village.task_destination()`, and (c) resolves the Task once
 ## arrived — instant for Eat, a fixed 8-in-game-hour occupancy for Sleep
-## (`Village.begin_resolving_task()`/`advance_sleeping()`). This is also
+## (`Village.begin_resolving_task()`/`advance_sleeping()`), or — for the
+## fallback Idle Task (issue #29) — a standing-still pause before picking
+## a new nearby point and walking again (`Village.idle_destination()`/
+## `advance_idle()`), looping until a real need preempts it. This is also
 ## what finally keeps a spawned Villager's `Villager.position` in sync
 ## with its actual body — previously nothing did (see issue #22's
 ## check_sleep(), now retired). `GameState.resources`/`GameState.
@@ -202,6 +205,20 @@ func _process(delta: float) -> void:
 ## from its live Mover position every frame, regardless of whether it has
 ## a Task right now — fixing the gap issue #22's check_sleep() used to
 ## have (see this script's own doc comment above).
+##
+## Task.KIND_IDLE (issue #29) is the one real deviation from the shared
+## Eat/Sleep travel-then-resolve shape: its destination is per-Villager
+## and changes every wander leg (village.idle_destination()) rather than
+## one fixed Task-kind constant (village.task_destination()), and
+## reaching it never finishes the Task the way Eat/Sleep do — it starts
+## a standing-still countdown (advance_idle()) that, once it elapses,
+## picks a fresh point and resumes traveling (task_resolving flips back
+## to false) instead of clearing current_task. advance_idle() reports
+## (via its own bool return, mirroring advance_task_assignment()'s
+## `task_changed`) exactly the frame a fresh leg starts, so the Mover
+## only gets re-commanded then — not every frame of an already-underway
+## leg, which would otherwise mean a redundant move_to() call (and
+## idle_destination() lookup) on every single frame of every wander leg.
 func _advance_task_execution(villager: Villager, delta: float) -> void:
 	var task_changed := village.advance_task_assignment(villager)
 	var mover: Mover = _movers[villager]
@@ -209,7 +226,8 @@ func _advance_task_execution(villager: Villager, delta: float) -> void:
 	var task := villager.current_task
 	if task == null:
 		return
-	var destination := village.task_destination(task, villager)
+	var is_idle := task.kind == Task.KIND_IDLE
+	var destination := village.idle_destination(villager) if is_idle else village.task_destination(task, villager)
 	if task_changed:
 		mover.move_to(destination)
 	if not villager.task_resolving:
@@ -228,6 +246,11 @@ func _advance_task_execution(villager: Villager, delta: float) -> void:
 				GameState.resource_changed.emit("food", GameState.resources.food)
 	elif task.kind == Task.KIND_SLEEP:
 		village.advance_sleeping(villager, delta)
+	elif is_idle:
+		if village.advance_idle(villager, delta):
+			# A fresh wander leg just started this call — re-command the
+			# Mover right away rather than waiting for next frame.
+			mover.move_to(village.idle_destination(villager))
 
 
 ## Proximity/lingering *detection* only — the Favored stat and its
