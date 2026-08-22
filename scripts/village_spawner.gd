@@ -33,28 +33,26 @@ extends Node3D
 ## Villager.gain_favored()); no narrative/God-attribution logic lives
 ## here, that's the next (dialogue UI) slice.
 ##
-## Also the bridge for the periodic eating check (issue #10, docs/
-## systems-overview.md's Survival section): the existing per-frame loop
-## forwards `GameState.resources` itself (mutated by reference) into
-## Village.advance_eating_checks(), mirroring exactly how
-## `GameState.pantheon` is forwarded into advance_thoughts() above —
-## Village/Villager (Seam 1) never reach into GameState directly. As of
-## issue #22, this is real consumption: a successful at-Village eat
-## actually spends food from `GameState.resources.food` (see
-## systems/village.gd's check_eating()), not just a recorded outcome
-## string.
+## Also the bridge for the eating/sleep escalation clocks (issue #10/#18,
+## folded into #22): the existing per-frame loop calls
+## Village.advance_eating_checks()/advance_sleep_checks() — pure
+## escalation-clock drivers as of issue #28 (see systems/village.gd's doc
+## comments), no longer resolving any outcome inline.
 ##
-## Also the bridge for the periodic sleep check (issue #22, folding in
-## issue #18): the same per-frame loop forwards `GameState.time_of_day`/
-## `GameState.day_speed` into Village.advance_sleep_checks(), same
-## forwarding shape as the eating check above. Its real lookahead math
-## (systems/village.gd's check_sleep()) is wired up and running every
-## frame, but stays inert for now: nothing in this spawner yet keeps a
-## spawned Villager's `Villager.position` in sync with its actual body
-## (`_bodies` below), so every check_sleep() call still measures distance
-## from the Seam-1 placeholder Vector3.ZERO — syncing real positions is
-## a later slice's job, once Sleep gets a scene-tree consumer (mirroring
-## issue #14's own "no consumer wired up" scope for Mover).
+## Also the bridge for real Task execution (issue #28) — this is what
+## makes `Village.query_next_task()` (issue #22) an actual driver instead
+## of dead code: the per-Villager loop below now also calls
+## `_advance_task_execution()` once per Villager, which (a) asks Village
+## to (re)assign a Task via `advance_task_assignment()`, (b) drives that
+## Villager's own `Mover` (see `_movers`/`_spawn_villagers()` below)
+## toward `Village.task_destination()`, and (c) resolves the Task once
+## arrived — instant for Eat, a fixed 8-in-game-hour occupancy for Sleep
+## (`Village.begin_resolving_task()`/`advance_sleeping()`). This is also
+## what finally keeps a spawned Villager's `Villager.position` in sync
+## with its actual body — previously nothing did (see issue #22's
+## check_sleep(), now retired). `GameState.resources`/`GameState.
+## day_speed` are forwarded the same "Village/Villager never reach into
+## GameState directly" way `GameState.pantheon` is above.
 ##
 ## Also the bridge for the Renown dialogue trigger (issue #12): each
 ## spawned body now also gets a StaticBody3D/CollisionShape3D (User
@@ -114,6 +112,13 @@ extends Node3D
 ## when a Renowned Villager's body is clicked (issue #12). Resolved the
 ## same way world_gen_path/camera_rig_path already are above.
 @export var dialogue_box_path: NodePath = ^"../DialogueBox"
+## Travel speed (world units/second) each Villager's own Mover uses for
+## Task execution (issue #28) — forwarded to `Mover.speed` (scripts/
+## mover.gd) at spawn time. Tunable placeholder, same implementer's-call
+## spirit as favored_gain_rate/reroll_interval_min/max above; matches
+## Mover's own default so this isn't a silent behavior change from just
+## using a bare Mover with its defaults.
+@export var villager_move_speed: float = 4.0
 
 ## Speaker name shown in the dialogue box for any Renowned Villager
 ## (issue #12's User Story 9 — an explicit implementer's call, since
@@ -132,6 +137,14 @@ var _nameplates: Dictionary = {}  # Villager -> VillagerNameplate
 var _bodies: Dictionary = {}  # Villager -> MeshInstance3D (spawned body)
 var _click_bodies: Dictionary = {}  # Villager -> StaticBody3D (collision body)
 var _villagers_by_click_body: Dictionary = {}  # StaticBody3D -> Villager
+## Each Villager's own Mover (issue #28's Implementation Decisions: "each
+## Villager likely needs its own Mover instance... mirroring how each
+## Villager already gets its own nameplate/click-body today"). This IS
+## `root` from _spawn_villagers() below (Mover extends Node3D), not a
+## separate child — moving it moves the whole spawned group (body,
+## nameplate, click body) together, the same way `root.position` already
+## placed all of them at spawn.
+var _movers: Dictionary = {}  # Villager -> Mover
 
 
 func _ready() -> void:
@@ -153,23 +166,18 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	village.advance_thoughts(delta, GameState.pantheon)
-	# check_eating() mutates GameState.resources["food"] directly (see
-	# its own doc comment) rather than going through
-	# GameState.add_resource() — Village (Seam 1) has no reference to
-	# the GameState singleton to call that on, by design. That means
-	# GameState.resource_changed doesn't fire on its own for a food
-	# spend caused by eating; this before/after snapshot is what makes
-	# real consumption still show up on that signal for any future
-	# consumer (issue #22's code review — currently latent, since
-	# nothing subscribes to it for food yet, but a silent gap otherwise).
-	var food_before: int = GameState.resources.food
-	village.advance_eating_checks(delta, GameState.resources)
-	if GameState.resources.food != food_before:
-		GameState.resource_changed.emit("food", GameState.resources.food)
-	village.advance_sleep_checks(delta, GameState.time_of_day, GameState.day_speed)
+	# Pure escalation-clock drivers as of issue #28 — no resources/
+	# time_of_day/day_speed forwarding needed here anymore, since neither
+	# resolves an outcome inline (see systems/village.gd's doc comments
+	# on check_eating()/check_sleep()). Real resolution happens in
+	# _advance_task_execution() below, once a Task's destination is
+	# actually reached.
+	village.advance_eating_checks(delta)
+	village.advance_sleep_checks(delta)
 	var camera_rig: Node3D = get_node_or_null(camera_rig_path)
 	for villager in village.villagers:
 		villager.advance(delta)
+		_advance_task_execution(villager, delta)
 		var nameplate: VillagerNameplate = _nameplates[villager]
 		if nameplate.text != villager.current_thought:
 			nameplate.show_thought(villager.current_thought)
@@ -179,6 +187,47 @@ func _process(delta: float) -> void:
 			if click_body and not click_body.is_in_group(CameraRig.DIALOGUE_CLICK_GROUP):
 				click_body.add_to_group(CameraRig.DIALOGUE_CLICK_GROUP)
 		_maybe_gain_favored(villager, camera_rig, delta)
+
+
+## Drives one Villager's Task through Village's execution seam (issue
+## #28): asks Village to (re)assign a Task every frame via
+## advance_task_assignment() — cheap (a pure priority comparison gated by
+## should_interrupt()) and this project's population is small enough that
+## the "not a continuous re-score loop" performance aspiration in docs/
+## systems-overview.md's Task Priority section isn't worth a stricter
+## decision-point trigger (an implementer's call, issue #28's
+## Implementation Decisions leave the exact split open) — then drives
+## this Villager's own Mover toward the assigned Task's destination, and
+## resolves it once reached. Also what keeps `villager.position` synced
+## from its live Mover position every frame, regardless of whether it has
+## a Task right now — fixing the gap issue #22's check_sleep() used to
+## have (see this script's own doc comment above).
+func _advance_task_execution(villager: Villager, delta: float) -> void:
+	var task_changed := village.advance_task_assignment(villager)
+	var mover: Mover = _movers[villager]
+	villager.position = mover.global_position
+	var task := villager.current_task
+	if task == null:
+		return
+	var destination := village.task_destination(task)
+	if task_changed:
+		mover.move_to(destination)
+	if not villager.task_resolving:
+		if village.has_reached_destination(villager.position, destination, mover.arrival_threshold):
+			# begin_resolving_task() mutates GameState.resources["food"]
+			# directly for an Eat Task (see its own doc comment) rather
+			# than going through GameState.add_resource() — Village
+			# (Seam 1) has no reference to the GameState singleton to
+			# call that on, by design. This before/after snapshot is
+			# what still makes real consumption show up on
+			# GameState.resource_changed for any future consumer (same
+			# pattern issue #22's code review established).
+			var food_before: int = GameState.resources.food
+			village.begin_resolving_task(villager, GameState.resources, GameState.day_speed)
+			if GameState.resources.food != food_before:
+				GameState.resource_changed.emit("food", GameState.resources.food)
+	elif task.kind == Task.KIND_SLEEP:
+		village.advance_sleeping(villager, delta)
 
 
 ## Proximity/lingering *detection* only — the Favored stat and its
@@ -210,10 +259,17 @@ func _spawn_villagers() -> void:
 	click_shape.height = 1.6
 
 	for villager in village.villagers:
-		var root := Node3D.new()
+		# `root` IS this Villager's Mover (issue #28) — Mover extends
+		# Node3D, so it's a drop-in replacement for the plain Node3D this
+		# used to be. Moving it (via Mover.move_to()) moves every child
+		# below (body, click body, nameplate) along with it, the same way
+		# `root.position` already placed all of them together at spawn.
+		var root := Mover.new()
 		root.name = villager.id
 		root.position = GroundScatter.random_ground_position(ground_size, _rng)
+		root.speed = villager_move_speed
 		add_child(root)
+		_movers[villager] = root
 
 		var body := MeshInstance3D.new()
 		var mesh := CapsuleMesh.new()
