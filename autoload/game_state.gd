@@ -1,38 +1,27 @@
 extends Node
-## GameState
-## Global singleton (autoloaded) holding shared simulation state.
-## Keep this thin: it's a bulletin board other systems read/write,
-## not a dumping ground for gameplay logic.
+## Global singleton (autoloaded) holding shared simulation state. Keep
+## this thin: a bulletin board other systems read/write, not a place for
+## gameplay logic.
 
 signal time_of_day_changed(hours: float)
 signal resource_changed(resource_name: String, amount: int)
 
 ## 0.0-24.0, wraps around. 12.0 = noon.
 @export var time_of_day: float = 8.0
-## In-game hours per real second. 1.0 = a full day every 24 real seconds.
+## In-game hours per real second.
 @export var day_speed: float = 0.25
 @export var paused: bool = false
 
-## No "faith" here on purpose: CONTEXT.md defines Faith as a per-Folk
-## belief trait, not a global spendable stockpile. See docs/adr/0001.
+## No "faith" key — Faith is a per-Folk trait, not a global stockpile.
 var resources: Dictionary = {
 	"food": 100,
 	"wood": 50,
 }
 
-## The one Village that exists so far (per issue #2's "no multi-Village
-## support" scope). Defaults to an empty Village (never null) so reading
-## it before the spawner runs is always safe — GameState still isn't
-## populating it, that's systems/village.gd's job (via the spawner), per
-## the doc comment above.
+## Never null — defaults to an empty Village so reading this before a
+## spawner runs is always safe.
 var village: Village = Village.new()
-
-## The Pantheon (systems/pantheon.gd), deferred by issue #3 on purpose,
-## filled in by issue #4. Defaults to a real Pantheon (never null), same
-## "always safe to read" reasoning as `village` above.
-## scripts/village_spawner.gd reads this and passes it into Village's
-## Wish-linking (see systems/village.gd's resolve_wish()) — Village/
-## Villager (Seam 1) never reach into GameState directly.
+## Never null, same reasoning as village above.
 var pantheon: Pantheon = Pantheon.new()
 
 

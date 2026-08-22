@@ -1,33 +1,19 @@
 class_name GroundScatter
 extends RefCounted
-## GroundScatter
 ## Shared placeholder helper for scattering things across a flat ground
-## plane — extracted out of world_gen.gd so world_gen.gd (trees/rocks) and
-## village_spawner.gd (Villagers) don't duplicate the same random-position
-## logic. Disposable, same spirit as world_gen.gd's primitives — nothing
-## here is a real terrain/placement system.
-##
-## Lives in scripts/, not systems/, on purpose: CLAUDE.md's systems/ is for
-## simulation logic (economy, needs, weather, ...), and this has none —
-## it's a placement/art utility for two scene scripts, same category as
-## the code it was extracted from.
+## plane. Lives in scripts/, not systems/ — a placement/art utility, not
+## simulation logic.
 
 
-## Returns a random point within `ground_size` (a square), inset 10% from
-## the edges, at y = 0. `rng` is caller-owned so callers keep control of
-## their own seeding/determinism.
+## Random point within `ground_size` (a square), inset 10% from the
+## edges, at y = 0.
 static func random_ground_position(ground_size: float, rng: RandomNumberGenerator) -> Vector3:
 	var half := ground_size * 0.5 * 0.9
 	return Vector3(rng.randf_range(-half, half), 0.0, rng.randf_range(-half, half))
 
 
-## Resolves the real ground size from `world_gen` (typically a sibling
-## world_gen.gd node, which owns the ground plane's actual size), falling
-## back to `fallback` if `world_gen` is null or doesn't expose its own
-## `ground_size` property. Extracted out of village_spawner.gd's original
-## `_resolve_ground_size()` (issue #11) so village_spawner.gd and
-## sheep_spawner.gd — both scattering things via this same helper — share
-## one implementation instead of each keeping their own copy.
+## Resolves the real ground size from `world_gen` (a sibling node owning
+## the ground plane), falling back to `fallback` if unset/unavailable.
 static func resolve_ground_size(world_gen: Node, fallback: float) -> float:
 	if world_gen != null and "ground_size" in world_gen:
 		return world_gen.ground_size

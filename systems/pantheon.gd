@@ -1,22 +1,11 @@
 class_name Pantheon
 extends RefCounted
-## Pantheon
-## Holds the full roster of Gods (CONTEXT.md's "The Gods"), queryable by
-## Domain. No scene tree, no _ready() — fully testable in isolation, the
-## same Seam-1-style seam as Village/Villager (see issue #2 /
-## docs/systems-overview.md, and issue #3's Implementation Decisions).
+## Holds the full roster of Gods, queryable by Domain.
 ##
-## PLACEHOLDER SCAFFOLDING: the roster below is a fixed, hand-written array
-## built at construction time — deliberately not the intended architecture.
-## CONTEXT.md is explicit that the Gods are meant to be created from the
-## perceived world, not pre-authored as fixed content; this static roster
-## stands in for that unbuilt generation mechanism, the same disposable
-## spirit as scripts/world_gen.gd's placeholder primitives (see
-## docs/systems-overview.md's Pantheon section and
-## docs/adr/0002-pantheon-roster-is-placeholder-content.md). Swap it out
-## once a real "Gods emerge from the World" mechanism exists — keep this
-## class's public interface (`gods`, `get_by_domain`) stable across that
-## change even though its internals will be replaced completely.
+## PLACEHOLDER SCAFFOLDING: the roster is a fixed, hand-written array, not
+## the intended architecture — Gods are meant to emerge from the world,
+## not be pre-authored. Keep `gods`/`get_by_domain()` stable once that
+## replaces this.
 
 var gods: Array[God] = []
 
@@ -51,9 +40,6 @@ func _init() -> void:
 	]
 
 
-## Returns the God whose Domain matches `domain`, or `null` if no God in
-## the roster claims it. Godot has no Option type; `null` is the agreed
-## not-found signal for this seam (see issue #3's Implementation Decisions).
 func get_by_domain(domain: String) -> God:
 	for god: God in gods:
 		if god.domain == domain:

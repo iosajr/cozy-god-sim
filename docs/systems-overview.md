@@ -671,8 +671,9 @@ Roadmap items below.
 - **Thought**: built — a per-Villager cycling string, shown via a
   nameplate. **Wish**: built (issue #4) — a Thought that specifically
   wants something, tagged with a Domain (`systems/wish.gd`), drawn as a
-  minority of rerolls (`Village.WISH_POOL`/`wish_chance`) and linked to a
-  God via `Pantheon.get_by_domain()` (`Village.resolve_wish()`), with the
+  minority of rerolls (`VillageThoughts.WISH_POOL`/`wish_chance`) and
+  linked to a God via `Pantheon.get_by_domain()` (`Village.resolve_wish()`,
+  which now delegates to `systems/village_thoughts.gd`), with the
   God's reaction stored as inert placeholder data (resolved/ignored) —
   explicitly to-be-developed-on, not a finished mechanic; no Petition, no
   Player input, no visible effect yet. **Open question the user has
