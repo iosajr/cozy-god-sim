@@ -45,6 +45,15 @@ extends RefCounted
 const DEFAULT_FAITH_THRESHOLD: float = 30.0
 const DEFAULT_RENOWN_THRESHOLD: float = 100.0
 
+## Real-seconds-per-in-game-year conversion `advance()` uses by default
+## (issue #21) — an explicit implementer's-call placeholder, same
+## tunable-not-designed spirit as reroll_interval_min/max and friends
+## (docs/systems-overview.md's Ageing entry: "time to be determined, pick
+## something for now"). Named/overridable so callers/tests can supply
+## their own for deterministic coverage instead of waiting out the real
+## default.
+const DEFAULT_SECONDS_PER_YEAR: float = 300.0
+
 var id: String
 var has_faith: bool
 var favored: float = 0.0
@@ -55,6 +64,18 @@ var favored: float = 0.0
 ## precedent as Favored itself). No God-attribution/dialogue logic lives
 ## here — that's a later slice.
 var is_renowned: bool = false
+
+## Age in whole in-game years (issue #21's Ageing slice — docs/
+## systems-overview.md's Roadmap entry: "things age, tracked yearly").
+## Readable from outside Folk on purpose (not private) so future systems
+## can consult it once designed — life stages, death, work capacity,
+## Favored/Renown eligibility, Reproducing-eligibility are all explicitly
+## NOT decided or implemented by this slice; this is a bare counter only.
+var age_years: int = 0
+## Internal accumulator tracking elapsed seconds toward the next
+## age_years crossing — see advance(). Not meant to be read/set by
+## callers; exposed only because GDScript has no private fields.
+var _age_progress: float = 0.0
 
 
 func _init(p_id: String, p_has_faith: bool) -> void:
@@ -85,3 +106,21 @@ func gain_favored(amount: float, faith_threshold: float = DEFAULT_FAITH_THRESHOL
 		has_faith = true
 	if has_faith and favored >= renown_threshold:
 		is_renowned = true
+
+
+## Consolidated per-Folk `advance()` entry point (issue #21) — meant to be
+## the one home for any always-ticking, delta-driven per-Folk mechanic
+## going forward (not a replacement for gain_favored(), which is
+## proximity-triggered, not delta-driven). This slice only puts ageing's
+## bookkeeping here: accumulates `delta` into `_age_progress`, and once it
+## crosses `seconds_per_year`, increments `age_years` by 1 and carries the
+## remainder forward. Single-crossing-per-call, mirroring
+## advance_thoughts()/advance_eating_checks()'s existing single-crossing-
+## per-call assumption (systems/village.gd) rather than looping for
+## multiple crossings within one call — a call with an unusually large
+## `delta` ages at most one year, same as those.
+func advance(delta: float, seconds_per_year: float = DEFAULT_SECONDS_PER_YEAR) -> void:
+	_age_progress += delta
+	if _age_progress >= seconds_per_year:
+		age_years += 1
+		_age_progress -= seconds_per_year

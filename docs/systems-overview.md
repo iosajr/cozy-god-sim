@@ -36,7 +36,10 @@ now there mostly aren't any yet.
   placeholder nameplate tint (`VillagerNameplate.set_renowned()`).
 - `systems/folk.gd` (issue #11): `id`/`has_faith`/`favored`/`is_renowned`/
   `gain_favored()` extracted out of `Villager` into this shared base —
-  `Villager` now `extends Folk`, unchanged externally. `systems/sheep.gd`
+  `Villager` now `extends Folk`, unchanged externally. Also holds
+  `age_years`/`advance()` (issue #21) — a consolidated per-Folk entry
+  point for ageing's yearly counter, called once per Folk instance per
+  frame by `village_spawner.gd`/`sheep_spawner.gd`. `systems/sheep.gd`
   is the first other Folk type built on it: full Favored/Renown via the
   same `gain_favored()`, its own (much higher) Renown threshold, but no
   Thought/Wish and no Survival Needs at all, per the "domesticated
@@ -526,17 +529,17 @@ Roadmap items below.
   exploring. See the Task Priority section above. Actual
   hunting-for-real (for people or wild animals like wolves) is still
   flagged separately above under Survival as its own later slice.
-- **Ageing — "should be added somewhat soon," partially resolved
-  (user-confirmed)**: **"things age, tracked yearly"** — a simple
-  age-in-years counter, applied broadly ("things," not confirmed
-  Villager-only — read as likely Folk-general, not just Villagers, but
-  that reading isn't explicitly confirmed either). Real-time-to-in-game-
-  year conversion is explicitly an implementer's-call placeholder — the
-  user's own words, **"time to be determined, pick something for now"**
-  — don't treat whatever number gets picked as a design decision worth
-  defending, it's a tunable placeholder like `reroll_interval_min/max`
-  and friends. **Still genuinely undesigned**: what age actually *does*
-  — life stages, death, work capacity, Favored/Renown eligibility,
+- **Ageing — Done (issue #21)**: **"things age, tracked yearly"** —
+  shipped Folk-general (not Villager-only, resolving the earlier unsure
+  reading), via a new consolidated `Folk.advance(delta)` entry point: a
+  bare `age_years: int` counter that increments once elapsed time crosses
+  `Folk.DEFAULT_SECONDS_PER_YEAR` (an explicit tunable placeholder, same
+  spirit as `reroll_interval_min/max`). `village_spawner.gd`/
+  `sheep_spawner.gd` each call `folk.advance(delta)` once per Folk
+  instance per frame. `Folk.advance()` is meant as the one home for any
+  future always-ticking per-Folk mechanic, not just this one — nothing
+  else lives there yet. **Still genuinely undesigned**: what age actually
+  *does* — life stages, death, work capacity, Favored/Renown eligibility,
   Reproducing-eligibility (see below) — none of that is decided. Don't
   invent a mechanism.
 - **Reproducing — "should be added somewhat soon," real shape given

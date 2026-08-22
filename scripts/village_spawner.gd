@@ -56,6 +56,11 @@ extends Node3D
 ## `current_wish.text` only, no invented writing). The speaker name shown
 ## is a generic, non-individual label (see RENOWNED_VILLAGER_SPEAKER_NAME
 ## below) — User Story 9's explicit implementer's call.
+##
+## Also the bridge for Ageing (issue #21): the existing per-frame loop
+## now also calls `villager.advance(delta)` once per Villager, alongside
+## the calls above — the one new line issue #21's consolidated
+## `Folk.advance()` entry point asks every spawner's `_process()` to add.
 
 @export var villager_count: int = 6
 ## Fallback ground size, used only if `world_gen_path` doesn't resolve to
@@ -138,6 +143,7 @@ func _process(delta: float) -> void:
 	village.advance_eating_checks(delta, GameState.resources.food > 0)
 	var camera_rig: Node3D = get_node_or_null(camera_rig_path)
 	for villager in village.villagers:
+		villager.advance(delta)
 		var nameplate: VillagerNameplate = _nameplates[villager]
 		if nameplate.text != villager.current_thought:
 			nameplate.show_thought(villager.current_thought)
