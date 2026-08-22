@@ -1,6 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene format=3 uid="uid://djpq2qe7jdg28"]
 
-[ext_resource type="Script" path="res://prototypes/terrain_pokemon_bw/demo.gd" id="1_demo"]
+[ext_resource type="Script" uid="uid://cfbkxjuq0hx7n" path="res://prototypes/terrain_pokemon_bw/demo.gd" id="1_demo"]
+[ext_resource type="Script" uid="uid://ywkygcw157p4" path="res://scripts/camera_rig.gd" id="2_38ehr"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.38, 0.58, 0.82, 1)
@@ -18,20 +19,24 @@ ambient_light_source = 2
 ambient_light_color = Color(1, 1, 1, 1)
 ambient_light_energy = 0.9
 
-[node name="Demo" type="Node3D"]
+[node name="Demo" type="Node3D" unique_id=929148808]
 script = ExtResource("1_demo")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=513120306]
 environment = SubResource("Environment_env")
 
-[node name="Sun" type="DirectionalLight3D" parent="."]
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=213743636]
 transform = Transform3D(1, 0, 0, 0, 0.7071, 0.7071, 0, -0.7071, 0.7071, 0, 15, 0)
 light_energy = 1.1
 shadow_enabled = true
 
-[node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(0.766044, -0.383022, 0.5148, 0, 0.802, 0.5966, -0.642788, -0.457065, 0.6142, 30, 26, 30)
-current = true
+[node name="CameraRig" type="Node3D" parent="." unique_id=2051140185]
+script = ExtResource("2_38ehr")
 
-[node name="TopDownCamera" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 45, 0)
+[node name="Pivot" type="Node3D" parent="CameraRig" unique_id=561703938]
+transform = Transform3D(1, 0, 0, 0, 0.7071, 0.7071, 0, -0.7071, 0.7071, 0, 0, 0)
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig/Pivot" unique_id=590416446]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 24)
+current = true
+fov = 55.0
