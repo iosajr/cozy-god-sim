@@ -35,6 +35,15 @@ const DEFAULT_CAPACITY: int = 4
 
 var capacity: int
 
+## Real spatial position (issue #30) — same shape as Farm/Villager's own
+## `position: Vector3` fields, added specifically so a Villager can be
+## sent to travel here (see Village.task_destination() in
+## systems/village.gd). Defaults to the origin, same as Farm/Villager;
+## a real spawner (scripts/house_spawner.gd) sets this to wherever the
+## House is actually scattered in the world.
+var position: Vector3
 
-func _init(p_capacity: int = DEFAULT_CAPACITY) -> void:
+
+func _init(p_capacity: int = DEFAULT_CAPACITY, p_position: Vector3 = Vector3.ZERO) -> void:
 	capacity = p_capacity
+	position = p_position
