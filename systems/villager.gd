@@ -66,12 +66,16 @@ var last_eating_outcome: String = ""
 
 ## Unified Hungry→Starving progression (issue #22, folding in issue #16's
 ## originally-separate Hungry/Starving spec) — covers every way a
-## Villager can fail to eat: an empty communal store at the Village
-## (Village.check_eating()'s at-Village branch), or an away+unprovisioned
-## attempt (Village.check_eating()'s foraging branch — no real
-## hunting/foraging AI exists yet, so every such attempt currently counts
-## as a failure; an implementer's call, documented on check_eating()
-## itself). A successful eat recovers one stage rather than resetting
+## Villager can fail to eat: as of issue #28, Village.check_eating() is
+## the pure escalation clock only, and its at-Village branch always
+## escalates regardless of the communal store's contents — recovery no
+## longer happens inline there at all, it's gated behind actually
+## executing an Eat Task to completion (Village.begin_resolving_task(),
+## which is where the real food-store check now lives). The away+
+## unprovisioned/foraging branch is unaffected by issue #28 (no real
+## hunting/foraging AI exists yet, so every such attempt still counts as
+## a failure; an implementer's call, documented on check_eating() itself).
+## A successful eat recovers one stage rather than resetting
 ## straight to HUNGER_FINE — "possibly a progression," per
 ## docs/systems-overview.md's Survival section, which leaves the exact
 ## pace explicitly open; one stage per check in either direction is this
@@ -89,15 +93,16 @@ var hunger_state: String = HUNGER_FINE
 
 ## Unified Tired→Exhausted progression (issue #22, folding in issue #18's
 ## originally-separate Sleeping spec) — mirrors hunger_state's shape
-## exactly. Escalated only by Village.check_sleep(): an away Villager
-## whose real nightfall + travel-time lookahead finds not enough time
-## remains to reach `position` — Village.site_position, since House
-## (issue #17) has no spatial position yet — before Village.
-## sleep_start_hour. Recovers one stage per check otherwise, including
-## trivially while at the Village (Shelter's "as minimal as a nearby
-## tree" framing means that branch is never a real gate this slice). No
-## stage beyond TIREDNESS_EXHAUSTED, same "no consequence yet" caveat as
-## hunger_state above.
+## exactly. As of issue #28, Village.check_sleep() is the pure escalation
+## clock only — it always escalates one stage, regardless of location;
+## issue #22's original nightfall + travel-time lookahead is retired (see
+## check_sleep()'s own doc comment in systems/village.gd). Recovery no
+## longer happens inline at all — it's entirely gated behind actually
+## executing a Sleep Task to completion (Village.advance_sleeping(),
+## issue #28's fixed 8-hour occupancy), including for a Villager already
+## at the Village (no more trivial at-Village recovery). No stage beyond
+## TIREDNESS_EXHAUSTED, same "no consequence yet" caveat as hunger_state
+## above.
 const TIREDNESS_FINE := "fine"
 const TIREDNESS_TIRED := "tired"
 const TIREDNESS_EXHAUSTED := "exhausted"
