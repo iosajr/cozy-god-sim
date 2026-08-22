@@ -111,15 +111,15 @@ var sleep_check_interval_max: float = 90.0
 
 ## Placeholder Eat/Sleep destination every Task execution seam travels
 ## to (issue #28, revising issue #22's check_sleep()-only lookahead
-## use) — House (issue #17) has no spatial position this slice and
-## there's no real store-position concept yet either (issue #15's Farm
+## use) — there's no real store-position concept yet (issue #15's Farm
 ## delivery already reuses this same placeholder), so the Village's own
-## site position stands in for both, same "ship without waiting on
-## Housing/a real store to become spatial" reasoning the issue calls
-## for. Plain Vector3 data, no scene tree involved — same Seam-1 spirit
-## as known_locations above. Defaults to the origin; a real spawner
-## sets this to wherever the Village is actually scattered in the
-## world. See task_destination() below.
+## site position stands in for "the store" always, and for Sleep too
+## whenever a Villager has no House. Plain Vector3 data, no scene tree
+## involved — same Seam-1 spirit as known_locations above. Defaults to
+## the origin; a real spawner sets this to wherever the Village is
+## actually scattered in the world. As of issue #30, House (systems/
+## house.gd) has its own real spatial `position` — see task_destination()
+## below for how a Sleep Task now prefers it over this fallback.
 var site_position: Vector3 = Vector3.ZERO
 
 ## Fixed in-game-hour duration a resolving Sleep Task occupies (issue
@@ -377,15 +377,24 @@ func advance_task_assignment(villager: Villager) -> bool:
 	return true
 
 
-## Where `task` should send its Villager before resolving (issue #28's
-## User Story 4). Both KIND_EAT and KIND_SLEEP resolve to the Village's
-## own site_position this slice (issue #28's Solution: "the Village's own
-## site_position stands in for 'the store'" / "site_position remains the
-## destination... too" — no real store/House Location exists yet, see
-## issues #15/#17). Takes `task` (rather than being a bare constant
-## lookup) so a future Task kind with a genuinely different destination
-## slots in without changing every call site.
-func task_destination(_task: Task) -> Vector3:
+## Where `task` should send `villager` before resolving (issue #28's User
+## Story 4, revised by issue #30's real House position). KIND_EAT still
+## always resolves to the Village's own site_position — "the store" stays
+## the same placeholder ground-spot destination it always has been (issue
+## #28's Solution, issue #15's Farm delivery reuses the same spot). Now
+## that House (issue #17) has a real spatial `position` (issue #30),
+## KIND_SLEEP prefers `villager.house.position` when `villager.house` is
+## set, falling back to `site_position` exactly as before when it isn't
+## — nothing currently assigns `Villager.house` (issue #17's Out of
+## Scope, unchanged by #30), so in practice every existing Villager still
+## uses the site_position fallback; this only adds the *capability* to
+## prefer a real House once assignment eventually exists. Takes `task`
+## (rather than being a bare constant lookup) so a future Task kind with
+## a genuinely different destination slots in without changing every call
+## site.
+func task_destination(task: Task, villager: Villager) -> Vector3:
+	if task.kind == Task.KIND_SLEEP and villager.house != null:
+		return villager.house.position
 	return site_position
 
 

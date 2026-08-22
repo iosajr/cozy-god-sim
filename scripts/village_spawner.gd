@@ -209,7 +209,7 @@ func _advance_task_execution(villager: Villager, delta: float) -> void:
 	var task := villager.current_task
 	if task == null:
 		return
-	var destination := village.task_destination(task)
+	var destination := village.task_destination(task, villager)
 	if task_changed:
 		mover.move_to(destination)
 	if not villager.task_resolving:

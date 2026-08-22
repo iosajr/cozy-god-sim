@@ -679,23 +679,46 @@ func test_re_querying_after_a_task_finishes_naturally_resurfaces_the_still_pendi
 
 
 # --- task_destination()/has_reached_destination() (issue #28's User
-# --- Story 4 travel-then-resolve seam) ---
+# --- Story 4 travel-then-resolve seam, revised by issue #30's real
+# --- House position preference) ---
 
 
 func test_task_destination_is_site_position_for_an_eat_task() -> void:
 	var village := Village.new()
 	village.site_position = Vector3(10, 0, 5)
+	var villager := Villager.new("v1", true, "sleepy")
 	var task := Task.new(Task.KIND_EAT, Village.EAT_PRIORITY_HUNGRY)
 
-	assert_eq(village.task_destination(task), Vector3(10, 0, 5))
+	assert_eq(village.task_destination(task, villager), Vector3(10, 0, 5))
 
 
-func test_task_destination_is_site_position_for_a_sleep_task() -> void:
+func test_task_destination_is_site_position_for_a_sleep_task_without_a_house() -> void:
 	var village := Village.new()
 	village.site_position = Vector3(10, 0, 5)
+	var villager := Villager.new("v1", true, "sleepy")
 	var task := Task.new(Task.KIND_SLEEP, Village.SLEEP_PRIORITY_TIRED)
 
-	assert_eq(village.task_destination(task), Vector3(10, 0, 5))
+	assert_eq(village.task_destination(task, villager), Vector3(10, 0, 5))
+
+
+func test_task_destination_prefers_the_villagers_house_position_for_a_sleep_task() -> void:
+	var village := Village.new()
+	village.site_position = Vector3(10, 0, 5)
+	var villager := Villager.new("v1", true, "sleepy")
+	villager.house = House.new(House.DEFAULT_CAPACITY, Vector3(1, 0, 2))
+	var task := Task.new(Task.KIND_SLEEP, Village.SLEEP_PRIORITY_TIRED)
+
+	assert_eq(village.task_destination(task, villager), Vector3(1, 0, 2))
+
+
+func test_task_destination_still_uses_site_position_for_an_eat_task_even_with_a_house() -> void:
+	var village := Village.new()
+	village.site_position = Vector3(10, 0, 5)
+	var villager := Villager.new("v1", true, "sleepy")
+	villager.house = House.new(House.DEFAULT_CAPACITY, Vector3(1, 0, 2))
+	var task := Task.new(Task.KIND_EAT, Village.EAT_PRIORITY_HUNGRY)
+
+	assert_eq(village.task_destination(task, villager), Vector3(10, 0, 5))
 
 
 func test_has_reached_destination_is_true_within_the_arrival_threshold() -> void:
