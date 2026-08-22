@@ -112,6 +112,17 @@ var tiredness_state: String = TIREDNESS_FINE
 ## "no consumer" scope for Mover. Defaults to Vector3.ZERO.
 var position: Vector3 = Vector3.ZERO
 
+## PROVISIONAL, NOT FINAL (issue #17's Housing data slice) — a direct
+## reference to this Villager's House, or null if they don't have one.
+## The simplest possible pointer, not a considered ownership model (see
+## systems/house.gd's doc comment for the full "not final" framing).
+## Nothing sets this yet — no assignment logic exists this slice (issue
+## #17's Out of Scope); it's set directly (tests, a future debug seam)
+## until real House-assignment is designed. The paired Sleeping spec is
+## the first real consumer, though it doesn't yet branch on it
+## meaningfully either.
+var house: House = null
+
 
 func _init(p_id: String, p_has_faith: bool, p_current_thought: String, p_current_wish: Wish = null) -> void:
 	super(p_id, p_has_faith)

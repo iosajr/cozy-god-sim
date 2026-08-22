@@ -614,3 +614,44 @@ func test_query_next_task_returns_the_higher_priority_candidate_when_both_are_ur
 	assert_not_null(task)
 	assert_eq(task.kind, Task.KIND_EAT)
 	assert_true(task.is_must_do())
+
+
+# --- Housing (issue #17, provisional data slice) ---
+
+
+func test_new_village_starts_with_no_houses() -> void:
+	# issue #17's Housing data slice: no construction trigger this
+	# slice, so a fresh Village's houses collection starts empty.
+	var village := Village.new()
+
+	assert_eq(village.houses.size(), 0)
+
+
+func test_a_house_can_be_appended_to_village_houses() -> void:
+	# No assignment logic in this slice (issue #17's Out of Scope) — a
+	# House is just directly appendable, mirroring known_locations.
+	var village := Village.new()
+	var house := House.new()
+
+	village.houses.append(house)
+
+	assert_eq(village.houses.size(), 1)
+	assert_same(village.houses[0], house)
+
+
+func test_villager_defaults_house_to_null() -> void:
+	# issue #17: no assignment logic ships this slice, so a Villager's
+	# House pointer stays unset until something (a test, a debug seam)
+	# sets it directly.
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	assert_null(villager.house)
+
+
+func test_villagers_house_can_be_set_directly() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	var house := House.new()
+
+	villager.house = house
+
+	assert_same(villager.house, house)
