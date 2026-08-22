@@ -271,8 +271,30 @@ The gap between that and everything below is most of the project.
   decide to build, with no Player build-menu or placement UI — consistent
   with `CONTEXT.md`'s "no menus" principle (everything the Player does is
   overheard, or performed through Presence/Nudge, never a command
-  interface). What actually triggers a Village choosing to build
-  (resources on hand? population size? something else?) isn't decided.
+  interface).
+- **Housing gets a real position, and ideally a placeholder model
+  (2026-08-22, user-confirmed: "yes give a position, if possible a
+  model")**: unblocks the placeholder Sleeping's nightfall-lookahead
+  already had to invent (falling back to the Village's own site position
+  for lack of anywhere else to send a sleeping Villager). A real 3D model
+  is a nice-to-have, not a requirement — same disposable-placeholder-art
+  spirit as everything else in `scripts/world_gen.gd`/the spawner
+  scripts; a primitive shape is a completely acceptable fallback.
+- **House build trigger, captured for docs but explicitly NOT being
+  built yet (2026-08-22, user-confirmed: "building houses can wait or at
+  least be added to docs")**: two real conditions, not a flat arbitrary
+  placeholder —
+  1. **Requires wood** — a resource cost, drawn from
+     `GameState.resources.wood`. **Real, unresolved gap, flagged plainly
+     rather than papered over**: `GameState.resources.wood` exists
+     (starts at 50) but nothing in the project produces wood — no
+     woodcutting/gathering mechanic exists anywhere yet. Building a
+     House "requires wood" is a real, sensible design decision; wood
+     *income* is a separate, undesigned dependency this doesn't resolve.
+  2. **Requires a need for houses** — driven by population growth
+     (a Village outgrowing its current housing capacity), not a flat
+     "one House per N Villagers" rule invented as a placeholder. Exact
+     threshold/comparison isn't designed — captured as direction only.
 - **Farm (user-confirmed mechanic)**: a cycle — seed, grow (needs periodic
   watering to progress, not continuous staffing), harvest (produces
   food), then re-seed to go again. Watering comes from rain, a Villager
@@ -426,6 +448,70 @@ questions). Don't guess — ask.
   spec on its own, see the Roadmap section below), then this Task/
   TaskProvider core, then Reproducing is layered in as one Task kind
   once the core exists — not built standalone.
+
+### Task execution, resolved (2026-08-22)
+
+`query_next_task()` shipped with issue #22 but nothing calls it outside
+tests — Eating/Sleeping still run their own direct `check_eating`/
+`check_sleep` + `advance_eating_checks`/`advance_sleep_checks` calls,
+completely bypassing Task. This round designs what actually consuming
+Task looks like, prompted by the user's own critique of the current
+naming: **"check feels like an ask"** — `check_eating`/`check_sleep`
+read as instantly resolving an outcome, when what's actually wanted is a
+*request* that can be deferred or interrupted.
+
+- **The escalation clock is unchanged**: hunger_state/tiredness_state
+  ticking Fine→Hungry→Starving / Fine→Tired→Exhausted (issues #16/#18)
+  stays exactly as shipped — that's just "how long has it been." What
+  changes is what happens once that clock says a Folk member wants to
+  act: instead of resolving inline and instantly, it becomes a real
+  **request** — "do I have time, or am I doing something important?" —
+  fed through `query_next_task()`'s existing priority comparison rather
+  than a separate ad hoc check.
+- **No literal task queue (user-confirmed)**: a pending need doesn't get
+  stored in an ordered list. The currently-running Task simply finishes
+  normally; *asking again* at that point re-surfaces the still-pending
+  need (hunger/tiredness never went away) — user's own words: "once
+  asked again this has priority." Simpler than inventing a queue
+  structure, and consistent with how nothing else in this project stores
+  explicit pending-work lists.
+- **Interruption reuses the existing Must-do rule exactly, nothing new**:
+  Sleep's real duration is a fixed **8 hours**, cut short only by a
+  genuine Must-do emergency — the same interruption heuristic the Task
+  Priority section above already resolved (a near-finished/consequential
+  task generally finishes; genuine Must-do emergencies interrupt, full
+  stop). Not a new mechanic.
+- **Travel is now a real part of executing a Task (user-confirmed: "yes
+  add travel")**: Eat and Sleep no longer resolve on the spot — a Folk
+  member must physically reach a destination first (Mover, issue #14),
+  the same seam issue #22's `Villager.position`/`site_position` fields
+  were already carrying as unwired data. **Applies to every branch,
+  including "at the Village" (user-confirmed: "folk must reach food to
+  eat")** — eating is never instant regardless of how close the food
+  is; there's always a real walk to wherever the food source currently
+  is (the store, in its simplest ground-spot tier for now).
+- **Village-level food scarcity affects Task *priority*, not an
+  interrupt (user-confirmed)**: a low communal store doesn't yank an
+  idle Villager off what they're doing — it raises the priority of
+  food-gathering Task candidates, so the next time a Folk member asks
+  for work, gathering/harvesting/hunting is more likely to win. Ties
+  directly to the Task Priority section's earlier, previously-unconfirmed
+  hedge ("Farm gathering escalating out of passtime if the Village is
+  critically short") — now confirmed as the real mechanism.
+  - **Two distinct food-priority levers, not one (new, user-confirmed)**:
+    **Farming** is a reliable slow burn (the Farm cycle takes real time
+    regardless of urgency); **Hunting** is a faster potential payoff but
+    explicitly **"not something to rely on"** — genuinely risky/unreliable,
+    consistent with Survival's already-flagged "Away, unprovisioned,
+    alone" foraging/hunting branch and its predator/prey angle (a wolf
+    hunting is the same underlying mechanic). Not designed further than
+    this distinction — no actual hunting success/risk logic exists yet.
+- **Idle is a real Task, with real (if simple) behavior (user-confirmed —
+  revises the earlier "unspecified, don't invent" stance)**: `KIND_IDLE`
+  isn't just a lowest-priority placeholder marker — the user specifically
+  wants **wandering, interlaced with standing still**. Exact
+  timing/logic (how long each phase lasts, how far a wander roams) is an
+  implementer's call, not designed further here.
 
 ## Daily Routine — merged into Task Priority (2026-08-22), kept for history
 
