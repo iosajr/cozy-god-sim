@@ -104,12 +104,15 @@ const TIREDNESS_EXHAUSTED := "exhausted"
 const TIREDNESS_STATES: Array[String] = [TIREDNESS_FINE, TIREDNESS_TIRED, TIREDNESS_EXHAUSTED]
 var tiredness_state: String = TIREDNESS_FINE
 
-## Current world position — a plain data stand-in Village.check_sleep()'s
-## real lookahead needs for its distance-to-site_position math, same
-## "seam, not behavior" spirit as is_away/is_provisioned above: nothing
-## keeps this in sync with a spawned body's actual position yet — no
-## consumer wires this up this slice, mirroring issue #14's own
-## "no consumer" scope for Mover. Defaults to Vector3.ZERO.
+## Current world position — a plain data stand-in Village's Task
+## execution seam needs for its has_reached_destination() arrival check
+## (issue #28's User Story 4; originally added for issue #22's
+## check_sleep() lookahead, since retired). As of issue #28, this is kept
+## synced with the spawned body's actual position every frame by
+## scripts/village_spawner.gd's `_advance_task_execution()` (its own
+## Mover, issue #14) — the first real consumer, resolving the "nothing
+## keeps this in sync yet" gap this field used to carry. Defaults to
+## Vector3.ZERO.
 var position: Vector3 = Vector3.ZERO
 
 ## PROVISIONAL, NOT FINAL (issue #17's Housing data slice) — a direct
@@ -122,6 +125,23 @@ var position: Vector3 = Vector3.ZERO
 ## the first real consumer, though it doesn't yet branch on it
 ## meaningfully either.
 var house: House = null
+
+## Task currently assigned to/executing for this Villager (issue #28) —
+## null means free to accept a new one from TaskProvider.query_next_task().
+## Set (and cleared) by Village's advance_task_assignment()/
+## begin_resolving_task()/advance_sleeping()/interrupt_task() — Villager
+## itself stays plain data with no behavior of its own (Seam 1), same as
+## every other field here.
+var current_task: Task = null
+
+## Whether current_task's destination has already been reached (issue
+## #28's travel-then-resolve split) — false while still traveling there
+## via Mover (the spawner's job, scripts/village_spawner.gd), true once
+## resolution has actually started: Eat resolves and clears current_task
+## the same call that flips this true (see Village.begin_resolving_task());
+## Sleep instead starts its fixed 8-hour countdown (see
+## Village.advance_sleeping()). Meaningless when current_task is null.
+var task_resolving: bool = false
 
 
 func _init(p_id: String, p_has_faith: bool, p_current_thought: String, p_current_wish: Wish = null) -> void:
