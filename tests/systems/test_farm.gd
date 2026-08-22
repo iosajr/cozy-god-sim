@@ -71,6 +71,24 @@ func test_water_is_a_no_op_once_already_ready_to_harvest() -> void:
 	assert_eq(farm.remaining_harvest, 20)
 
 
+func test_water_with_zero_amount_does_not_advance_stage_or_progress() -> void:
+	var farm := Farm.new(Vector3.ZERO, 3.0, 20)
+
+	farm.water(0.0)
+
+	assert_eq(farm.stage, Farm.FARM_SEEDED)
+	assert_eq(farm.water_progress, 0.0)
+
+
+func test_water_with_a_negative_amount_does_not_advance_stage_or_progress() -> void:
+	var farm := Farm.new(Vector3.ZERO, 3.0, 20)
+
+	farm.water(-1.0)
+
+	assert_eq(farm.stage, Farm.FARM_SEEDED)
+	assert_eq(farm.water_progress, 0.0)
+
+
 func test_harvest_before_ready_to_harvest_returns_zero_and_changes_nothing() -> void:
 	var farm := Farm.new(Vector3.ZERO, 3.0, 20)
 

@@ -78,9 +78,16 @@ func _init(
 ## reach Ready-to-Harvest"); once water_progress crosses
 ## `growth_threshold`, stage advances to FARM_READY_TO_HARVEST and
 ## `remaining_harvest` is set to `harvest_yield`, ready for harvest() to
-## drain (User Story 6).
+## drain (User Story 6). A non-positive `amount` is a no-op (code review
+## finding, mirroring harvest()'s own non-positive guard below): without
+## this guard, a misconfigured non-positive rain_water_amount (systems/
+## village.gd) or growth_threshold (scripts/farm_spawner.gd) would still
+## flip a freshly-seeded Farm to FARM_GROWING on the very first call
+## (the stage bump above isn't itself guarded by `amount`) while
+## water_progress never actually advances — a permanent FARM_GROWING
+## soft-lock, the same failure class harvest()'s guard exists to prevent.
 func water(amount: float = 1.0) -> void:
-	if stage == FARM_READY_TO_HARVEST:
+	if stage == FARM_READY_TO_HARVEST or amount <= 0.0:
 		return
 	water_progress += amount
 	if stage == FARM_SEEDED:

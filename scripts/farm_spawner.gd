@@ -92,12 +92,28 @@ class DeliveryState:
 ## Forwarded into each spawned Farm's constructor — tunable placeholders,
 ## same spirit as carry_capacity above (issue #15's Implementation
 ## Decisions: "carry_capacity (and the water/growth thresholds, harvest
-## yield amount) are @export tunable placeholders").
-@export var growth_threshold: float = Farm.DEFAULT_GROWTH_THRESHOLD
-@export var harvest_yield: int = Farm.DEFAULT_HARVEST_YIELD
+## yield amount) are @export tunable placeholders"). Range-limited to a
+## positive minimum (code review finding, same shape as carry_capacity's
+## own guard above): Farm.water() now also guards against a non-positive
+## `amount` directly, but growth_threshold is a different knob — even a
+## positive `amount` can never cross a non-positive growth_threshold in
+## the intended way (Farm.water()'s `>=` check would already be true
+## before any real growth happened), skipping FARM_GROWING entirely.
+## harvest_yield has no equivalent failure mode (Farm.harvest() already
+## guards non-positive `amount` requests, and remaining_harvest simply
+## starts at whatever this is), but gets the same hint for consistency
+## with every other tunable here.
+@export_range(0.1, 999.0, 0.1) var growth_threshold: float = Farm.DEFAULT_GROWTH_THRESHOLD
+@export_range(1, 999, 1) var harvest_yield: int = Farm.DEFAULT_HARVEST_YIELD
 ## Delivery-walker travel speed, forwarded to each Farm's Mover — mirrors
-## Mover's own default `speed` (issue #14).
-@export var walker_speed: float = 4.0
+## Mover's own default `speed` (issue #14). Range-limited to a positive
+## minimum (code review finding, same shape as carry_capacity above): a
+## zero/negative speed means Mover.advance() never actually moves the
+## walker toward its target, so `arrived` never fires and
+## _maybe_start_delivery()'s `state != WALKER_IDLE` guard then blocks
+## that Farm from ever starting another delivery — a silent, permanent
+## soft-lock.
+@export_range(0.1, 999.0, 0.1) var walker_speed: float = 4.0
 
 var farms: Array[Farm] = []
 
@@ -124,8 +140,14 @@ func _process(delta: float) -> void:
 		_last_synced_village = village
 	village.advance_farms(delta)
 	for farm in farms:
-		_sync_stage_tint(farm)
+		# _maybe_start_delivery() before _sync_stage_tint() (code review
+		# finding, order swapped from an earlier draft): a harvest that
+		# drains the last of remaining_harvest re-seeds `farm` inline
+		# (Farm.harvest()), so tinting first would render READY_COLOR for
+		# one extra frame after the Farm's real stage was already back to
+		# FARM_SEEDED.
 		_maybe_start_delivery(farm, village)
+		_sync_stage_tint(farm)
 
 
 ## Kicks off a delivery trip for `farm`'s walker if it's currently idle
