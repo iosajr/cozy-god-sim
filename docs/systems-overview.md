@@ -46,6 +46,11 @@ now there mostly aren't any yet.
   additive to the original WASD/edge-pan/zoom/rotate. `scripts/
   presence_light.gd` + `presence_cursor.gd` are a cosmetic-only preview
   of Presence, sharing a pure `scripts/ground_ray.gd` intersection seam.
+- `systems/house.gd` (issue #17): a minimal, explicitly provisional
+  `House` (`capacity: int`) + `Village.houses: Array[House]` +
+  `Villager.house: House = null` — no assignment logic, no construction
+  trigger, see the Buildings section below for the full "not final"
+  framing.
 - Still nothing resembling Petition, Nudge, real Presence-gating,
   Disaster, Known Territory, Survival needs, or any building/City-scale
   World generation.
@@ -229,17 +234,21 @@ The gap between that and everything below is most of the project.
   for itself. Housing (see Survival's Shelter/Housing distinction above)
   and a Farm (food production, below) are the first two kinds identified
   — more may follow.
-- **Housing — genuinely unsettled, shipped as a placeholder anyway
-  (user correction, then direct instruction)**: the user's instinct
-  leans per-house (each House its own entity, 2-8 occupants) over a
-  per-Village aggregate or per-Villager tracking, but flagged this as
-  unsure, not decided. Rather than stay blocked on that, the user asked
-  for something concrete anyway, explicitly marked not-final — spec'd
-  as **issue #17**: a minimal `House` (capacity 2-8) + a direct
-  `Villager.house` pointer (whichever's simplest to implement, not a
-  considered ownership model), no assignment logic, no construction
-  trigger. Every piece of it is marked provisional in its own doc
-  comments so it isn't mistaken for a settled decision later.
+- **Housing — Done (issue #17), genuinely unsettled, shipped as a
+  placeholder anyway (user correction, then direct instruction)**: the
+  user's instinct leans per-house (each House its own entity, 2-8
+  occupants) over a per-Village aggregate or per-Villager tracking, but
+  flagged this as unsure, not decided. Rather than stay blocked on that,
+  the user asked for something concrete anyway, explicitly marked
+  not-final — shipped as a minimal `systems/house.gd` (`House`,
+  capacity 2-8, fixed default) + `Village.houses: Array[House]` + a
+  direct `Villager.house` pointer (whichever's simplest to implement,
+  not a considered ownership model). No assignment logic, no
+  construction trigger — a fresh Village starts with an empty `houses`
+  collection and every Villager's `house` starts null; both are only
+  ever set directly (tests, a future debug seam). Every piece of it is
+  marked provisional in its own doc comments so it isn't mistaken for a
+  settled decision later.
 - **Shelter ≠ Housing, resolved (user-confirmed)**: a tree (or other
   minimal natural Shelter, per the Survival section above) is never
   Housing and never manages/owns a Villager the way a House would.

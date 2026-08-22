@@ -97,6 +97,16 @@ var villagers: Array[Villager] = []
 ## mechanic. See knows_location_with_tag() below for the query helper.
 var known_locations: Array[Location] = []
 
+## PROVISIONAL, NOT FINAL (issue #17's Housing data slice) — a Village's
+## collection of Houses, mirroring known_locations/villagers above. No
+## assignment logic and no construction trigger exist this slice (issue
+## #17's Out of Scope), so a fresh Village starts with an empty
+## collection; nothing appends to it automatically. See
+## systems/house.gd's doc comment for the full "not final" framing —
+## this is one provisional guess at Housing's real shape, not a
+## resolution.
+var houses: Array[House] = []
+
 var _rng := RandomNumberGenerator.new()
 var _reroll_countdowns: Dictionary = {}  # Villager -> float seconds remaining
 var _eating_countdowns: Dictionary = {}  # Villager -> float seconds remaining
