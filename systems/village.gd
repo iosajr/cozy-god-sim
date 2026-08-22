@@ -152,6 +152,28 @@ const SLEEP_PRIORITY_EXHAUSTED: float = 90.0
 ## decision (issue #8's Implementation Decisions).
 const STARTING_LOCATION_NAME := "the Village"
 
+## Cadence for the periodic per-Farm watering-check (issue #15's
+## Implementation Decisions: "Village.advance_farms(delta) — new periodic
+## method alongside the existing advance_thoughts/advance_eating_checks"),
+## mirroring eating_check_interval_min/max's shape exactly — its own
+## independent countdown (see _farm_countdowns) so Farm checks tick on
+## their own schedule, not per-frame (User Story 5).
+var farm_check_interval_min: float = 20.0
+var farm_check_interval_max: float = 40.0
+
+## Chance (0.0-1.0) that a periodic Farm check counts as "it rained" and
+## waters that Farm (User Story 4: "watering to come from rain or a
+## Villager manually watering it" — manual watering has no
+## assignment/trigger mechanism this slice, same "no task/worker-
+## assignment system exists yet" scoping as the harvest-delivery walker,
+## so rain is this slice's only real watering source). Tunable
+## placeholder, same implementer's-call spirit as wish_chance above.
+var rain_chance: float = 0.5
+
+## Water amount a single rain event adds via Farm.water() — tunable
+## placeholder, same spirit as FOOD_PER_MEAL.
+var rain_water_amount: float = 1.0
+
 var villagers: Array[Villager] = []
 
 ## A Village's shared, known-to-the-whole-community Known Territory
@@ -171,10 +193,20 @@ var known_locations: Array[Location] = []
 ## resolution.
 var houses: Array[House] = []
 
+## `Village.farms: Array[Farm]` (issue #15's Implementation Decisions) —
+## mirrors known_locations/villagers/houses above. No construction
+## trigger exists this slice (issue #15's Out of Scope, mirroring issue
+## #8/#10/#17's own precedent for not blocking on an undesigned trigger
+## mechanism) — a fresh Village starts with an empty collection; a Farm
+## is added directly (a test/debug seam, User Story 13), typically by
+## scripts/farm_spawner.gd once it spawns one with a real position.
+var farms: Array[Farm] = []
+
 var _rng := RandomNumberGenerator.new()
 var _reroll_countdowns: Dictionary = {}  # Villager -> float seconds remaining
 var _eating_countdowns: Dictionary = {}  # Villager -> float seconds remaining
 var _sleep_countdowns: Dictionary = {}  # Villager -> float seconds remaining
+var _farm_countdowns: Dictionary = {}  # Farm -> float seconds remaining
 
 ## Tracks a resolving Sleep Task's remaining real-seconds countdown
 ## (issue #28's User Story 5) — Villager -> float, only ever holding an
@@ -335,6 +367,28 @@ func advance_sleep_checks(delta: float) -> void:
 			check_sleep(villager)
 			remaining = _random_sleep_check_interval()
 		_sleep_countdowns[villager] = remaining
+
+
+## Advances every Farm's watering-check countdown by `delta` seconds
+## (issue #15's Implementation Decisions/Testing Decisions: mirrors
+## advance_eating_checks()'s exact countdown-ticking shape, against
+## `_farm_countdowns` instead of `_eating_countdowns`). Any Farm whose
+## countdown has elapsed rolls `rain_chance`; on a hit, that Farm gets
+## watered via Farm.water(rain_water_amount) (User Story 4) — a miss just
+## resets the countdown without watering anything, same as a real rain
+## check that came up dry. Same "call once per frame/tick, Village itself
+## has no _process" contract as advance_thoughts()/advance_eating_checks()
+## above.
+func advance_farms(delta: float) -> void:
+	for farm in farms:
+		if not _farm_countdowns.has(farm):
+			_farm_countdowns[farm] = _random_farm_check_interval()
+		var remaining: float = _farm_countdowns[farm] - delta
+		if remaining <= 0.0:
+			if _rng.randf() < rain_chance:
+				farm.water(rain_water_amount)
+			remaining = _random_farm_check_interval()
+		_farm_countdowns[farm] = remaining
 
 
 ## Whether a newly-queried candidate Task should replace `villager`'s
@@ -576,6 +630,10 @@ func _random_eating_check_interval() -> float:
 
 func _random_sleep_check_interval() -> float:
 	return _rng.randf_range(sleep_check_interval_min, sleep_check_interval_max)
+
+
+func _random_farm_check_interval() -> float:
+	return _rng.randf_range(farm_check_interval_min, farm_check_interval_max)
 
 
 ## Shared one-stage-at-a-time progression math behind

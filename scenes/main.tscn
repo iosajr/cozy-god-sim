@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/world_gen.gd" id="2_worldgen"]
@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://scripts/sheep_spawner.gd" id="8_sheepspawner"]
 [ext_resource type="Script" path="res://scripts/house_spawner.gd" id="10_housespawner"]
 [ext_resource type="PackedScene" path="res://scenes/dialogue_box.tscn" id="9_dialoguebox"]
+[ext_resource type="Script" path="res://scripts/farm_spawner.gd" id="11_farmspawner"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
 size = Vector2(200, 200)
@@ -83,6 +84,9 @@ script = ExtResource("8_sheepspawner")
 
 [node name="HouseSpawner" type="Node3D" parent="."]
 script = ExtResource("10_housespawner")
+
+[node name="FarmSpawner" type="Node3D" parent="."]
+script = ExtResource("11_farmspawner")
 
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("3_camrig")
