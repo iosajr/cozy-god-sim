@@ -100,41 +100,37 @@ const FOOD_PER_MEAL: int = 5
 ## Cadence for the periodic per-Villager sleep check (issue #22, folding
 ## in issue #18) — mirrors eating_check_interval_min/max above exactly,
 ## its own independent countdown (see _sleep_countdowns) so Sleep checks
-## tick on their own schedule. The real "schedule-driven, not a random
-## countdown" design (docs/systems-overview.md's Daily Routine notes)
-## lives inside check_sleep() itself, which reasons about
-## `time_of_day`/`sleep_start_hour` directly — this countdown only
-## governs how often that reasoning gets re-run, the same "periodic, not
-## per-frame" performance shape eating_check_interval_min/max already
-## uses, not a second competing schedule concept. An implementer's call,
-## since issue #22 doesn't specify this driver-loop cadence explicitly.
+## tick on their own schedule, the same "periodic, not per-frame"
+## performance shape eating_check_interval_min/max uses. As of issue #28,
+## check_sleep() is pure escalation (see its doc comment) — this countdown
+## just governs how often tiredness escalates, not a schedule-driven
+## nightfall calculation anymore. An implementer's call, since no issue
+## specifies this driver-loop cadence explicitly.
 var sleep_check_interval_min: float = 60.0
 var sleep_check_interval_max: float = 90.0
 
-## Target in-game hour (GameState.time_of_day terms, 0.0-24.0) Sleep
-## aims to have a Villager asleep by — the "nightfall" placeholder docs/
-## systems-overview.md's Daily Routine notes describe. Tunable
-## placeholder, implementer's call, same spirit as every other threshold
-## in this project.
-var sleep_start_hour: float = 20.0
-
-## Assumed travel speed (world units / real second) check_sleep()'s
-## lookahead uses to estimate travel time back to `site_position` —
-## mirrors Mover's own default `speed` (issue #14) without this Seam-1
-## pure logic depending on a live Mover Node (no scene tree here, same
-## as everywhere else in Village). Tunable placeholder, implementer's
-## call.
-var sleep_travel_speed: float = 4.0
-
-## Placeholder Sleep destination for every Villager's check_sleep()
-## lookahead (issue #22's User Story 10) — House (issue #17) has no
-## spatial position this slice, so the Village's own site position
-## stands in, same "ship without waiting on Housing to become spatial"
-## reasoning the issue calls for. Plain Vector3 data, no scene tree
-## involved — same Seam-1 spirit as known_locations above. Defaults to
-## the origin; a real spawner (none wired up this slice) would set this
-## to wherever the Village is actually scattered in the world.
+## Placeholder Eat/Sleep destination every Task execution seam travels
+## to (issue #28, revising issue #22's check_sleep()-only lookahead
+## use) — House (issue #17) has no spatial position this slice and
+## there's no real store-position concept yet either (issue #15's Farm
+## delivery already reuses this same placeholder), so the Village's own
+## site position stands in for both, same "ship without waiting on
+## Housing/a real store to become spatial" reasoning the issue calls
+## for. Plain Vector3 data, no scene tree involved — same Seam-1 spirit
+## as known_locations above. Defaults to the origin; a real spawner
+## sets this to wherever the Village is actually scattered in the
+## world. See task_destination() below.
 var site_position: Vector3 = Vector3.ZERO
+
+## Fixed in-game-hour duration a resolving Sleep Task occupies (issue
+## #28's User Story 5) before recovering tiredness — replaces issue
+## #22's nightfall + travel-time lookahead (check_sleep() no longer
+## does that math; recovery is now entirely gated behind actually
+## executing a Sleep Task, see advance_sleeping() below). Converted to
+## real seconds via GameState.day_speed at the point a Sleep Task
+## starts resolving (see _sleep_duration_seconds()), mirroring the same
+## hours/day_speed conversion the old lookahead used.
+const SLEEP_DURATION_HOURS: float = 8.0
 
 ## Priority Village.query_next_task() assigns an Eat/Sleep Task once
 ## hunger/tiredness crosses into "worth surfacing" territory (issue #22's
@@ -212,6 +208,12 @@ var _eating_countdowns: Dictionary = {}  # Villager -> float seconds remaining
 var _sleep_countdowns: Dictionary = {}  # Villager -> float seconds remaining
 var _farm_countdowns: Dictionary = {}  # Farm -> float seconds remaining
 
+## Tracks a resolving Sleep Task's remaining real-seconds countdown
+## (issue #28's User Story 5) — Villager -> float, only ever holding an
+## entry while that Villager's current_task is a resolving Sleep Task.
+## See begin_resolving_task()/advance_sleeping()/interrupt_task() below.
+var _sleep_seconds_remaining: Dictionary = {}  # Villager -> float seconds remaining
+
 
 ## `seed_value`: pass a non-negative int to make Faith flips and Thought
 ## draws deterministic (e.g. for tests, or to match a scene's placement
@@ -270,37 +272,33 @@ func advance_thoughts(delta: float, pantheon: Pantheon) -> void:
 		_reroll_countdowns[villager] = remaining
 
 
-## Answers "is this Villager in a position to eat?" (issue #10, docs/
+## Answers "has this Villager eaten recently?" (issue #10, docs/
 ## systems-overview.md's Survival section), returning one of the three
 ## EATING_* outcomes above as *why*-context (issue #22's Implementation
 ## Decisions), while the real, tracked result — `villager.hunger_state` —
-## is mutated as a side effect:
-## - At the Village: actually consumes FOOD_PER_MEAL from
-##   `resources["food"]` and recovers hunger if there's enough; escalates
-##   hunger without consuming anything if there isn't (issue #22's User
-##   Story 4, revising issue #10/#16's original "trivially fine
-##   regardless of food" branch).
+## is mutated as a side effect. As of issue #28, this is the escalation
+## clock only ("how long has it been") — it never recovers hunger for an
+## at-Village Villager anymore; recovery now only happens once a real Eat
+## Task has actually been executed (see begin_resolving_task() below),
+## since eating always requires physically traveling to the food source,
+## even at the Village (issue #28's User Story 8). The away branches are
+## unaffected by this slice (issue #28's Solution):
+## - At the Village: always escalates hunger — no more trivial recovery
+##   here (revises issue #22's "consumes FOOD_PER_MEAL and recovers if
+##   there's enough" branch; food is now spent by begin_resolving_task()
+##   instead, once an Eat Task actually resolves).
 ## - Away and provisioned: trivially recovers hunger — they brought food
 ##   for the journey, so they're self-sufficient (CONTEXT.md-adjacent
-##   Survival section, unchanged from #10's original branch).
+##   Survival section, unchanged from #10's original branch, carried
+##   forward unaffected by issue #28).
 ## - Away and unprovisioned ("foraging"): no real hunting/foraging AI
-##   exists yet (issue #22's Out of Scope, carried over from #16) — every
-##   such check currently escalates hunger as a failed attempt, an
-##   implementer's call, same as an empty store at the Village. Real
-##   forage/hunt success chances are a separate, later, larger slice.
-## `resources` is a Dictionary (expected to carry a `"food"` key),
-## forwarded and mutated by reference — mirroring how `pantheon` is
-## forwarded into reroll_thought() (issue #4's User Story 7) — so Village
-## stays testable without GameState/the scene tree (issue #22's Testing
-## Decisions) while still consuming real, shared stock. The caller
-## (village_spawner.gd) is what supplies the real GameState.resources.
-func check_eating(villager: Villager, resources: Dictionary) -> String:
+##   exists yet (issue #22's Out of Scope, carried over from #16/#28) —
+##   every such check still escalates hunger as a failed attempt, an
+##   implementer's call, same as before. Real forage/hunt success
+##   chances are a separate, later, larger slice.
+func check_eating(villager: Villager) -> String:
 	if not villager.is_away:
-		if resources.get("food", 0) >= FOOD_PER_MEAL:
-			resources["food"] = resources.get("food", 0) - FOOD_PER_MEAL
-			_recover_hunger(villager)
-		else:
-			_escalate_hunger(villager)
+		_escalate_hunger(villager)
 		return EATING_AT_VILLAGE
 	if villager.is_provisioned:
 		_recover_hunger(villager)
@@ -318,71 +316,55 @@ func check_eating(villager: Villager, resources: Dictionary) -> String:
 ## `_reroll_countdowns` — a separate timer per issue #10's User Story 2, so
 ## Thought rerolls and eating checks tick independently. Same "call once
 ## per frame/tick, Village itself has no _process" contract as
-## advance_thoughts(). `resources` is forwarded straight through to
-## check_eating() — see its doc comment.
-func advance_eating_checks(delta: float, resources: Dictionary) -> void:
+## advance_thoughts(). Runs on this schedule regardless of whatever Task a
+## Villager currently has assigned (issue #28's User Story 7 — the
+## escalation clock never pauses for a busy Villager); no longer takes a
+## `resources` parameter since check_eating() no longer touches it (issue
+## #28 moves food consumption into begin_resolving_task() below).
+func advance_eating_checks(delta: float) -> void:
 	for villager in villagers:
 		if not _eating_countdowns.has(villager):
 			_eating_countdowns[villager] = _random_eating_check_interval()
 		var remaining: float = _eating_countdowns[villager] - delta
 		if remaining <= 0.0:
-			villager.last_eating_outcome = check_eating(villager, resources)
+			villager.last_eating_outcome = check_eating(villager)
 			remaining = _random_eating_check_interval()
 		_eating_countdowns[villager] = remaining
 
 
-## Answers "is this Villager going to make it to sleep in time?" (issue
-## #22, folding in issue #18's nightfall + lookahead + Mover design) by
-## escalating or recovering `villager.tiredness_state`:
-## - At the Village: trivially recovers tiredness — Shelter's "as
-##   minimal as a nearby tree" framing (docs/systems-overview.md's
-##   Survival section) means this branch is never a real gate this slice,
-##   mirroring check_eating()'s own at-Village-is-trivial shape before
-##   food-consumption applies to *that* branch specifically.
-## - Away: a real lookahead — how many in-game hours remain before
-##   `sleep_start_hour` (see _hours_until()) versus how long it'd take,
-##   at `sleep_travel_speed`, to travel from `villager.position` back to
-##   `site_position` (the House-issue-#17-isn't-spatial-yet placeholder —
-##   see its own doc comment). `day_speed` converts the in-game-hours
-##   figure into real seconds so it's comparable to the travel-time
-##   figure (GameState.day_speed's own doc comment: "in-game hours per
-##   real second"). Enough time remaining recovers tiredness; not enough
-##   escalates it — a real, mechanically-grounded failure condition
-##   instead of a dice roll (issue #22's User Story 8).
-## `time_of_day`/`day_speed` are forwarded explicitly rather than read
-## from GameState — same Seam-1 "Village/Villager never reach into
-## GameState directly" rule check_eating()'s `resources` parameter
-## follows above.
-func check_sleep(villager: Villager, time_of_day: float, day_speed: float) -> void:
-	if not villager.is_away:
-		_recover_tiredness(villager)
-		return
-	var hours_remaining := _hours_until(time_of_day, sleep_start_hour)
-	var seconds_remaining := hours_remaining / day_speed if day_speed > 0.0 else 0.0
-	var distance := villager.position.distance_to(site_position)
-	var travel_seconds := distance / sleep_travel_speed if sleep_travel_speed > 0.0 else 0.0
-	if travel_seconds <= seconds_remaining:
-		_recover_tiredness(villager)
-	else:
-		_escalate_tiredness(villager)
+## Answers "has this Villager slept recently?" — the tiredness escalation
+## clock (issue #22, folding in issue #18's original Sleeping spec).
+## Always escalates `villager.tiredness_state` one stage: as of issue
+## #28, the nightfall + travel-time lookahead issue #22 shipped here is
+## retired — recovery is no longer decided inline at all, it's entirely
+## gated behind actually executing a Sleep Task (Mover travel to
+## site_position, then a real fixed SLEEP_DURATION_HOURS occupancy, see
+## begin_resolving_task()/advance_sleeping() below), including for a
+## Villager already at the Village (issue #28's Solution: "there is no
+## more trivially-instant at-Village branch"). `villager.position`/
+## `site_position` are no longer read here for that reason — they matter
+## to Task execution instead (see task_destination()/
+## has_reached_destination() below).
+func check_sleep(villager: Villager) -> void:
+	_escalate_tiredness(villager)
 
 
 ## Advances every Villager's sleep-check countdown by `delta` seconds,
 ## calling check_sleep() for any Villager whose countdown has elapsed.
 ## Mirrors advance_eating_checks() above exactly, just against its own
-## `_sleep_countdowns` — see sleep_check_interval_min/max's doc comment
-## for why this countdown doesn't compete with check_sleep()'s own
-## nightfall-based reasoning. Same "call once per frame/tick, Village
-## itself has no _process" contract as advance_thoughts()/
-## advance_eating_checks(). `time_of_day`/`day_speed` are forwarded
-## straight through to check_sleep() — see its doc comment.
-func advance_sleep_checks(delta: float, time_of_day: float, day_speed: float) -> void:
+## `_sleep_countdowns`. Same "call once per frame/tick, Village itself has
+## no _process" contract as advance_thoughts()/advance_eating_checks() —
+## and same "runs on schedule regardless of a Villager's current Task"
+## guarantee (issue #28's User Story 7). No longer takes `time_of_day`/
+## `day_speed` parameters since check_sleep() no longer needs them (issue
+## #28 retires the nightfall lookahead — see its doc comment).
+func advance_sleep_checks(delta: float) -> void:
 	for villager in villagers:
 		if not _sleep_countdowns.has(villager):
 			_sleep_countdowns[villager] = _random_sleep_check_interval()
 		var remaining: float = _sleep_countdowns[villager] - delta
 		if remaining <= 0.0:
-			check_sleep(villager, time_of_day, day_speed)
+			check_sleep(villager)
 			remaining = _random_sleep_check_interval()
 		_sleep_countdowns[villager] = remaining
 
@@ -407,6 +389,166 @@ func advance_farms(delta: float) -> void:
 				farm.water(rain_water_amount)
 			remaining = _random_farm_check_interval()
 		_farm_countdowns[farm] = remaining
+
+
+## Whether a newly-queried candidate Task should replace `villager`'s
+## currently-executing one (issue #28's User Story 3) — reuses
+## Task.is_must_do() exactly, no new heuristic invented, matching docs/
+## systems-overview.md's already-resolved interruption rule (near-
+## finished/consequential tasks generally finish; genuine Must-do
+## emergencies interrupt, full stop). A Villager with no current Task
+## always accepts whatever candidate exists (including null, which
+## simply leaves them with nothing assigned — issue #22's Out of Scope,
+## unchanged: no Idle Task this slice); one already executing only
+## accepts a candidate that clears Task.PRIORITY_MUST_DO_THRESHOLD.
+func should_interrupt(current_task: Task, candidate: Task) -> bool:
+	if candidate == null:
+		return false
+	if current_task == null:
+		return true
+	return candidate.is_must_do()
+
+
+## Queries query_next_task() for `villager` and, per should_interrupt()
+## above, either assigns the candidate as villager.current_task or leaves
+## whatever's currently running untouched (issue #28's User Stories 2/3).
+## No literal task queue (issue #28's Solution: "once asked again this
+## has priority") — a pending need is never stored; asking again once the
+## current Task finishes (current_task back to null) naturally re-surfaces
+## it, because the state that produced it (hunger_state/tiredness_state)
+## never went away. Returns true if the assignment actually changed (a
+## free Villager got a new Task, or a running one got interrupted and
+## replaced) so the caller (scripts/village_spawner.gd) knows to redirect
+## its Mover; false means "keep doing whatever you were already doing."
+func advance_task_assignment(villager: Villager) -> bool:
+	var candidate := query_next_task(villager)
+	if not should_interrupt(villager.current_task, candidate):
+		return false
+	if villager.current_task != null:
+		interrupt_task(villager)
+	villager.current_task = candidate
+	villager.task_resolving = false
+	return true
+
+
+## Where `task` should send its Villager before resolving (issue #28's
+## User Story 4). Both KIND_EAT and KIND_SLEEP resolve to the Village's
+## own site_position this slice (issue #28's Solution: "the Village's own
+## site_position stands in for 'the store'" / "site_position remains the
+## destination... too" — no real store/House Location exists yet, see
+## issues #15/#17). Takes `task` (rather than being a bare constant
+## lookup) so a future Task kind with a genuinely different destination
+## slots in without changing every call site.
+func task_destination(_task: Task) -> Vector3:
+	return site_position
+
+
+## Pure "has this tracked position reached `destination`" check (issue
+## #28's Testing Decisions: "a pure/testable seam for 'has this Task's
+## destination been reached'") — mirrors Mover.advance()'s own
+## arrival-threshold math (issue #14, scripts/mover.gd) at the
+## Task-execution level, without needing a live Mover Node. The real
+## spawner (scripts/village_spawner.gd) keeps `villager.position` synced
+## from its Mover's actual position each frame and passes
+## `mover.arrival_threshold` through here, so this never drifts from what
+## the real Mover instance considers "arrived"; tests can call this
+## directly against a synthetic position to exercise the travel-then-
+## resolve flow without booting the engine.
+static func has_reached_destination(
+	position: Vector3, destination: Vector3, arrival_threshold: float = 0.1
+) -> bool:
+	return position.distance_to(destination) <= arrival_threshold
+
+
+## Called once `villager.current_task`'s destination has been reached
+## (issue #28's User Story 4) — the moment travel ends and resolution
+## begins. Eat resolves immediately and clears current_task the same
+## call (User Story 4: eating is a single action once you've arrived,
+## same shape as issue #22's old at-Village branch, just moved here from
+## the escalation clock): consumes FOOD_PER_MEAL from `resources["food"]`
+## and recovers hunger if there's enough, escalates hunger without
+## consuming anything if there isn't. Sleep instead starts its fixed
+## SLEEP_DURATION_HOURS countdown (User Story 5) rather than resolving on
+## the spot — see advance_sleeping() below to tick it forward.
+## `day_speed` converts SLEEP_DURATION_HOURS into real seconds (GameState.
+## day_speed's own doc comment: "in-game hours per real second"),
+## mirroring the same conversion issue #22's old lookahead used. A no-op
+## if `villager.current_task` is null.
+func begin_resolving_task(villager: Villager, resources: Dictionary, day_speed: float) -> void:
+	var task := villager.current_task
+	if task == null:
+		return
+	villager.task_resolving = true
+	match task.kind:
+		Task.KIND_EAT:
+			_resolve_eat(villager, resources)
+			_finish_task(villager)
+		Task.KIND_SLEEP:
+			_sleep_seconds_remaining[villager] = _sleep_duration_seconds(day_speed)
+		_:
+			_finish_task(villager)
+
+
+## Ticks a resolving Sleep Task's fixed SLEEP_DURATION_HOURS countdown
+## forward by `delta` real seconds (issue #28's User Story 5) — recovers
+## tiredness one stage and clears current_task once the countdown reaches
+## zero. A no-op for any Villager who isn't mid-way through a resolving
+## Sleep Task (wrong kind, not yet resolving, or no countdown tracked —
+## e.g. already finished/interrupted), so callers can call this
+## unconditionally every frame without guarding it themselves.
+func advance_sleeping(villager: Villager, delta: float) -> void:
+	var task := villager.current_task
+	if task == null or task.kind != Task.KIND_SLEEP or not villager.task_resolving:
+		return
+	if not _sleep_seconds_remaining.has(villager):
+		return
+	var remaining: float = _sleep_seconds_remaining[villager] - delta
+	if remaining <= 0.0:
+		_recover_tiredness(villager)
+		_sleep_seconds_remaining.erase(villager)
+		_finish_task(villager)
+	else:
+		_sleep_seconds_remaining[villager] = remaining
+
+
+## Cuts `villager`'s currently-executing Task short (issue #28's User
+## Story 6 — a genuine Must-do interrupt cutting a resolving Sleep Task
+## short rather than forcing it to finish). Clears any in-progress Sleep
+## countdown along with current_task/task_resolving; called by
+## advance_task_assignment() above right before replacing an interrupted
+## Task with its Must-do successor. A no-op-safe clear regardless of
+## which phase (traveling or resolving) or kind the interrupted Task was
+## in.
+func interrupt_task(villager: Villager) -> void:
+	_sleep_seconds_remaining.erase(villager)
+	_finish_task(villager)
+
+
+func _finish_task(villager: Villager) -> void:
+	villager.current_task = null
+	villager.task_resolving = false
+
+
+## Shared Eat-resolution logic behind begin_resolving_task()'s
+## Task.KIND_EAT branch — mirrors issue #22's old at-Village check_eating()
+## branch exactly, just invoked at Task-resolution time instead of on the
+## escalation clock's own schedule.
+func _resolve_eat(villager: Villager, resources: Dictionary) -> void:
+	if resources.get("food", 0) >= FOOD_PER_MEAL:
+		resources["food"] = resources.get("food", 0) - FOOD_PER_MEAL
+		_recover_hunger(villager)
+	else:
+		_escalate_hunger(villager)
+
+
+## SLEEP_DURATION_HOURS converted into real seconds via `day_speed`
+## (GameState.day_speed's own doc comment: "in-game hours per real
+## second") — same conversion issue #22's old nightfall lookahead used.
+## Defensive against a non-positive `day_speed` (paused/misconfigured
+## GameState), same "avoid a divide-by-zero" spirit as check_sleep()'s
+## old lookahead had.
+func _sleep_duration_seconds(day_speed: float) -> float:
+	return SLEEP_DURATION_HOURS / day_speed if day_speed > 0.0 else 0.0
 
 
 ## TaskProvider override (issue #22's User Story 3) — the single
@@ -523,22 +665,6 @@ func _escalate_tiredness(villager: Villager) -> void:
 ## Mirrors _recover_hunger() above, against tiredness_state instead.
 func _recover_tiredness(villager: Villager) -> void:
 	villager.tiredness_state = _step_state(villager.tiredness_state, Villager.TIREDNESS_STATES, -1)
-
-
-## In-game hours remaining from `current_hour` before `target_hour`, both
-## in GameState.time_of_day terms (0.0-24.0). Deliberately NOT a
-## wraps-forward-to-tomorrow calculation: check_sleep() calls this to ask
-## "is `target_hour` still ahead of us today," not "when does this
-## recur" — a Villager already past `target_hour` (current_hour >
-## target_hour) is simply out of time, 0.0 hours remaining, not "almost
-## a full day until tomorrow's bedtime" (an earlier version of this
-## function wrapped that case forward and silently treated an overdue,
-## still-far-from-home Villager as having plenty of time — a real
-## regression caught in this issue's own code review, see
-## tests/systems/test_village.gd's
-## test_check_sleep_already_past_sleep_start_hour_and_still_far_escalates_tiredness).
-func _hours_until(current_hour: float, target_hour: float) -> float:
-	return max(target_hour - current_hour, 0.0)
 
 
 ## Shared "escalation stage -> Task candidate" lookup behind
