@@ -59,9 +59,58 @@ var is_provisioned: bool = false
 ## Last outcome Village.check_eating() recorded for this Villager, via
 ## Village.advance_eating_checks() — one of Village.EATING_OUTCOMES, or
 ## empty string before the first periodic check ever fires. Recorded for
-## observability only; no Faith/Favored/Renown/Wish/resource consequence
-## is attached to any outcome this slice (issue #10's Out of Scope).
+## observability/why-context only as of issue #22 — the *result* that
+## actually matters is `hunger_state` below, not this string (issue #10's
+## original Out of Scope; issue #22 folds in the real consequence).
 var last_eating_outcome: String = ""
+
+## Unified Hungry→Starving progression (issue #22, folding in issue #16's
+## originally-separate Hungry/Starving spec) — covers every way a
+## Villager can fail to eat: an empty communal store at the Village
+## (Village.check_eating()'s at-Village branch), or an away+unprovisioned
+## attempt (Village.check_eating()'s foraging branch — no real
+## hunting/foraging AI exists yet, so every such attempt currently counts
+## as a failure; an implementer's call, documented on check_eating()
+## itself). A successful eat recovers one stage rather than resetting
+## straight to HUNGER_FINE — "possibly a progression," per
+## docs/systems-overview.md's Survival section, which leaves the exact
+## pace explicitly open; one stage per check in either direction is this
+## slice's implementer's-call default (see Village._escalate_hunger()/
+## _recover_hunger()). No stage beyond HUNGER_STARVING, and reaching it
+## still carries no gameplay consequence beyond the Task priority
+## Village.query_next_task() produces from it (issue #22's Out of
+## Scope — still "temporary, not final," the same caveat #16 originally
+## carried).
+const HUNGER_FINE := "fine"
+const HUNGER_HUNGRY := "hungry"
+const HUNGER_STARVING := "starving"
+const HUNGER_STATES: Array[String] = [HUNGER_FINE, HUNGER_HUNGRY, HUNGER_STARVING]
+var hunger_state: String = HUNGER_FINE
+
+## Unified Tired→Exhausted progression (issue #22, folding in issue #18's
+## originally-separate Sleeping spec) — mirrors hunger_state's shape
+## exactly. Escalated only by Village.check_sleep(): an away Villager
+## whose real nightfall + travel-time lookahead finds not enough time
+## remains to reach `position` — Village.site_position, since House
+## (issue #17) has no spatial position yet — before Village.
+## sleep_start_hour. Recovers one stage per check otherwise, including
+## trivially while at the Village (Shelter's "as minimal as a nearby
+## tree" framing means that branch is never a real gate this slice). No
+## stage beyond TIREDNESS_EXHAUSTED, same "no consequence yet" caveat as
+## hunger_state above.
+const TIREDNESS_FINE := "fine"
+const TIREDNESS_TIRED := "tired"
+const TIREDNESS_EXHAUSTED := "exhausted"
+const TIREDNESS_STATES: Array[String] = [TIREDNESS_FINE, TIREDNESS_TIRED, TIREDNESS_EXHAUSTED]
+var tiredness_state: String = TIREDNESS_FINE
+
+## Current world position — a plain data stand-in Village.check_sleep()'s
+## real lookahead needs for its distance-to-site_position math, same
+## "seam, not behavior" spirit as is_away/is_provisioned above: nothing
+## keeps this in sync with a spawned body's actual position yet — no
+## consumer wires this up this slice, mirroring issue #14's own
+## "no consumer" scope for Mover. Defaults to Vector3.ZERO.
+var position: Vector3 = Vector3.ZERO
 
 
 func _init(p_id: String, p_has_faith: bool, p_current_thought: String, p_current_wish: Wish = null) -> void:

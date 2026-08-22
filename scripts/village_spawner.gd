@@ -35,13 +35,26 @@ extends Node3D
 ##
 ## Also the bridge for the periodic eating check (issue #10, docs/
 ## systems-overview.md's Survival section): the existing per-frame loop
-## reads `GameState.resources.food` (untouched by this slice) and forwards
-## `food > 0` into Village.advance_eating_checks(), mirroring exactly how
+## forwards `GameState.resources` itself (mutated by reference) into
+## Village.advance_eating_checks(), mirroring exactly how
 ## `GameState.pantheon` is forwarded into advance_thoughts() above —
-## Village/Villager (Seam 1) never reach into GameState directly. No
-## visible effect this slice: the check is computed and recorded on
-## Villager.last_eating_outcome only (see systems/village.gd's
-## check_eating()).
+## Village/Villager (Seam 1) never reach into GameState directly. As of
+## issue #22, this is real consumption: a successful at-Village eat
+## actually spends food from `GameState.resources.food` (see
+## systems/village.gd's check_eating()), not just a recorded outcome
+## string.
+##
+## Also the bridge for the periodic sleep check (issue #22, folding in
+## issue #18): the same per-frame loop forwards `GameState.time_of_day`/
+## `GameState.day_speed` into Village.advance_sleep_checks(), same
+## forwarding shape as the eating check above. Its real lookahead math
+## (systems/village.gd's check_sleep()) is wired up and running every
+## frame, but stays inert for now: nothing in this spawner yet keeps a
+## spawned Villager's `Villager.position` in sync with its actual body
+## (`_bodies` below), so every check_sleep() call still measures distance
+## from the Seam-1 placeholder Vector3.ZERO — syncing real positions is
+## a later slice's job, once Sleep gets a scene-tree consumer (mirroring
+## issue #14's own "no consumer wired up" scope for Mover).
 ##
 ## Also the bridge for the Renown dialogue trigger (issue #12): each
 ## spawned body now also gets a StaticBody3D/CollisionShape3D (User
@@ -135,7 +148,20 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	village.advance_thoughts(delta, GameState.pantheon)
-	village.advance_eating_checks(delta, GameState.resources.food > 0)
+	# check_eating() mutates GameState.resources["food"] directly (see
+	# its own doc comment) rather than going through
+	# GameState.add_resource() — Village (Seam 1) has no reference to
+	# the GameState singleton to call that on, by design. That means
+	# GameState.resource_changed doesn't fire on its own for a food
+	# spend caused by eating; this before/after snapshot is what makes
+	# real consumption still show up on that signal for any future
+	# consumer (issue #22's code review — currently latent, since
+	# nothing subscribes to it for food yet, but a silent gap otherwise).
+	var food_before: int = GameState.resources.food
+	village.advance_eating_checks(delta, GameState.resources)
+	if GameState.resources.food != food_before:
+		GameState.resource_changed.emit("food", GameState.resources.food)
+	village.advance_sleep_checks(delta, GameState.time_of_day, GameState.day_speed)
 	var camera_rig: Node3D = get_node_or_null(camera_rig_path)
 	for villager in village.villagers:
 		var nameplate: VillagerNameplate = _nameplates[villager]
