@@ -29,3 +29,12 @@ func test_is_must_do_is_true_above_the_threshold() -> void:
 	var task := Task.new(Task.KIND_SLEEP, Task.PRIORITY_MUST_DO_THRESHOLD + 10.0)
 
 	assert_true(task.is_must_do())
+
+
+func test_kind_idle_is_never_must_do_at_villages_idle_priority() -> void:
+	# issue #29: Task.KIND_IDLE always uses Village.IDLE_PRIORITY, which
+	# must sit well below PRIORITY_MUST_DO_THRESHOLD so Idle can never be
+	# mistaken for a genuine emergency.
+	var task := Task.new(Task.KIND_IDLE, Village.IDLE_PRIORITY)
+
+	assert_false(task.is_must_do())
