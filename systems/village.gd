@@ -3,7 +3,8 @@ extends TaskProvider
 ## A collection of Villagers plus their Known Territory, Houses, and Farms.
 ## Plain data/logic, no scene tree (Seam 1). Delegates thought/wish,
 ## needs, task, and farm behavior to systems/village_thoughts.gd,
-## village_needs.gd, village_tasks.gd, village_farms.gd.
+## village_needs.gd, village_tasks.gd, village_farms.gd (periodic
+## watering), village_farm_labor.gd (Collect/Deliver claim+carry state).
 
 const STARTING_LOCATION_NAME := "the Village"
 
@@ -71,9 +72,15 @@ var rain_water_amount: float:
 	get: return _farm_watering.rain_water_amount
 	set(value): _farm_watering.rain_water_amount = value
 
+## Harvested-per-Collect-Task amount, forwarded to VillageFarmLabor.
+var carry_capacity: int:
+	get: return _farm_labor.carry_capacity
+	set(value): _farm_labor.carry_capacity = value
+
 var _rng := RandomNumberGenerator.new()
 var _thoughts: VillageThoughts
 var _needs: VillageNeeds
+var _farm_labor: VillageFarmLabor
 var _tasks: VillageTasks
 var _farm_watering: VillageFarms
 
@@ -83,7 +90,8 @@ func _init(seed_value: int = -1) -> void:
 		_rng.seed = seed_value
 	_thoughts = VillageThoughts.new(_rng)
 	_needs = VillageNeeds.new(_rng)
-	_tasks = VillageTasks.new(_rng, _needs)
+	_farm_labor = VillageFarmLabor.new()
+	_tasks = VillageTasks.new(_rng, _needs, _farm_labor)
 	_farm_watering = VillageFarms.new(_rng)
 	var starting_tags: Array[String] = ["village"]
 	known_locations.append(Location.new(STARTING_LOCATION_NAME, starting_tags))
@@ -141,7 +149,7 @@ func should_interrupt(current_task: Task, candidate: Task) -> bool:
 ## Returns true if the assignment actually changed, so the caller knows to
 ## redirect its Mover.
 func advance_task_assignment(villager: Villager) -> bool:
-	return _tasks.advance_task_assignment(villager)
+	return _tasks.advance_task_assignment(villager, farms)
 
 
 func task_destination(task: Task, villager: Villager) -> Vector3:
@@ -178,7 +186,7 @@ func interrupt_task(villager: Villager) -> void:
 func query_next_task(folk: Folk) -> Task:
 	if not (folk is Villager):
 		return null
-	return _tasks.query_next_task(folk)
+	return _tasks.query_next_task(folk, farms)
 
 
 func knows_location_with_tag(tag: String) -> bool:

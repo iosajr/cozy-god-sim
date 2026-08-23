@@ -9,6 +9,12 @@ const KIND_EAT := "eat"
 const KIND_SLEEP := "sleep"
 ## Always the lowest-priority Task in play (see VillageTasks.IDLE_PRIORITY).
 const KIND_IDLE := "idle"
+## Walk to a claimed Farm and harvest it up to carry capacity (issue #33).
+const KIND_COLLECT := "collect"
+## Walk to the store and deposit carried goods (issue #33). Deliberately
+## generic over what's being carried, not farm-specific — see
+## docs/systems-overview.md's Farm Labor section.
+const KIND_DELIVER := "deliver"
 
 const PRIORITY_MUST_DO_THRESHOLD: float = 80.0
 
