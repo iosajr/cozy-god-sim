@@ -41,6 +41,9 @@ var reroll_interval_max: float:
 var wish_chance: float:
 	get: return _thoughts.wish_chance
 	set(value): _thoughts.wish_chance = value
+var empty_chance: float:
+	get: return _thoughts.empty_chance
+	set(value): _thoughts.empty_chance = value
 
 var eating_check_interval_min: float:
 	get: return _needs.eating_check_interval_min

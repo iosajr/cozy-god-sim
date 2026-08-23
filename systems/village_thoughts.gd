@@ -28,6 +28,11 @@ var reroll_interval_min: float = 12.0
 var reroll_interval_max: float = 24.0
 var wish_chance: float = 0.15
 
+## Chance a reroll lands on "nothing to say" (issue #44) -- empty is the
+## single most common outcome by default, tunable, not defended. Rolled
+## before the existing Wish-vs-flavor split, which is otherwise unchanged.
+var empty_chance: float = 0.7
+
 var _rng: RandomNumberGenerator
 var _reroll_countdowns: Dictionary = {}  # Villager -> float seconds remaining
 
@@ -41,6 +46,10 @@ func random_thought() -> String:
 
 
 func reroll_thought(villager: Villager, pantheon: Pantheon) -> void:
+	if _rng.randf() < empty_chance:
+		villager.current_thought = ""
+		villager.current_wish = null
+		return
 	var wish := _maybe_generate_wish(pantheon)
 	if wish != null:
 		villager.current_thought = wish.text
