@@ -5,24 +5,35 @@ extends RefCounted
 ## Farm growth) is a separate concern, still owned by systems/
 ## village_farms.gd; this file only covers the harvest-and-deliver side.
 ##
-## A Farm is claimed by at most one Villager at a time, from the moment a
-## Collect Task is assigned until that Villager either finishes delivering
-## or is interrupted — see VillageTasks.interrupt_task()/begin_resolving_task().
+## A Farm can be claimed by up to `capacity` Villagers at once (issue #35)
+## — each holds its own independent claim, from the moment its Collect Task
+## is assigned until that Villager either finishes delivering or is
+## interrupted — see VillageTasks.interrupt_task()/begin_resolving_task().
+## Concurrent claimants harvest from the same Farm.remaining_harvest pool,
+## first-come-first-served; Farm.harvest() already caps each individual
+## take at what's actually left, so sharing the pool needs no extra
+## bookkeeping here — only letting more than one Villager hold a claim.
 
 ## How much a single Villager harvests per Collect Task, tunable (matches
 ## the old standalone delivery walker's default carry_capacity).
 var carry_capacity: int = 5
 
-var _claims_by_farm: Dictionary = {}  # Farm -> Villager
+## How many Villagers can hold a Collect Task claim against the same Farm
+## at once, tunable (issue #35 — replaces the old strict one-worker claim;
+## this, not a reservation lock, is what keeps an unbounded crowd off one
+## patch).
+var capacity: int = 4
+
+var _claims_by_farm: Dictionary = {}  # Farm -> Array[Villager]
 var _claimed_farm_by_villager: Dictionary = {}  # Villager -> Farm
 var _carrying: Dictionary = {}  # Villager -> int amount pending delivery
 
 
-## Pure query — true if any Farm is Ready-to-Harvest and not already
-## claimed by another Villager.
+## Pure query — true if any Farm is Ready-to-Harvest and holds fewer than
+## `capacity` current claimants.
 func has_collectible(farms: Array[Farm]) -> bool:
 	for farm in farms:
-		if farm.stage == Farm.FARM_READY_TO_HARVEST and not _claims_by_farm.has(farm):
+		if farm.stage == Farm.FARM_READY_TO_HARVEST and _claim_count(farm) < capacity:
 			return true
 	return false
 
@@ -32,11 +43,17 @@ func has_collectible(farms: Array[Farm]) -> bool:
 ## should already have checked has_collectible()).
 func claim_farm(villager: Villager, farms: Array[Farm]) -> Farm:
 	for farm in farms:
-		if farm.stage == Farm.FARM_READY_TO_HARVEST and not _claims_by_farm.has(farm):
-			_claims_by_farm[farm] = villager
+		if farm.stage == Farm.FARM_READY_TO_HARVEST and _claim_count(farm) < capacity:
+			if not _claims_by_farm.has(farm):
+				_claims_by_farm[farm] = []
+			_claims_by_farm[farm].append(villager)
 			_claimed_farm_by_villager[villager] = farm
 			return farm
 	return null
+
+
+func _claim_count(farm: Farm) -> int:
+	return _claims_by_farm.get(farm, []).size()
 
 
 ## The Farm `villager` currently holds a claim on, null if none.
@@ -72,14 +89,17 @@ func take_carrying(villager: Villager) -> int:
 	return amount
 
 
-## Releases villager's claim (if any) and drops any uncarried/undelivered
-## amount — called both on a normal Deliver resolution and on interruption
-## (see issue #33: "released once they finish delivering or are
-## interrupted"). Dropped cargo simply vanishing is a known, temporary
+## Releases villager's own claim slot (if any), leaving any other Villager
+## concurrently claiming the same Farm untouched, and drops any uncarried/
+## undelivered amount — called both on a normal Deliver resolution and on
+## interruption (see issue #33: "released once they finish delivering or
+## are interrupted"). Dropped cargo simply vanishing is a known, temporary
 ## simplification — see docs/systems-overview.md's Farm Labor section.
 func release_claim(villager: Villager) -> void:
 	var farm: Farm = _claimed_farm_by_villager.get(villager)
-	if farm != null:
-		_claims_by_farm.erase(farm)
+	if farm != null and _claims_by_farm.has(farm):
+		_claims_by_farm[farm].erase(villager)
+		if _claims_by_farm[farm].is_empty():
+			_claims_by_farm.erase(farm)
 	_claimed_farm_by_villager.erase(villager)
 	_carrying.erase(villager)

@@ -639,12 +639,30 @@ func test_advance_task_assignment_claims_the_farm_for_a_collect_task() -> void:
 	assert_eq(village.task_destination(villager.current_task, villager), farm.position)
 
 
-func test_a_claimed_farm_is_not_offered_to_a_second_villager() -> void:
+func test_a_farm_below_capacity_is_still_offered_to_a_second_villager() -> void:
 	var village := Village.new()
 	_ready_farm(village)
 	var villager_a := Villager.new("v1", true, "")
 	villager_a.is_farmer = true
 	var villager_b := Villager.new("v2", true, "")
+	villager_b.is_farmer = true
+
+	village.advance_task_assignment(villager_a)
+	var task_b := village.query_next_task(villager_b)
+
+	assert_eq(villager_a.current_task.kind, Task.KIND_COLLECT)
+	# Below the default capacity (4) -- issue #35 -- so still offered.
+	assert_eq(task_b.kind, Task.KIND_COLLECT)
+
+
+func test_a_farm_at_capacity_is_not_offered_to_an_additional_villager() -> void:
+	var village := Village.new()
+	village.farm_worker_capacity = 1
+	_ready_farm(village)
+	var villager_a := Villager.new("v1", true, "")
+	villager_a.is_farmer = true
+	var villager_b := Villager.new("v2", true, "")
+	villager_b.is_farmer = true
 
 	village.advance_task_assignment(villager_a)
 	var task_b := village.query_next_task(villager_b)

@@ -9,6 +9,12 @@ func test_defaults_carry_capacity_to_five() -> void:
 	assert_eq(labor.carry_capacity, 5)
 
 
+func test_defaults_capacity_to_four() -> void:
+	var labor := VillageFarmLabor.new()
+
+	assert_eq(labor.capacity, 4)
+
+
 # --- has_collectible()/claim_farm() ---
 
 
@@ -34,8 +40,21 @@ func test_has_collectible_is_true_for_an_unclaimed_ready_to_harvest_farm() -> vo
 	assert_true(labor.has_collectible([farm]))
 
 
-func test_has_collectible_is_false_once_the_only_ready_farm_is_claimed() -> void:
+func test_has_collectible_is_true_while_a_ready_farm_is_still_under_capacity() -> void:
 	var labor := VillageFarmLabor.new()
+	labor.capacity = 4
+	var farm := Farm.new(Vector3.ZERO, 1.0, 20)
+	farm.plant()
+	farm.water(1.0)
+	var villager_a := Villager.new("v1", true, "")
+	labor.claim_farm(villager_a, [farm])
+
+	assert_true(labor.has_collectible([farm]))
+
+
+func test_has_collectible_is_false_once_a_ready_farm_reaches_capacity() -> void:
+	var labor := VillageFarmLabor.new()
+	labor.capacity = 1
 	var farm := Farm.new(Vector3.ZERO, 1.0, 20)
 	farm.plant()
 	farm.water(1.0)
@@ -58,8 +77,27 @@ func test_claim_farm_returns_and_binds_the_first_eligible_farm() -> void:
 	assert_same(labor.farm_for(villager), farm)
 
 
-func test_claim_farm_skips_a_farm_already_claimed_by_someone_else() -> void:
+func test_claim_farm_allows_multiple_villagers_on_the_same_farm_up_to_capacity() -> void:
 	var labor := VillageFarmLabor.new()
+	labor.capacity = 2
+	var farm := Farm.new(Vector3.ZERO, 1.0, 20)
+	farm.plant()
+	farm.water(1.0)
+	var villager_a := Villager.new("v1", true, "")
+	var villager_b := Villager.new("v2", true, "")
+
+	var claimed_a := labor.claim_farm(villager_a, [farm])
+	var claimed_b := labor.claim_farm(villager_b, [farm])
+
+	assert_same(claimed_a, farm)
+	assert_same(claimed_b, farm)
+	assert_same(labor.farm_for(villager_a), farm)
+	assert_same(labor.farm_for(villager_b), farm)
+
+
+func test_claim_farm_skips_a_farm_already_at_capacity() -> void:
+	var labor := VillageFarmLabor.new()
+	labor.capacity = 1
 	var claimed_farm := Farm.new(Vector3.ZERO, 1.0, 20)
 	claimed_farm.plant()
 	claimed_farm.water(1.0)
@@ -127,6 +165,29 @@ func test_resolve_collect_releases_the_claim_instead_of_sticking_when_carry_capa
 	assert_true(labor.has_collectible([farm]))
 
 
+func test_resolve_collect_lets_concurrent_claimants_each_independently_drain_the_shared_pool() -> void:
+	var labor := VillageFarmLabor.new()
+	labor.capacity = 2
+	labor.carry_capacity = 5
+	var farm := Farm.new(Vector3.ZERO, 1.0, 8)
+	farm.plant()
+	farm.water(1.0)
+	var villager_a := Villager.new("v1", true, "")
+	var villager_b := Villager.new("v2", true, "")
+	labor.claim_farm(villager_a, [farm])
+	labor.claim_farm(villager_b, [farm])
+
+	var taken_a := labor.resolve_collect(villager_a)
+	var taken_b := labor.resolve_collect(villager_b)
+
+	assert_eq(taken_a, 5)
+	assert_eq(taken_b, 3)
+	assert_eq(taken_a + taken_b, 8)
+	assert_eq(farm.remaining_harvest, 0)
+	assert_true(labor.is_carrying(villager_a))
+	assert_true(labor.is_carrying(villager_b))
+
+
 func test_resolve_collect_returns_zero_for_a_villager_with_no_claim() -> void:
 	var labor := VillageFarmLabor.new()
 	var villager := Villager.new("v1", true, "")
@@ -165,6 +226,7 @@ func test_take_carrying_returns_and_clears_the_amount() -> void:
 
 func test_release_claim_frees_the_farm_for_a_new_claimant() -> void:
 	var labor := VillageFarmLabor.new()
+	labor.capacity = 1  # otherwise has_collectible() would stay true regardless.
 	var farm := Farm.new(Vector3.ZERO, 1.0, 20)
 	farm.plant()
 	farm.water(1.0)
@@ -192,6 +254,25 @@ func test_release_claim_also_drops_any_carried_amount() -> void:
 	labor.release_claim(villager)
 
 	assert_false(labor.is_carrying(villager))
+
+
+func test_release_claim_only_frees_the_releasing_villagers_own_slot() -> void:
+	var labor := VillageFarmLabor.new()
+	labor.capacity = 2
+	var farm := Farm.new(Vector3.ZERO, 1.0, 20)
+	farm.plant()
+	farm.water(1.0)
+	var villager_a := Villager.new("v1", true, "")
+	var villager_b := Villager.new("v2", true, "")
+	labor.claim_farm(villager_a, [farm])
+	labor.claim_farm(villager_b, [farm])
+	assert_false(labor.has_collectible([farm]))  # farm is now at capacity
+
+	labor.release_claim(villager_a)
+
+	assert_null(labor.farm_for(villager_a))
+	assert_same(labor.farm_for(villager_b), farm)  # villager_b's own claim is untouched
+	assert_true(labor.has_collectible([farm]))  # a slot opened back up
 
 
 func test_release_claim_is_a_no_op_for_a_villager_with_no_claim() -> void:

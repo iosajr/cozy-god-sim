@@ -109,6 +109,12 @@ var carry_capacity: int:
 	get: return _farm_labor.carry_capacity
 	set(value): _farm_labor.carry_capacity = value
 
+## How many Villagers can concurrently hold a Collect Task claim against the
+## same Farm, forwarded to VillageFarmLabor (issue #35).
+var farm_worker_capacity: int:
+	get: return _farm_labor.capacity
+	set(value): _farm_labor.capacity = value
+
 ## Fixed dose deposited per Water Task visit, forwarded to
 ## VillageFarmWatering.
 var water_dose_amount: float:
