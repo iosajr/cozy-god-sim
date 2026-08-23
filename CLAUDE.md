@@ -34,6 +34,17 @@ A cozy 3D god-sim / simulation game built in Godot 4 (GDScript).
 
 - Prefer typed GDScript (`var x: int`, `-> void`) for anything non-trivial.
 - Keep scene scripts thin; push reusable logic into `systems/` as it grows.
+- **Module hygiene**: don't let a single file become a grab-bag. When a
+  change doesn't fit cleanly into an existing file's concern, or that file
+  is already carrying too many distinct responsibilities for one person
+  to hold in their head, extract a new file under `systems/` (or
+  `scripts/` for scene-glue) with a matching test file under `tests/`,
+  rather than piling on. Match this repo's existing per-concern split
+  (e.g. `farm.gd` vs `village_farms.gd`) instead of reflexively growing
+  the biggest/most obvious file. This applies equally to interactive
+  work and AFK/cloud agent sessions. Don't go refactor someone else's
+  (or another agent's) existing file just to tidy it — extract only what
+  your own change needs; leave general untidiness for a deliberate pass.
 - `GameState` is a bulletin board (shared data + signals), not a place for
   gameplay logic — see the doc comment at the top of `game_state.gd`.
 - Placeholder art in `world_gen.gd` is intentionally disposable — don't
