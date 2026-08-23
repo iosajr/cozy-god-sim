@@ -55,10 +55,15 @@ func _init(
 	_farm_watering = farm_watering
 
 
-## Never null — falls back through Deliver (if carrying) / Seed (if a Farm
-## is awaiting planting and unclaimed) / Water (if a planted Farm is below
-## its growth threshold and unclaimed) / Collect (if a Farm is ready and
-## unclaimed) / a shared Idle Task once neither Eat nor Sleep applies.
+## Never null — falls back through Deliver (if carrying) / Seed (if
+## villager has farming Interest and a Farm is awaiting planting and
+## unclaimed) / Water (if farming Interest and a planted Farm is below
+## its growth threshold and unclaimed) / Collect (if farming Interest and
+## a Farm is ready and unclaimed) / a shared Idle Task once neither Eat
+## nor Sleep applies. Seed/Water/Collect are gated behind
+## Villager.is_farmer (issue #39) — a non-farmer is never offered one of
+## these, whatever the Farm state; Deliver isn't gated separately since
+## only a Villager who already completed a Collect Task can be carrying.
 func query_next_task(villager: Villager, farms: Array[Farm]) -> Task:
 	var eat_task := _needs.eat_task_for(villager)
 	var sleep_task := _needs.sleep_task_for(villager)
@@ -72,18 +77,19 @@ func query_next_task(villager: Villager, farms: Array[Farm]) -> Task:
 		if _deliver_task == null:
 			_deliver_task = Task.new(Task.KIND_DELIVER, DELIVER_PRIORITY)
 		return _deliver_task
-	if _farm_seeding.has_seedable(farms):
-		if _seed_task == null:
-			_seed_task = Task.new(Task.KIND_SEED, SEED_PRIORITY)
-		return _seed_task
-	if _farm_watering.has_waterable(farms):
-		if _water_task == null:
-			_water_task = Task.new(Task.KIND_WATER, WATER_PRIORITY)
-		return _water_task
-	if _farm_labor.has_collectible(farms):
-		if _collect_task == null:
-			_collect_task = Task.new(Task.KIND_COLLECT, COLLECT_PRIORITY)
-		return _collect_task
+	if villager.is_farmer:
+		if _farm_seeding.has_seedable(farms):
+			if _seed_task == null:
+				_seed_task = Task.new(Task.KIND_SEED, SEED_PRIORITY)
+			return _seed_task
+		if _farm_watering.has_waterable(farms):
+			if _water_task == null:
+				_water_task = Task.new(Task.KIND_WATER, WATER_PRIORITY)
+			return _water_task
+		if _farm_labor.has_collectible(farms):
+			if _collect_task == null:
+				_collect_task = Task.new(Task.KIND_COLLECT, COLLECT_PRIORITY)
+			return _collect_task
 	if _idle_task == null:
 		_idle_task = Task.new(Task.KIND_IDLE, IDLE_PRIORITY)
 	return _idle_task

@@ -21,6 +21,12 @@ func test_villager_defaults_task_resolving_to_false() -> void:
 	assert_false(villager.task_resolving)
 
 
+func test_villager_defaults_is_farmer_to_false() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	assert_false(villager.is_farmer)
+
+
 # --- query_next_task() ---
 
 
@@ -596,6 +602,7 @@ func test_query_next_task_returns_a_collect_task_when_a_farm_is_ready_and_unclai
 	var village := Village.new()
 	_ready_farm(village)
 	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_farmer = true
 
 	var task := village.query_next_task(villager)
 
@@ -623,6 +630,7 @@ func test_advance_task_assignment_claims_the_farm_for_a_collect_task() -> void:
 	var village := Village.new()
 	var farm := _ready_farm(village)
 	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_farmer = true
 
 	var changed := village.advance_task_assignment(villager)
 
@@ -635,6 +643,7 @@ func test_a_claimed_farm_is_not_offered_to_a_second_villager() -> void:
 	var village := Village.new()
 	_ready_farm(village)
 	var villager_a := Villager.new("v1", true, "")
+	villager_a.is_farmer = true
 	var villager_b := Villager.new("v2", true, "")
 
 	village.advance_task_assignment(villager_a)
@@ -649,6 +658,7 @@ func test_resolving_a_collect_task_harvests_the_farm_and_clears_current_task() -
 	village.carry_capacity = 5
 	var farm := _ready_farm(village)
 	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
 	village.advance_task_assignment(villager)
 
 	village.begin_resolving_task(villager, {"food": 100}, 1.0)
@@ -663,6 +673,7 @@ func test_a_deliver_task_naturally_resurfaces_after_a_collect_task_resolves() ->
 	village.carry_capacity = 5
 	_ready_farm(village)
 	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
 	village.advance_task_assignment(villager)
 	village.begin_resolving_task(villager, {"food": 100}, 1.0)
 
@@ -686,6 +697,7 @@ func test_resolving_a_deliver_task_adds_the_carried_amount_to_food_and_releases_
 	village.carry_capacity = 5
 	var farm := _ready_farm(village)
 	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
 	village.advance_task_assignment(villager)  # Collect.
 	village.begin_resolving_task(villager, {"food": 0}, 1.0)  # harvests 5.
 	village.advance_task_assignment(villager)  # Deliver.
@@ -696,7 +708,9 @@ func test_resolving_a_deliver_task_adds_the_carried_amount_to_food_and_releases_
 	assert_eq(resources["food"], 15)
 	assert_null(villager.current_task)
 	# Claim released -> the farm (still has 15 remaining) is collectible again.
-	assert_true(village.query_next_task(Villager.new("v2", true, "")).kind == Task.KIND_COLLECT)
+	var villager_b := Villager.new("v2", true, "")
+	villager_b.is_farmer = true
+	assert_true(village.query_next_task(villager_b).kind == Task.KIND_COLLECT)
 	assert_eq(farm.remaining_harvest, 15)
 
 
@@ -704,12 +718,14 @@ func test_interrupting_a_collect_task_releases_the_farm_claim() -> void:
 	var village := Village.new()
 	_ready_farm(village)
 	var villager_a := Villager.new("v1", true, "")
+	villager_a.is_farmer = true
 	village.advance_task_assignment(villager_a)  # claims the farm.
 	assert_eq(villager_a.current_task.kind, Task.KIND_COLLECT)
 
 	village.interrupt_task(villager_a)
 
 	var villager_b := Villager.new("v2", true, "")
+	villager_b.is_farmer = true
 	var task_b := village.query_next_task(villager_b)
 	assert_eq(task_b.kind, Task.KIND_COLLECT)
 
@@ -719,6 +735,7 @@ func test_interrupting_a_deliver_task_drops_the_carried_cargo_and_releases_the_c
 	village.carry_capacity = 5
 	_ready_farm(village)
 	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
 	village.advance_task_assignment(villager)  # Collect.
 	village.begin_resolving_task(villager, {"food": 0}, 1.0)  # harvests 5, now carrying.
 	village.advance_task_assignment(villager)  # Deliver.
@@ -746,6 +763,7 @@ func test_query_next_task_returns_a_seed_task_when_a_farm_is_awaiting_planting_a
 	var village := Village.new()
 	_awaiting_planting_farm(village)
 	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_farmer = true
 
 	var task := village.query_next_task(villager)
 
@@ -773,6 +791,7 @@ func test_advance_task_assignment_claims_the_farm_for_a_seed_task() -> void:
 	var village := Village.new()
 	var farm := _awaiting_planting_farm(village)
 	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_farmer = true
 
 	var changed := village.advance_task_assignment(villager)
 
@@ -785,6 +804,7 @@ func test_a_claimed_awaiting_planting_farm_is_not_offered_to_a_second_villager()
 	var village := Village.new()
 	_awaiting_planting_farm(village)
 	var villager_a := Villager.new("v1", true, "")
+	villager_a.is_farmer = true
 	var villager_b := Villager.new("v2", true, "")
 
 	village.advance_task_assignment(villager_a)
@@ -798,6 +818,7 @@ func test_resolving_a_seed_task_plants_the_farm_and_clears_current_task() -> voi
 	var village := Village.new()
 	var farm := _awaiting_planting_farm(village)
 	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
 	village.advance_task_assignment(villager)
 
 	village.begin_resolving_task(villager, {"food": 100}, 1.0)
@@ -811,6 +832,7 @@ func test_a_planted_farm_only_starts_growing_once_watered() -> void:
 	var village := Village.new()
 	var farm := _awaiting_planting_farm(village)
 	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
 	village.advance_task_assignment(villager)
 	village.begin_resolving_task(villager, {"food": 100}, 1.0)  # plants it.
 
@@ -823,6 +845,7 @@ func test_interrupting_a_seed_task_releases_the_claim_without_planting() -> void
 	var village := Village.new()
 	var farm := _awaiting_planting_farm(village)
 	var villager_a := Villager.new("v1", true, "")
+	villager_a.is_farmer = true
 	village.advance_task_assignment(villager_a)  # claims the farm.
 	assert_eq(villager_a.current_task.kind, Task.KIND_SEED)
 
@@ -830,6 +853,7 @@ func test_interrupting_a_seed_task_releases_the_claim_without_planting() -> void
 
 	assert_eq(farm.stage, Farm.FARM_AWAITING_PLANTING)
 	var villager_b := Villager.new("v2", true, "")
+	villager_b.is_farmer = true
 	var task_b := village.query_next_task(villager_b)
 	assert_eq(task_b.kind, Task.KIND_SEED)
 
@@ -848,6 +872,7 @@ func test_query_next_task_returns_a_water_task_when_a_farm_is_seeded_and_unclaim
 	var village := Village.new()
 	_seeded_farm(village)
 	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_farmer = true
 
 	var task := village.query_next_task(villager)
 
@@ -860,8 +885,10 @@ func test_query_next_task_returns_a_water_task_when_a_farm_is_growing_and_unclai
 	var village := Village.new()
 	var farm := _seeded_farm(village)
 	farm.water(1.0)  # -> Growing, still below the threshold.
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
 
-	var task := village.query_next_task(Villager.new("v1", true, ""))
+	var task := village.query_next_task(villager)
 
 	assert_eq(task.kind, Task.KIND_WATER)
 
@@ -885,6 +912,7 @@ func test_an_awaiting_planting_farm_is_not_offered_as_a_water_task() -> void:
 	var village := Village.new()
 	_awaiting_planting_farm(village)
 	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
 
 	var task := village.query_next_task(villager)
 
@@ -895,6 +923,7 @@ func test_a_ready_to_harvest_farm_is_not_offered_as_a_water_task() -> void:
 	var village := Village.new()
 	_ready_farm(village)
 	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
 
 	var task := village.query_next_task(villager)
 
@@ -905,6 +934,7 @@ func test_advance_task_assignment_claims_the_farm_for_a_water_task() -> void:
 	var village := Village.new()
 	_seeded_farm(village)
 	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_farmer = true
 
 	var changed := village.advance_task_assignment(villager)
 
@@ -919,6 +949,7 @@ func test_a_claimed_waterable_farm_is_not_offered_to_a_second_villager() -> void
 	var village := Village.new()
 	_seeded_farm(village)
 	var villager_a := Villager.new("v1", true, "")
+	villager_a.is_farmer = true
 	var villager_b := Villager.new("v2", true, "")
 
 	village.advance_task_assignment(villager_a)
@@ -933,6 +964,7 @@ func test_water_task_destination_is_the_water_source_before_the_fetch_leg_comple
 	village.water_source_position = Vector3(9, 0, 9)
 	_seeded_farm(village)
 	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
 	village.advance_task_assignment(villager)
 
 	assert_eq(village.task_destination(villager.current_task, villager), Vector3(9, 0, 9))
@@ -943,6 +975,7 @@ func test_water_task_destination_moves_to_the_farm_after_the_fetch_leg_completes
 	village.water_source_position = Vector3(9, 0, 9)
 	var farm := _seeded_farm(village)
 	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
 	village.advance_task_assignment(villager)
 
 	village.begin_resolving_task(villager, {"food": 100}, 1.0)  # reaches the water source.
@@ -954,6 +987,7 @@ func test_reaching_the_water_source_does_not_finish_the_task_or_enter_resolving(
 	var village := Village.new()
 	_seeded_farm(village)
 	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
 	village.advance_task_assignment(villager)
 
 	village.begin_resolving_task(villager, {"food": 100}, 1.0)  # reaches the water source.
@@ -967,6 +1001,7 @@ func test_resolving_a_water_task_at_the_farm_deposits_the_dose_and_clears_curren
 	var village := Village.new()
 	var farm := _seeded_farm(village)
 	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
 	village.advance_task_assignment(villager)
 
 	village.begin_resolving_task(villager, {"food": 100}, 1.0)  # reaches the water source.
@@ -985,6 +1020,7 @@ func test_multiple_water_visits_accumulate_toward_the_growth_threshold() -> void
 
 	for i in 3:
 		var villager := Villager.new("v%d" % i, true, "")
+		villager.is_farmer = true
 		village.advance_task_assignment(villager)
 		village.begin_resolving_task(villager, {"food": 100}, 1.0)  # water source.
 		village.begin_resolving_task(villager, {"food": 100}, 1.0)  # farm.
@@ -997,6 +1033,7 @@ func test_interrupting_a_water_task_releases_the_claim_without_watering() -> voi
 	var village := Village.new()
 	var farm := _seeded_farm(village)
 	var villager_a := Villager.new("v1", true, "")
+	villager_a.is_farmer = true
 	village.advance_task_assignment(villager_a)  # claims the farm.
 	assert_eq(villager_a.current_task.kind, Task.KIND_WATER)
 
@@ -1004,6 +1041,7 @@ func test_interrupting_a_water_task_releases_the_claim_without_watering() -> voi
 
 	assert_eq(farm.water_progress, 0.0)
 	var villager_b := Villager.new("v2", true, "")
+	villager_b.is_farmer = true
 	var task_b := village.query_next_task(villager_b)
 	assert_eq(task_b.kind, Task.KIND_WATER)
 
@@ -1012,6 +1050,7 @@ func test_interrupting_a_water_task_mid_fetch_leg_releases_the_claim() -> void:
 	var village := Village.new()
 	_seeded_farm(village)
 	var villager_a := Villager.new("v1", true, "")
+	villager_a.is_farmer = true
 	village.advance_task_assignment(villager_a)
 	village.begin_resolving_task(villager_a, {"food": 100}, 1.0)  # reaches the water source.
 
@@ -1019,5 +1058,63 @@ func test_interrupting_a_water_task_mid_fetch_leg_releases_the_claim() -> void:
 
 	assert_null(villager_a.current_task)
 	var villager_b := Villager.new("v2", true, "")
+	villager_b.is_farmer = true
 	var task_b := village.query_next_task(villager_b)
 	assert_eq(task_b.kind, Task.KIND_WATER)
+
+
+# --- Farm Labor: Interest gating (issue #39) ---
+
+
+func test_query_next_task_never_offers_collect_to_a_non_farmer() -> void:
+	var village := Village.new()
+	_ready_farm(village)
+	var villager := Villager.new("v1", true, "")  # is_farmer defaults to false.
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_IDLE)
+
+
+func test_query_next_task_never_offers_seed_to_a_non_farmer() -> void:
+	var village := Village.new()
+	_awaiting_planting_farm(village)
+	var villager := Villager.new("v1", true, "")
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_IDLE)
+
+
+func test_query_next_task_never_offers_water_to_a_non_farmer() -> void:
+	var village := Village.new()
+	_seeded_farm(village)
+	var villager := Villager.new("v1", true, "")
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_IDLE)
+
+
+func test_a_non_farmer_never_claims_a_farm_via_advance_task_assignment() -> void:
+	var village := Village.new()
+	_ready_farm(village)
+	var villager := Villager.new("v1", true, "")
+
+	var changed := village.advance_task_assignment(villager)
+
+	assert_true(changed)
+	assert_eq(villager.current_task.kind, Task.KIND_IDLE)
+
+
+func test_a_farmer_is_offered_collect_once_the_same_farm_is_no_longer_claimed_by_a_non_farmer() -> void:
+	var village := Village.new()
+	_ready_farm(village)
+	var non_farmer := Villager.new("v1", true, "")
+	village.advance_task_assignment(non_farmer)  # -> Idle, never claims the farm.
+	var farmer := Villager.new("v2", true, "")
+	farmer.is_farmer = true
+
+	var task := village.query_next_task(farmer)
+
+	assert_eq(task.kind, Task.KIND_COLLECT)

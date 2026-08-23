@@ -16,6 +16,13 @@ var current_wish: Wish
 ## already uses.
 var villager_name: String = ""
 
+## Farming Interest (issue #39) -- a bare trait, not a general profession
+## system (see CONTEXT.md's Interest entry). Village.populate() rolls
+## this per Villager against Village.FARMER_CHANCE. Gates whether
+## VillageTasks.query_next_task() ever offers this Villager a Seed/
+## Water/Collect Task candidate, whatever the Farm state.
+var is_farmer: bool = false
+
 ## Gates check_eating()'s branch; nothing sets this true yet (no
 ## expedition mechanic exists).
 var is_away: bool = false

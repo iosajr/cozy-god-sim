@@ -61,6 +61,21 @@ func test_no_populated_villager_ever_starts_with_an_empty_name() -> void:
 		assert_ne(villager.villager_name, "")
 
 
+func test_populate_assigns_is_farmer_with_a_baseline_probability() -> void:
+	var village := Village.new()
+
+	village.populate(200)
+
+	var farmer_count := 0
+	for villager: Villager in village.villagers:
+		if villager.is_farmer:
+			farmer_count += 1
+	# Roughly Village.FARMER_CHANCE (0.5) of 200 -- generous bounds, not
+	# an exact-probability assertion.
+	assert_gt(farmer_count, 0)
+	assert_lt(farmer_count, 200)
+
+
 func test_same_seed_produces_the_same_villagers() -> void:
 	var village_a := Village.new(42)
 	village_a.populate(6)
@@ -73,6 +88,7 @@ func test_same_seed_produces_the_same_villagers() -> void:
 		assert_eq(village_a.villagers[i].current_thought, village_b.villagers[i].current_thought)
 		assert_eq(village_a.villagers[i].age_years, village_b.villagers[i].age_years)
 		assert_eq(village_a.villagers[i].villager_name, village_b.villagers[i].villager_name)
+		assert_eq(village_a.villagers[i].is_farmer, village_b.villagers[i].is_farmer)
 
 
 func test_village_is_a_task_provider() -> void:

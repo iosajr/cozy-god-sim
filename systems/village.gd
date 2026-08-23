@@ -17,6 +17,11 @@ const STARTING_LOCATION_NAME := "the Village"
 const MIN_STARTING_AGE_YEARS: int = 20
 const MAX_STARTING_AGE_YEARS: int = 40
 
+## Baseline probability a freshly-populated Villager starts with farming
+## Interest (Villager.is_farmer, issue #39) -- tunable, not defended,
+## same spirit as MIN/MAX_STARTING_AGE_YEARS above.
+const FARMER_CHANCE: float = 0.5
+
 ## Minimal, mechanical placeholder pool (issue #43) -- plain first names,
 ## not worldbuilding/naming lore.
 const NAME_POOL: Array[String] = [
@@ -125,6 +130,7 @@ func populate(count: int) -> void:
 		)
 		villager.age_years = _rng.randi_range(MIN_STARTING_AGE_YEARS, MAX_STARTING_AGE_YEARS)
 		villager.villager_name = NAME_POOL[_rng.randi_range(0, NAME_POOL.size() - 1)]
+		villager.is_farmer = _rng.randf() < FARMER_CHANCE
 		villagers.append(villager)
 
 
