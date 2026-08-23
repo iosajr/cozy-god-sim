@@ -136,6 +136,19 @@ var recovery_carry_capacity: int:
 	get: return _resource_recovery.carry_capacity
 	set(value): _resource_recovery.carry_capacity = value
 
+## How close two eligible Villagers must stay to accumulate pairing
+## progress, forwarded to VillagePairing (issue #41).
+var pairing_proximity_threshold: float:
+	get: return _pairing.proximity_threshold
+	set(value): _pairing.proximity_threshold = value
+
+## How long two eligible Villagers must stay within
+## pairing_proximity_threshold of each other before they pair, forwarded
+## to VillagePairing (issue #41).
+var pairing_duration: float:
+	get: return _pairing.pairing_duration
+	set(value): _pairing.pairing_duration = value
+
 var _rng := RandomNumberGenerator.new()
 var _thoughts: VillageThoughts
 var _needs: VillageNeeds
@@ -145,6 +158,7 @@ var _farm_watering: VillageFarmWatering
 var _resource_recovery: VillageResourceRecovery
 var _tasks: VillageTasks
 var _farm_periodic_watering: VillageFarms
+var _pairing: VillagePairing
 
 
 func _init(seed_value: int = -1) -> void:
@@ -160,6 +174,7 @@ func _init(seed_value: int = -1) -> void:
 		_rng, _needs, _farm_labor, _farm_seeding, _farm_watering, _resource_recovery
 	)
 	_farm_periodic_watering = VillageFarms.new(_rng)
+	_pairing = VillagePairing.new()
 	var starting_tags: Array[String] = ["village"]
 	known_locations.append(Location.new(STARTING_LOCATION_NAME, starting_tags))
 
@@ -174,6 +189,7 @@ func populate(count: int) -> void:
 		)
 		villager.age_years = _rng.randi_range(MIN_STARTING_AGE_YEARS, MAX_STARTING_AGE_YEARS)
 		villager.villager_name = NAME_POOL[_rng.randi_range(0, NAME_POOL.size() - 1)]
+		villager.sex = Villager.Sex.FEMALE if _rng.randf() < 0.5 else Villager.Sex.MALE
 		villagers.append(villager)
 		new_villagers.append(villager)
 	_group_into_families(new_villagers)
@@ -248,6 +264,12 @@ func advance_sleep_checks(delta: float) -> void:
 
 func advance_farms(delta: float) -> void:
 	_farm_periodic_watering.advance_farms(farms, delta)
+
+
+## Call once per frame/tick; Village itself has no _process. Detection
+## only -- no Task, no offspring (issue #41; see issue #42).
+func advance_pairing(delta: float) -> void:
+	_pairing.advance_pairing(villagers, delta)
 
 
 func should_interrupt(current_task: Task, candidate: Task) -> bool:
