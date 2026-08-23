@@ -1,15 +1,18 @@
 extends Node3D
 ## Spawns each Farm's placeholder 3D body at its position and keeps its
-## color tinted to the current stage (seeded/growing/ready-to-harvest).
-## No construction trigger exists yet — this spawner is the debug seam
-## that adds spawned Farms straight to GameState.village.farms.
+## color tinted to the current stage (awaiting-planting/seeded/growing/
+## ready-to-harvest). No construction trigger exists yet — this spawner is
+## the debug seam that adds spawned Farms straight to GameState.village.farms.
 ##
 ## Harvest-delivery has no existence independent of an actual Villager
 ## doing it (issue #33) — the standalone delivery walker this spawner used
 ## to own is gone; a Ready-to-Harvest Farm is now offered to an idle
 ## Villager as a real Collect Task by systems/village_tasks.gd/
-## village_farm_labor.gd.
+## village_farm_labor.gd. Likewise, a fresh/reset Farm no longer
+## auto-transitions into Seeded (issue #36) — it sits Awaiting-Planting
+## until an idle Villager completes a Seed Task via village_farm_seeding.gd.
 
+const AWAITING_PLANTING_COLOR: Color = Color(0.55, 0.5, 0.42)
 const SEEDED_COLOR: Color = Color(0.45, 0.32, 0.2)
 const GROWING_COLOR: Color = Color(0.42, 0.58, 0.24)
 const READY_COLOR: Color = Color(0.92, 0.8, 0.25)
@@ -50,7 +53,9 @@ func _sync_stage_tint(farm: Farm) -> void:
 		return
 	var mat: StandardMaterial3D = body.material_override
 	var target_color: Color = SEEDED_COLOR
-	if farm.stage == Farm.FARM_GROWING:
+	if farm.stage == Farm.FARM_AWAITING_PLANTING:
+		target_color = AWAITING_PLANTING_COLOR
+	elif farm.stage == Farm.FARM_GROWING:
 		target_color = GROWING_COLOR
 	elif farm.stage == Farm.FARM_READY_TO_HARVEST:
 		target_color = READY_COLOR
@@ -73,5 +78,5 @@ func _spawn_farms() -> void:
 		add_child(root)
 
 		var mat := StandardMaterial3D.new()
-		mat.albedo_color = SEEDED_COLOR
+		mat.albedo_color = AWAITING_PLANTING_COLOR
 		_bodies[farm] = FolkSpawnerSupport.spawn_body(root, mesh, mat, 0.1)
