@@ -55,3 +55,31 @@ func test_ready_sets_water_source_position_relative_to_the_spawners_own_position
 		spawner.village.water_source_position,
 		Vector3(10, 0, 5) + VillageSpawnerScript.WATER_SOURCE_OFFSET
 	)
+
+
+## Regression test for issue #42: a newborn Villager added mid-game by
+## Village.advance_gestation() (via a completed Reproduce Task) wasn't
+## registered in any of _process()'s per-Villager dictionaries -- the very
+## next frame crashed on the first dictionary lookup for it. Reaches
+## global_position the same way the site_position bug above does, so this
+## needs the same add_child_autofree()-into-the-real-tree setup, not a bare
+## .new().
+func test_process_spawns_a_mover_for_a_newborn_villager_added_after_ready() -> void:
+	var spawner: Node3D = VillageSpawnerScript.new()
+	spawner.villager_count = 1
+	add_child_autofree(spawner)
+	spawner._process(0.01)  # establishes the initial batch's Movers, etc.
+
+	# What Village.advance_gestation() -> _spawn_newborn() does: append a
+	# fresh Villager straight to village.villagers mid-game, never having
+	# gone through the initial _spawn_villagers() batch.
+	var newborn := Villager.new("newborn", true, "")
+	spawner.village.villagers.append(newborn)
+
+	spawner._process(0.01)  # must not crash on the unregistered newborn.
+
+	# _spawn_one_villager() names each spawned Mover after the Villager's
+	# id and adds it as spawner's own child -- a public, black-box way to
+	# confirm the newborn actually got spawned (see _spawn_villagers()'s
+	# doc comment).
+	assert_not_null(spawner.get_node_or_null(NodePath(newborn.id)))

@@ -35,6 +35,13 @@ var _villagers_by_click_body: Dictionary = {}  # StaticBody3D -> Villager
 var _movers: Dictionary = {}  # Villager -> Mover (also the spawned root)
 var _debug_infos: Dictionary = {}  # Villager -> FolkDebugInfo
 
+## Shared across every spawned body -- built once, reused by both the
+## initial batch (_spawn_villagers()) and any newborn spawned later
+## (_spawn_one_villager(), issue #42).
+var _body_mat: StandardMaterial3D
+var _body_mesh: CapsuleMesh
+var _click_shape: CapsuleShape3D
+
 
 func _ready() -> void:
 	ground_size = GroundScatter.resolve_ground_size(get_node_or_null(world_gen_path), ground_size)
@@ -61,8 +68,18 @@ func _process(delta: float) -> void:
 	village.advance_thoughts(delta, GameState.pantheon)
 	village.advance_eating_checks(delta)
 	village.advance_sleep_checks(delta)
+	# Issue #41 built and tested this but never wired it in here -- without
+	# it no Villager ever actually gets paired_with set in a running game,
+	# which would make issue #42's Reproduce Task unreachable too.
+	village.advance_pairing(delta)
 	var camera_rig: Node3D = get_node_or_null(camera_rig_path)
 	for villager in village.villagers:
+		if not _movers.has(villager):
+			# A newborn added by advance_gestation() (issue #42) -- give it
+			# the same body/nameplate/click-body/debug-info every other
+			# Villager gets, same shape as _spawn_villagers()'s initial
+			# batch, or every dictionary lookup below crashes on it.
+			_spawn_one_villager(villager)
 		villager.advance(delta)
 		_advance_task_execution(villager, delta)
 		var nameplate: VillagerNameplate = _nameplates[villager]
@@ -124,55 +141,64 @@ func _advance_task_execution(villager: Villager, delta: float) -> void:
 				mover.move_to(village.task_destination(task, villager))
 	elif task.kind == Task.KIND_SLEEP:
 		village.advance_sleeping(villager, delta)
+	elif task.kind == Task.KIND_REPRODUCE:
+		village.advance_gestation(villager, delta)
 	elif is_idle:
 		if village.advance_idle(villager, delta):
 			mover.move_to(village.idle_destination(villager))
 
 
 func _spawn_villagers() -> void:
-	var body_mat := StandardMaterial3D.new()
-	body_mat.albedo_color = Color(0.85, 0.72, 0.58)
+	_body_mat = StandardMaterial3D.new()
+	_body_mat.albedo_color = Color(0.85, 0.72, 0.58)
 
-	var body_mesh := CapsuleMesh.new()
-	body_mesh.radius = 0.3
-	body_mesh.height = 1.6
+	_body_mesh = CapsuleMesh.new()
+	_body_mesh.radius = 0.3
+	_body_mesh.height = 1.6
 
-	var click_shape := CapsuleShape3D.new()
-	click_shape.radius = 0.3
-	click_shape.height = 1.6
+	_click_shape = CapsuleShape3D.new()
+	_click_shape.radius = 0.3
+	_click_shape.height = 1.6
 
 	for villager in village.villagers:
-		var root := Mover.new()
-		root.name = villager.id
-		root.position = GroundScatter.random_ground_position(ground_size, _rng)
-		root.speed = villager_move_speed
-		add_child(root)
-		_movers[villager] = root
+		_spawn_one_villager(villager)
 
-		_bodies[villager] = FolkSpawnerSupport.spawn_body(root, body_mesh, body_mat, 0.8)
 
-		var click_body := StaticBody3D.new()
-		click_body.position.y = 0.8
-		root.add_child(click_body)
-		var collision_shape := CollisionShape3D.new()
-		collision_shape.shape = click_shape
-		click_body.add_child(collision_shape)
-		_click_bodies[villager] = click_body
-		_villagers_by_click_body[click_body] = villager
+## Spawned body/click-body/nameplate/debug-info for one Villager -- the
+## initial batch (_spawn_villagers()) and a newborn added mid-game by
+## advance_gestation() (issue #42) both go through this.
+func _spawn_one_villager(villager: Villager) -> void:
+	var root := Mover.new()
+	root.name = villager.id
+	root.position = GroundScatter.random_ground_position(ground_size, _rng)
+	root.speed = villager_move_speed
+	add_child(root)
+	_movers[villager] = root
 
-		var nameplate := VillagerNameplate.new()
-		nameplate.position.y = 1.9
-		nameplate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		nameplate.font_size = 24
-		nameplate.outline_size = 6
-		root.add_child(nameplate)
-		_nameplates[villager] = nameplate
-		_update_nameplate(villager, nameplate)
+	_bodies[villager] = FolkSpawnerSupport.spawn_body(root, _body_mesh, _body_mat, 0.8)
 
-		var debug_info := FolkDebugInfo.new()
-		debug_info.name = "DebugInfo"
-		root.add_child(debug_info)
-		_debug_infos[villager] = debug_info
+	var click_body := StaticBody3D.new()
+	click_body.position.y = 0.8
+	root.add_child(click_body)
+	var collision_shape := CollisionShape3D.new()
+	collision_shape.shape = _click_shape
+	click_body.add_child(collision_shape)
+	_click_bodies[villager] = click_body
+	_villagers_by_click_body[click_body] = villager
+
+	var nameplate := VillagerNameplate.new()
+	nameplate.position.y = 1.9
+	nameplate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	nameplate.font_size = 24
+	nameplate.outline_size = 6
+	root.add_child(nameplate)
+	_nameplates[villager] = nameplate
+	_update_nameplate(villager, nameplate)
+
+	var debug_info := FolkDebugInfo.new()
+	debug_info.name = "DebugInfo"
+	root.add_child(debug_info)
+	_debug_infos[villager] = debug_info
 
 
 func _on_dialogue_target_clicked(body: Node3D) -> void:
