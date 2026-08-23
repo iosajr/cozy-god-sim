@@ -67,16 +67,37 @@ _Avoid_: Colonist, Sim, Citizen
 
 **Known Territory** _(proposed)_:
 The portion of the World a Village's Folk collectively know about —
-shared across the whole community, not tracked per individual; once one
-Folk member's expedition adds to it, the whole Village knows it. Folk
-only forage within it. Grows only through an actual expedition's
-outcome, never just because time has passed: a Folk member who explores
-and returns adds what they found; one who explores and never returns is
-also information, though the exact mechanism for what that conveys
-isn't decided. Explicitly not a Player mechanic — the Player always
-sees the whole World regardless of what any Village has discovered.
+shared across the whole community, not tracked per individual. Grows
+two ways: an expedition's outcome (a Folk member explores and returns
+with what they found; one who explores and never returns is also
+information, exact mechanism TBD), or a local event a Village
+experiences directly (no expedition needed — see ADR-0004). Folk only
+forage within it. Can hold plain points of interest as well as
+perishable resource opportunities (a spotted herd, a dropped cache) —
+see ADR-0004, reversing the earlier "not tied to resources" stance.
+Explicitly not a Player mechanic — the Player always sees the whole
+World regardless of what any Village has discovered.
 _Avoid_: Fog of war — that term usually implies gating the Player's own
 view, which this explicitly does not do.
+
+**Interest** _(proposed)_:
+A Villager's inclination toward a kind of work — for now, a single bare
+flag (farming), not a general profession system. A farming Family raises
+the odds a member starts with it, but doesn't guarantee it. The intended
+long-term mechanism — a Villager who spends time near someone practicing
+an Interest picks it up by proximity, the same "how close, how long"
+shape Favored already uses — is real direction, not yet built: it needs
+Reproducing's children to exist first.
+_Avoid_: Profession, Role, Job — implies a general system with slots and
+progression; this is one bare flag until a second Interest exists.
+
+**Family** _(proposed)_:
+A group of Villagers. Seeded directly into the starting population at
+Village creation — no Reproducing-driven creation yet. Can carry a
+shared business bias (e.g. leaning toward farming Interest) that nudges
+members' odds, not a guarantee.
+_Avoid_: Household — could later mean something tied to Housing instead;
+keep them distinct until Housing assignment is actually designed.
 
 **Folk** _(name questioned — open to renaming)_:
 Umbrella term for an ordinary human, animal, or plant the Player can

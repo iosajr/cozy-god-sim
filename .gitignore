@@ -19,3 +19,6 @@ Thumbs.db
 
 # Claude Code local settings (keep shared skills, ignore personal settings)
 .claude/settings.local.json
+
+# Scratch git worktrees created for isolated agent sessions
+.claude/worktrees/

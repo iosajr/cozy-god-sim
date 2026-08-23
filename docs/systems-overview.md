@@ -100,15 +100,36 @@ The gap between that and everything below is most of the project.
   distinct tier; see `CONTEXT.md`'s Village entry.
 - **Known Territory**: a per-Village shared value (not per-Villager) — a
   list of locations, each carrying context of what's there (animals,
-  forest, villages, water, farmland, mountains, ...). Explicitly not
-  tied to resources — these are points of interest/information, not a
-  resource-production list (user-stated). Needs an expedition mechanic
-  (a Folk member leaves the Village, and either returns — adding what
-  they found — or doesn't, which is also meant to convey something, TBD)
-  to ever grow past its starting state. Two implementation-sized
-  slices, not one: the concept/data existing at all, then expeditions
-  actually happening. The Player's own view is entirely unaffected — no
-  fog-of-war gating for the Player, per `CONTEXT.md`.
+  forest, villages, water, farmland, mountains, ...). Needs an expedition
+  mechanic (a Folk member leaves the Village, and either returns — adding
+  what they found — or doesn't, which is also meant to convey something,
+  TBD) to grow via that path. Two implementation-sized slices, not one:
+  the concept/data existing at all, then expeditions actually happening.
+  The Player's own view is entirely unaffected — no fog-of-war gating for
+  the Player, per `CONTEXT.md`.
+  - **Revised (2026-08-23, ADR-0004)**: the original "not tied to
+    resources, grows only via expedition" stance is reversed. A perishable
+    resource-opportunity entry shape now exists (position + amount + when
+    it was last observed), and can be added by a local event the Village
+    experiences directly, not only by an expedition returning. Surfaced by
+    the farm-labor redesign below — dropped cargo from an interrupted
+    Collect/Deliver Task needed exactly this shape, and the user's own
+    wild-herd comparison confirmed it as a general Known Territory case,
+    not a farm-specific one.
+  - **Decay, corrected (2026-08-23)**: not an abstract periodic chance —
+    the user's actual intent is a physical act (something else eating the
+    food, a herd moving on) that happens while the Village isn't watching.
+    Explicitly deferred/ignored for now, not built as a probability roll.
+  - **Flagged, not yet built (2026-08-23)**: a resource entry should
+    update its last-observed marker every time a Folk member actually
+    re-observes it, not just record one frozen snapshot at first
+    discovery — this is what would let a herd's continued presence (or a
+    dropped cache's continued existence) actually be tracked across
+    multiple sightings, rather than treating the first observation as
+    permanently true. Real requirement for whenever herd-tracking or
+    unobserved-consumption is actually built; not scoped into the
+    dropped-cargo ticket, which only needs the entry to exist and be
+    collectible.
 - **Folk**: the same per-individual state as Villager, generalized to
   animals and plants once those exist. As of issue #11, `Sheep` is the
   first such generalization, built on a shared `Folk` base — but `Sheep`
@@ -339,6 +360,85 @@ The gap between that and everything below is most of the project.
   actually matter. What the consequence actually *is* (population
   effects? Faith effects? something else?) is explicitly not decided —
   flagged here rather than invented.
+
+### Farm Labor becomes real Villager work (2026-08-23, resolved via grilling)
+
+Closes the gap flagged above (#15's standalone delivery-walker, never
+revised until now): every step of the Farm cycle a Villager can plausibly
+do by hand becomes a real Task, on the same Task/TaskProvider machinery as
+Eat/Sleep/Idle, and the walker is deleted outright — delivery has no
+existence independent of an actual Villager doing it.
+
+- **Four new Task kinds, not one**: `KIND_SEED`, `KIND_WATER`,
+  `KIND_COLLECT`, `KIND_DELIVER`. Splitting Collect/Deliver apart (rather
+  than one two-leg Task) is deliberate — Deliver is written generic over
+  resource-type + amount, not farm-specific, so future gathering work
+  (wood, hunting) can reuse it without rework.
+- **Seeding, resolved**: one-time and literal, not automatic. A Farm that
+  just finished (or a fresh one) sits idle until a Villager walks over and
+  plants it — this is a real behavior change from today's shipped
+  `Farm._reseed()`, which currently re-seeds for free the instant
+  `remaining_harvest` hits 0. No watering (rain or manual) progresses a
+  farm that hasn't been planted.
+- **Watering, resolved**: continues — via rain and/or repeated manual
+  visits, possibly from different Villagers each time — until the farm
+  actually reaches Ready-to-Harvest. A manual watering visit is a
+  fetch-then-deposit round trip (walk to a water source, collect, walk to
+  the farm, deposit one fixed dose, leave) — a single chunk per visit, not
+  parking at the farm until fully grown, mirroring how Eat resolves
+  instantly rather than Sleep's open-ended countdown.
+  - **Water source, placeholder (explicitly not the river question)**: a
+    single fixed Village-local position, same tier as "the store." The
+    real question of what "river" means for watering (flagged earlier in
+    this doc, under Farm) is untouched by this — still exactly as
+    unresolved as before, just no longer blocking.
+  - **Rain, explicitly unchanged**: stays exactly as shipped (an instant
+    per-farm periodic-check top-up). A durational "it's raining, water
+    accumulates continuously" version was floated and explicitly
+    deferred — user's call: "rain can be decided later once a weather
+    system is built." Don't build it before then.
+- **Farm capacity, resolved**: a Ready-to-Harvest farm supports multiple
+  concurrent workers (default 4, tunable, not defended) rather than a
+  strict one-worker claim. This is what actually prevents the "20 people
+  swarming one patch" concern the user raised — not a reservation lock.
+  Workers share one drain against `remaining_harvest`, first-come-first
+  served; `Farm.harvest()` already returns a safe partial amount, so no
+  new mechanism is needed for the sharing itself, only for letting more
+  than one Villager target the same farm at once.
+- **Dropped cargo on interruption, resolved (see ADR-0004)**: if a
+  Collect/Deliver Task is interrupted (a genuine Must-do emergency), the
+  carried food drops at the Villager's current position rather than
+  vanishing, as a perishable Known Territory resource entry (position +
+  amount + periodic decay chance) — recoverable via a fresh Task, or
+  eventually gone if ignored too long. Explicitly its own follow-up
+  ticket, blocked by the core Task-based Collect/Deliver work landing
+  first: the core replacement is already a complete, demoable slice
+  without it, and "cargo is simply lost on interruption" is a real,
+  callable-out, temporary simplification in the meantime — same spirit as
+  every other "consequence-free for now, not final" caveat already in
+  this doc.
+- **Interest, a new per-Villager trait (proposed, see `CONTEXT.md`)**: a
+  bare `is_farmer` bool, not a general profession system — deliberately
+  minimal until a second Interest actually exists. Assigned at
+  `Village.populate()`: a flat baseline chance (~50%, tunable), boosted
+  (not overridden) if the Villager's Family carries a farming business
+  bias. The real long-term mechanism — a Villager who spends time near
+  someone practicing an Interest picks it up by proximity, reusing
+  Favored's existing "how close, how long" shape — is genuine direction,
+  not built now: it needs Reproducing's children to exist first, so
+  there's no one yet to hang around and learn from.
+- **Family, scaffolded now (proposed, see `CONTEXT.md`)**: a deliberate
+  choice to build the concept ahead of its consumer (Reproducing isn't
+  built yet) — user's call, not the recommended-safe default of a
+  Roadmap-only note. The whole starting population is grouped into
+  Families at `populate()` (size 2-4, tunable), each optionally carrying
+  a business bias that nudges — never guarantees — a member's `is_farmer`
+  roll. No Reproducing-driven Family creation yet; that's still Roadmap.
+- **Age-seeding, resolved as its own ticket**: see the Reproducing
+  section above — `populate()` now seeds a randomized `age_years` spread
+  (20+) instead of always 0. Surfaced again here because a believable
+  starting population needed it for Family/Interest to mean anything, but
+  it's an independent change with no blocking relationship to farm work.
 
 ## Task Priority _(proposed term, not committed)_ — the real parent concept
 
@@ -588,10 +688,12 @@ than a parallel system.
     real, mechanically-grounded failure condition instead of an
     abstract dice roll. Now functionally depends on #14, which the
     original version didn't.
-  - **#15 (Farm) was NOT revised** — its standalone delivery-walker
-    approach doesn't factually conflict with anything here, it's just
-    intentionally incomplete (no real worker-assignment yet), already
-    documented as such in its own Out of Scope.
+  - **#15 (Farm) was NOT revised at the time** — its standalone
+    delivery-walker approach didn't factually conflict with anything
+    here, it was just intentionally incomplete (no real worker-assignment
+    yet), already documented as such in its own Out of Scope. **Now
+    being revised (2026-08-23)** — see the Farm Labor section below,
+    which finally closes that gap.
   - The original reasoning for holding off (below) is kept for
     context, but is now superseded for #16/#18 specifically.
 
@@ -657,14 +759,18 @@ Roadmap items below.
     enough, no life-stage system required. 18 is the concrete number the
     user gave — same tunable-not-defended spirit as every other threshold
     in this project.
-  - **Real gap surfaced by this resolution, not yet answered**: every
-    Villager `Village.populate()` seeds starts at `age_years == 0`
+  - **Real gap surfaced by this resolution — resolved (2026-08-23)**:
+    every Villager `Village.populate()` seeds starts at `age_years == 0`
     (Ageing's own spec, issue #21), so with a hard 18-year floor, an
-    initial population can't produce a single pairing until 18 in-game
-    years have passed — unless `populate()` seeds a randomized starting
-    age instead of always 0. Flagged here, not resolved; touches
-    `Village.populate()`'s existing behavior, which is outside both the
-    Ageing and Reproducing issues' current scope.
+    initial population couldn't produce a single pairing until 18
+    in-game years had passed. Fixed: `populate()` now seeds a randomized
+    starting age instead of always 0 — a spread from 20 upward (tunable,
+    not defended), so a starting population is immediately
+    reproduction-eligible and doesn't read as suspiciously uniform.
+    Surfaced again, and finally resolved, during the farm-labor
+    redesign below (Family/Interest needed a believable starting
+    population too). Own ticket — unrelated to farm work beyond both
+    touching `populate()`.
 
 ## Listening and Acting
 
