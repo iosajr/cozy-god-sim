@@ -801,6 +801,43 @@ Roadmap items below.
     call since no decay rule was specified. Data/detection only — no
     Task, no offspring yet; that's issue #42, which builds directly on
     this `sex`/`paired_with` shape.
+  - **Reproduce Task + gestation — Done (issue #42)**: the Task/offspring
+    half `paired_with` above sets up. New `Task.KIND_REPRODUCE`, offered
+    at a fixed Passtime-tier priority (`VillageReproduction.
+    REPRODUCE_PRIORITY`, same tier as every `VillageLaborTasks` kind,
+    below Eat/Sleep's Important tier and `PRIORITY_MUST_DO_THRESHOLD`).
+    New `systems/village_reproduction.gd` (`VillageReproduction`, owned
+    by `VillageTasks` the same way `VillageLaborTasks` already is)
+    offers the Task and tracks a per-Villager gestation countdown
+    (`GESTATION_DURATION_SECONDS`, tunable) once it starts resolving —
+    same countdown shape as Sleep, just delegated since `VillageTasks`
+    can't itself add the new Villager gestation implies (see below).
+    Only the lexicographically-first-id partner of a pair is ever
+    offered the Task — gestation is tracked once per pair, not once per
+    Villager, an implementer's call to stop both partners independently
+    gestating and each producing a newborn from one pairing. Once
+    gestation completes, `Village.advance_gestation()` (Village owns
+    this, not `VillageTasks`, since only Village can reach `villagers`/
+    `populate()`) adds exactly one newborn by calling `populate(1)`
+    wholesale — reusing its whole id/has_faith/thought/name/sex/Family/
+    is_farmer generation — then overriding `age_years` to 0 (`populate()`
+    seeds a believable starting-population age otherwise). The newborn's
+    `age_years == 0` and default `paired_with == null` mean it correctly
+    fails `VillagePairing`'s maturity gate on its own, no separate
+    newborn-exclusion check needed. **Genuinely open, flagged not
+    fixed**: nothing unpairs a couple or cools their eligibility down
+    afterward, so a standing pair keeps producing a newborn every
+    `GESTATION_DURATION_SECONDS` indefinitely — read as the intended
+    shape of ambient, autonomous population growth rather than a bug,
+    since issue #42 doesn't specify a fertility limit, but worth a
+    dedicated look if unbounded growth turns out to be unwanted.
+    Also folded in here: `village_spawner.gd` never actually called
+    `Village.advance_pairing()` despite issue #41 landing and testing it
+    — without that fix pairing (and so Reproduce) could never fire in a
+    running game at all; the same pass also had to teach
+    `village_spawner.gd` to spawn a Mover/nameplate/click-body/debug-info
+    for a newborn appearing mid-game, not just the initial batch
+    `_spawn_villagers()` already handles.
 
 ## Listening and Acting
 
