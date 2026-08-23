@@ -28,6 +28,11 @@ const KIND_DELIVER := "deliver"
 ## Collect/Deliver pipeline for dropped/found cargo, not gated behind
 ## Villager.is_farmer the way Seed/Water/Collect are.
 const KIND_RECOVER := "recover"
+## Offered to a paired Villager (issue #42) at a fixed low/Passtime-tier
+## priority — resolving starts a gestation countdown (see
+## systems/village_reproduction.gd) rather than resolving instantly, same
+## countdown-based shape as Sleep. Villager-only; see Village.query_next_task().
+const KIND_REPRODUCE := "reproduce"
 
 const PRIORITY_MUST_DO_THRESHOLD: float = 80.0
 
