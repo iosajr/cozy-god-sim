@@ -10,6 +10,12 @@ extends Folk
 var current_thought: String
 var current_wish: Wish
 
+## Avoid the bare identifier `name` -- it collides with Node.name. Empty
+## by default; Village.populate() sets it from Village.NAME_POOL (issue
+## #43), the same direct-post-construction-assignment pattern age_years
+## already uses.
+var villager_name: String = ""
+
 ## Gates check_eating()'s branch; nothing sets this true yet (no
 ## expedition mechanic exists).
 var is_away: bool = false

@@ -42,6 +42,25 @@ func test_no_populated_villager_ever_starts_below_the_minimum_starting_age() -> 
 		assert_gte(villager.age_years, 20)
 
 
+func test_populated_villager_gets_a_non_empty_name_from_the_pool() -> void:
+	var village := Village.new()
+
+	village.populate(1)
+
+	var villager: Villager = village.villagers[0]
+	assert_ne(villager.villager_name, "")
+	assert_has(Village.NAME_POOL, villager.villager_name)
+
+
+func test_no_populated_villager_ever_starts_with_an_empty_name() -> void:
+	var village := Village.new()
+
+	village.populate(50)
+
+	for villager: Villager in village.villagers:
+		assert_ne(villager.villager_name, "")
+
+
 func test_same_seed_produces_the_same_villagers() -> void:
 	var village_a := Village.new(42)
 	village_a.populate(6)
@@ -53,6 +72,7 @@ func test_same_seed_produces_the_same_villagers() -> void:
 		assert_eq(village_a.villagers[i].has_faith, village_b.villagers[i].has_faith)
 		assert_eq(village_a.villagers[i].current_thought, village_b.villagers[i].current_thought)
 		assert_eq(village_a.villagers[i].age_years, village_b.villagers[i].age_years)
+		assert_eq(village_a.villagers[i].villager_name, village_b.villagers[i].villager_name)
 
 
 func test_village_is_a_task_provider() -> void:
@@ -112,6 +132,20 @@ func test_villager_defaults_house_to_null() -> void:
 	var villager := Villager.new("v1", true, "The bread smells almost ready.")
 
 	assert_null(villager.house)
+
+
+func test_villager_defaults_villager_name_to_empty() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	assert_eq(villager.villager_name, "")
+
+
+func test_villagers_name_can_be_set_directly() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	villager.villager_name = "Ada"
+
+	assert_eq(villager.villager_name, "Ada")
 
 
 func test_villagers_house_can_be_set_directly() -> void:

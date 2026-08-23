@@ -14,6 +14,13 @@ const STARTING_LOCATION_NAME := "the Village"
 const MIN_STARTING_AGE_YEARS: int = 20
 const MAX_STARTING_AGE_YEARS: int = 40
 
+## Minimal, mechanical placeholder pool (issue #43) -- plain first names,
+## not worldbuilding/naming lore.
+const NAME_POOL: Array[String] = [
+	"Ada", "Ben", "Cora", "Dane", "Elin", "Finn", "Gwen", "Hale",
+	"Iris", "Jonah", "Kira", "Leo", "Maren", "Noor", "Otto", "Priya",
+]
+
 var villagers: Array[Villager] = []
 var known_locations: Array[Location] = []
 var houses: Array[House] = []
@@ -87,6 +94,7 @@ func populate(count: int) -> void:
 			_thoughts.random_thought()
 		)
 		villager.age_years = _rng.randi_range(MIN_STARTING_AGE_YEARS, MAX_STARTING_AGE_YEARS)
+		villager.villager_name = NAME_POOL[_rng.randi_range(0, NAME_POOL.size() - 1)]
 		villagers.append(villager)
 
 
