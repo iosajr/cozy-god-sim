@@ -15,34 +15,43 @@ const IDLE_STAND_SECONDS_MAX: float = 8.0
 ## Passtime-tier, same as Idle — above Idle so an idle Villager picks farm
 ## work up, below Eat/Sleep's hunger/tiredness priorities so real needs
 ## always win (see docs/systems-overview.md's Task Priority section).
+const SEED_PRIORITY: float = 10.0
 const COLLECT_PRIORITY: float = 10.0
 const DELIVER_PRIORITY: float = 10.0
 
 var _rng: RandomNumberGenerator
 var _needs: VillageNeeds
 var _farm_labor: VillageFarmLabor
+var _farm_seeding: VillageFarmSeeding
 
 var _sleep_seconds_remaining: Dictionary = {}  # Villager -> float seconds remaining
 var _idle_targets: Dictionary = {}  # Villager -> Vector3
 var _idle_stand_seconds_remaining: Dictionary = {}  # Villager -> float seconds remaining
-## Shared, reused across every idle/collecting/delivering Villager — Task
-## is immutable once constructed, and each kind's real per-Villager state
-## lives in dictionaries (above, or on VillageFarmLabor), never on the
-## Task itself.
+## Shared, reused across every idle/seeding/collecting/delivering
+## Villager — Task is immutable once constructed, and each kind's real
+## per-Villager state lives in dictionaries (above, or on
+## VillageFarmSeeding/VillageFarmLabor), never on the Task itself.
 var _idle_task: Task = null
+var _seed_task: Task = null
 var _collect_task: Task = null
 var _deliver_task: Task = null
 
 
-func _init(rng: RandomNumberGenerator, needs: VillageNeeds, farm_labor: VillageFarmLabor) -> void:
+func _init(
+	rng: RandomNumberGenerator,
+	needs: VillageNeeds,
+	farm_labor: VillageFarmLabor,
+	farm_seeding: VillageFarmSeeding
+) -> void:
 	_rng = rng
 	_needs = needs
 	_farm_labor = farm_labor
+	_farm_seeding = farm_seeding
 
 
-## Never null — falls back through Deliver (if carrying) / Collect (if a
-## Farm is ready and unclaimed) / a shared Idle Task once neither Eat nor
-## Sleep applies.
+## Never null — falls back through Deliver (if carrying) / Seed (if a Farm
+## is awaiting planting and unclaimed) / Collect (if a Farm is ready and
+## unclaimed) / a shared Idle Task once neither Eat nor Sleep applies.
 func query_next_task(villager: Villager, farms: Array[Farm]) -> Task:
 	var eat_task := _needs.eat_task_for(villager)
 	var sleep_task := _needs.sleep_task_for(villager)
@@ -56,6 +65,10 @@ func query_next_task(villager: Villager, farms: Array[Farm]) -> Task:
 		if _deliver_task == null:
 			_deliver_task = Task.new(Task.KIND_DELIVER, DELIVER_PRIORITY)
 		return _deliver_task
+	if _farm_seeding.has_seedable(farms):
+		if _seed_task == null:
+			_seed_task = Task.new(Task.KIND_SEED, SEED_PRIORITY)
+		return _seed_task
 	if _farm_labor.has_collectible(farms):
 		if _collect_task == null:
 			_collect_task = Task.new(Task.KIND_COLLECT, COLLECT_PRIORITY)
@@ -87,18 +100,23 @@ func advance_task_assignment(villager: Villager, farms: Array[Farm]) -> bool:
 		interrupt_task(villager)
 	villager.current_task = candidate
 	villager.task_resolving = false
-	if candidate.kind == Task.KIND_COLLECT:
+	if candidate.kind == Task.KIND_SEED:
+		_farm_seeding.claim_farm(villager, farms)
+	elif candidate.kind == Task.KIND_COLLECT:
 		_farm_labor.claim_farm(villager, farms)
 	return true
 
 
 ## Sleep prefers the Villager's own House position when set, else falls
 ## back to `site_position` (also used for Eat, "the store", and Deliver —
-## the store and Deliver's destination are the same place). Collect goes
-## to the claimed Farm's position.
+## the store and Deliver's destination are the same place). Seed/Collect
+## go to the claimed Farm's position.
 func task_destination(task: Task, villager: Villager, site_position: Vector3) -> Vector3:
 	if task.kind == Task.KIND_SLEEP and villager.house != null:
 		return villager.house.position
+	if task.kind == Task.KIND_SEED:
+		var farm := _farm_seeding.farm_for(villager)
+		return farm.position if farm != null else site_position
 	if task.kind == Task.KIND_COLLECT:
 		var farm := _farm_labor.farm_for(villager)
 		return farm.position if farm != null else site_position
@@ -127,6 +145,12 @@ func begin_resolving_task(villager: Villager, resources: Dictionary, day_speed: 
 			_sleep_seconds_remaining[villager] = _sleep_duration_seconds(day_speed)
 		Task.KIND_IDLE:
 			_idle_stand_seconds_remaining[villager] = _random_idle_stand_seconds()
+		Task.KIND_SEED:
+			# Resolves instantly, same as Eat/Collect — plants the claimed
+			# Farm and releases the claim in one visit, no countdown (issue
+			# #36's "done in one visit").
+			_farm_seeding.resolve_seed(villager)
+			_finish_task(villager)
 		Task.KIND_COLLECT:
 			# Resolves instantly, same as Eat — the follow-up Deliver Task
 			# isn't assigned directly (that would bypass the mover-redirect
@@ -186,11 +210,13 @@ func idle_destination(villager: Villager, site_position: Vector3) -> Vector3:
 
 ## Releases any Farm claim/carried cargo unconditionally, whatever the
 ## interrupted Task's kind — see issue #33: a Farm claim is "released once
-## they finish delivering or are interrupted".
+## they finish delivering or are interrupted" (issue #36 extends this to
+## the Seed claim the same way).
 func interrupt_task(villager: Villager) -> void:
 	_sleep_seconds_remaining.erase(villager)
 	_idle_stand_seconds_remaining.erase(villager)
 	_idle_targets.erase(villager)
+	_farm_seeding.release_claim(villager)
 	_farm_labor.release_claim(villager)
 	_finish_task(villager)
 

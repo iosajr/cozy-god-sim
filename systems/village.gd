@@ -4,7 +4,8 @@ extends TaskProvider
 ## Plain data/logic, no scene tree (Seam 1). Delegates thought/wish,
 ## needs, task, and farm behavior to systems/village_thoughts.gd,
 ## village_needs.gd, village_tasks.gd, village_farms.gd (periodic
-## watering), village_farm_labor.gd (Collect/Deliver claim+carry state).
+## watering), village_farm_seeding.gd (Seed claim state),
+## village_farm_labor.gd (Collect/Deliver claim+carry state).
 
 const STARTING_LOCATION_NAME := "the Village"
 
@@ -81,6 +82,7 @@ var _rng := RandomNumberGenerator.new()
 var _thoughts: VillageThoughts
 var _needs: VillageNeeds
 var _farm_labor: VillageFarmLabor
+var _farm_seeding: VillageFarmSeeding
 var _tasks: VillageTasks
 var _farm_watering: VillageFarms
 
@@ -91,7 +93,8 @@ func _init(seed_value: int = -1) -> void:
 	_thoughts = VillageThoughts.new(_rng)
 	_needs = VillageNeeds.new(_rng)
 	_farm_labor = VillageFarmLabor.new()
-	_tasks = VillageTasks.new(_rng, _needs, _farm_labor)
+	_farm_seeding = VillageFarmSeeding.new()
+	_tasks = VillageTasks.new(_rng, _needs, _farm_labor, _farm_seeding)
 	_farm_watering = VillageFarms.new(_rng)
 	var starting_tags: Array[String] = ["village"]
 	known_locations.append(Location.new(STARTING_LOCATION_NAME, starting_tags))
