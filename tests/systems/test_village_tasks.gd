@@ -612,7 +612,7 @@ func test_query_next_task_returns_a_collect_task_when_a_farm_is_ready_and_unclai
 
 
 func test_query_next_task_prefers_collect_over_plain_idle() -> void:
-	assert_true(VillageTasks.COLLECT_PRIORITY > VillageTasks.IDLE_PRIORITY)
+	assert_true(VillageLaborTasks.COLLECT_PRIORITY > VillageTasks.IDLE_PRIORITY)
 
 
 func test_query_next_task_still_prefers_eat_over_a_ready_farm_when_hungry() -> void:
@@ -704,7 +704,7 @@ func test_a_deliver_task_naturally_resurfaces_after_a_collect_task_resolves() ->
 func test_deliver_task_destination_is_the_village_store_position() -> void:
 	var village := Village.new()
 	village.site_position = Vector3(1, 0, 2)
-	var task := Task.new(Task.KIND_DELIVER, VillageTasks.DELIVER_PRIORITY)
+	var task := Task.new(Task.KIND_DELIVER, VillageLaborTasks.DELIVER_PRIORITY)
 	var villager := Villager.new("v1", true, "")
 
 	assert_eq(village.task_destination(task, villager), Vector3(1, 0, 2))
@@ -748,12 +748,17 @@ func test_interrupting_a_collect_task_releases_the_farm_claim() -> void:
 	assert_eq(task_b.kind, Task.KIND_COLLECT)
 
 
-func test_interrupting_a_deliver_task_drops_the_carried_cargo_and_releases_the_claim() -> void:
+func test_interrupting_a_deliver_task_drops_the_carried_cargo_as_a_recoverable_resource_entry() -> void:
+	# Revises the old "cargo is simply gone" behavior (issue #33) per issue
+	# #37/ADR-0004: the claim is still released the same way, but the
+	# carried amount becomes a recoverable Known Territory entry instead
+	# of vanishing.
 	var village := Village.new()
 	village.carry_capacity = 5
 	_ready_farm(village)
 	var villager := Villager.new("v1", true, "")
 	villager.is_farmer = true
+	villager.position = Vector3(9, 0, 9)
 	village.advance_task_assignment(villager)  # Collect.
 	village.begin_resolving_task(villager, {"food": 0}, 1.0)  # harvests 5, now carrying.
 	village.advance_task_assignment(villager)  # Deliver.
@@ -762,8 +767,12 @@ func test_interrupting_a_deliver_task_drops_the_carried_cargo_and_releases_the_c
 	village.interrupt_task(villager)
 
 	assert_null(villager.current_task)
-	# Re-querying doesn't resurface a phantom Deliver -- cargo is simply
-	# gone, per issue #33's "released once ... interrupted".
+	assert_eq(village.known_resources.size(), 1)
+	var entry: LocationResource = village.known_resources[0]
+	assert_eq(entry.position, Vector3(9, 0, 9))
+	assert_eq(entry.amount, 5)
+	# Re-querying doesn't resurface a phantom Deliver -- the farm claim
+	# really is released, same as before (issue #33).
 	var task := village.query_next_task(villager)
 	assert_eq(task.kind, Task.KIND_COLLECT)
 
@@ -791,7 +800,7 @@ func test_query_next_task_returns_a_seed_task_when_a_farm_is_awaiting_planting_a
 
 
 func test_query_next_task_prefers_seed_over_plain_idle() -> void:
-	assert_true(VillageTasks.SEED_PRIORITY > VillageTasks.IDLE_PRIORITY)
+	assert_true(VillageLaborTasks.SEED_PRIORITY > VillageTasks.IDLE_PRIORITY)
 
 
 func test_query_next_task_still_prefers_eat_over_an_awaiting_planting_farm_when_hungry() -> void:
@@ -912,7 +921,7 @@ func test_query_next_task_returns_a_water_task_when_a_farm_is_growing_and_unclai
 
 
 func test_query_next_task_prefers_water_over_plain_idle() -> void:
-	assert_true(VillageTasks.WATER_PRIORITY > VillageTasks.IDLE_PRIORITY)
+	assert_true(VillageLaborTasks.WATER_PRIORITY > VillageTasks.IDLE_PRIORITY)
 
 
 func test_query_next_task_still_prefers_eat_over_a_waterable_farm_when_hungry() -> void:
@@ -1136,3 +1145,219 @@ func test_a_farmer_is_offered_collect_once_the_same_farm_is_no_longer_claimed_by
 	var task := village.query_next_task(farmer)
 
 	assert_eq(task.kind, Task.KIND_COLLECT)
+
+
+# --- Recovering a dropped/known resource entry (issue #37) ---
+
+
+func _known_resource(village: Village, amount: int = 5) -> LocationResource:
+	var entry := LocationResource.new(Vector3(4, 0, 7), amount)
+	village.known_resources.append(entry)
+	return entry
+
+
+func test_query_next_task_returns_a_recover_task_when_a_resource_entry_is_unclaimed() -> void:
+	var village := Village.new()
+	_known_resource(village)
+	var villager := Villager.new("v1", true, "")
+
+	var task := village.query_next_task(villager)
+
+	assert_not_null(task)
+	assert_eq(task.kind, Task.KIND_RECOVER)
+	assert_false(task.is_must_do())
+
+
+func test_query_next_task_offers_recover_to_a_non_farmer_unlike_seed_water_collect() -> void:
+	var village := Village.new()
+	_known_resource(village)
+	var villager := Villager.new("v1", true, "")  # is_farmer defaults to false.
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_RECOVER)
+
+
+func test_query_next_task_prefers_recover_over_plain_idle() -> void:
+	assert_true(VillageLaborTasks.RECOVER_PRIORITY > VillageTasks.IDLE_PRIORITY)
+
+
+func test_query_next_task_still_prefers_eat_over_a_recoverable_entry_when_hungry() -> void:
+	var village := Village.new()
+	_known_resource(village)
+	var villager := Villager.new("v1", true, "")
+	villager.hunger_state = Villager.HUNGER_HUNGRY
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_EAT)
+
+
+func test_a_farmer_with_real_farm_work_pending_is_offered_that_before_recovering() -> void:
+	var village := Village.new()
+	_ready_farm(village)
+	_known_resource(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_COLLECT)
+
+
+func test_advance_task_assignment_claims_the_entry_for_a_recover_task() -> void:
+	var village := Village.new()
+	var entry := _known_resource(village)
+	var villager := Villager.new("v1", true, "")
+
+	var changed := village.advance_task_assignment(villager)
+
+	assert_true(changed)
+	assert_eq(villager.current_task.kind, Task.KIND_RECOVER)
+	assert_eq(village.task_destination(villager.current_task, villager), entry.position)
+
+
+func test_a_claimed_resource_entry_is_not_offered_to_a_second_villager() -> void:
+	var village := Village.new()
+	_known_resource(village)
+	var villager_a := Villager.new("v1", true, "")
+	var villager_b := Villager.new("v2", true, "")
+
+	village.advance_task_assignment(villager_a)
+	var task_b := village.query_next_task(villager_b)
+
+	assert_eq(villager_a.current_task.kind, Task.KIND_RECOVER)
+	assert_eq(task_b.kind, Task.KIND_IDLE)
+
+
+func test_resolving_a_recover_task_drains_the_entry_and_clears_current_task() -> void:
+	var village := Village.new()
+	village.recovery_carry_capacity = 5
+	_known_resource(village, 20)
+	var villager := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager)
+
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)
+
+	assert_eq(village.known_resources[0].amount, 15)
+	assert_null(villager.current_task)
+	assert_false(villager.task_resolving)
+
+
+func test_a_deliver_task_naturally_resurfaces_after_a_recover_task_resolves() -> void:
+	var village := Village.new()
+	_known_resource(village)
+	var villager := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager)
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)
+
+	var changed := village.advance_task_assignment(villager)
+
+	assert_true(changed)
+	assert_eq(villager.current_task.kind, Task.KIND_DELIVER)
+
+
+func test_resolving_a_deliver_task_from_a_recovered_entry_adds_the_carried_amount_to_food() -> void:
+	var village := Village.new()
+	village.recovery_carry_capacity = 5
+	_known_resource(village, 5)
+	var villager := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager)  # Recover.
+	village.begin_resolving_task(villager, {"food": 0}, 1.0)  # takes all 5.
+	village.advance_task_assignment(villager)  # Deliver.
+	var resources := {"food": 10}
+
+	village.begin_resolving_task(villager, resources, 1.0)
+
+	assert_eq(resources["food"], 15)
+	assert_null(villager.current_task)
+
+
+func test_resolving_a_recover_task_removes_a_fully_drained_entry_from_known_resources() -> void:
+	var village := Village.new()
+	village.recovery_carry_capacity = 5
+	_known_resource(village, 5)
+	var villager := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager)
+
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)
+
+	assert_true(village.known_resources.is_empty())
+
+
+func test_resolving_a_recover_task_leaves_a_partially_drained_entry_recoverable() -> void:
+	var village := Village.new()
+	village.recovery_carry_capacity = 5
+	_known_resource(village, 20)
+	var villager_a := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager_a)
+	village.begin_resolving_task(villager_a, {"food": 100}, 1.0)
+
+	assert_eq(village.known_resources.size(), 1)
+	var villager_b := Villager.new("v2", true, "")
+	var task_b := village.query_next_task(villager_b)
+	assert_eq(task_b.kind, Task.KIND_RECOVER)
+
+
+func test_interrupting_a_recover_task_releases_the_claim_without_draining_it() -> void:
+	var village := Village.new()
+	var entry := _known_resource(village, 5)
+	var villager_a := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager_a)  # claims the entry.
+	assert_eq(villager_a.current_task.kind, Task.KIND_RECOVER)
+
+	village.interrupt_task(villager_a)
+
+	assert_eq(entry.amount, 5)
+	var villager_b := Villager.new("v2", true, "")
+	var task_b := village.query_next_task(villager_b)
+	assert_eq(task_b.kind, Task.KIND_RECOVER)
+
+
+func test_interrupting_a_deliver_task_from_a_recovered_entry_drops_a_fresh_resource_entry() -> void:
+	var village := Village.new()
+	village.recovery_carry_capacity = 5
+	_known_resource(village, 5)
+	var villager := Villager.new("v1", true, "")
+	villager.position = Vector3(1, 0, 1)
+	village.advance_task_assignment(villager)  # Recover.
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)  # now carrying 5.
+	village.advance_task_assignment(villager)  # Deliver.
+	villager.position = Vector3(2, 0, 2)  # moved on before being interrupted.
+
+	village.interrupt_task(villager)
+
+	assert_eq(village.known_resources.size(), 1)
+	var dropped: LocationResource = village.known_resources[0]
+	assert_eq(dropped.position, Vector3(2, 0, 2))
+	assert_eq(dropped.amount, 5)
+
+
+func test_interrupting_a_task_while_carrying_nothing_does_not_add_a_resource_entry() -> void:
+	# Issue #37's acceptance criteria: interrupting a Collect Task before
+	# any harvest resolved must not fabricate an entry out of nothing.
+	var village := Village.new()
+	_ready_farm(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+	village.advance_task_assignment(villager)  # Collect, not yet resolved.
+	assert_eq(villager.current_task.kind, Task.KIND_COLLECT)
+
+	village.interrupt_task(villager)
+
+	assert_true(village.known_resources.is_empty())
+
+
+func test_interrupt_task_stamps_observed_at_onto_the_dropped_entry() -> void:
+	var village := Village.new()
+	village.carry_capacity = 5
+	_ready_farm(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+	village.advance_task_assignment(villager)  # Collect.
+	village.begin_resolving_task(villager, {"food": 0}, 1.0)  # now carrying.
+	village.advance_task_assignment(villager)  # Deliver.
+
+	village.interrupt_task(villager, 14.5)
+
+	assert_eq(village.known_resources[0].last_observed, 14.5)

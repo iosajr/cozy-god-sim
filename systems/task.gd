@@ -23,6 +23,11 @@ const KIND_COLLECT := "collect"
 ## generic over what's being carried, not farm-specific — see
 ## docs/systems-overview.md's Farm Labor section.
 const KIND_DELIVER := "deliver"
+## Walk to a claimed Known Territory resource entry and recover it up to
+## carry capacity (issue #37) — the Collect-equivalent half of a second
+## Collect/Deliver pipeline for dropped/found cargo, not gated behind
+## Villager.is_farmer the way Seed/Water/Collect are.
+const KIND_RECOVER := "recover"
 
 const PRIORITY_MUST_DO_THRESHOLD: float = 80.0
 

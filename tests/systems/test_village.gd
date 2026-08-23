@@ -111,6 +111,15 @@ func test_new_village_starts_knowing_exactly_one_location_its_own_site() -> void
 	assert_true(village.known_locations[0] is Location)
 
 
+## known_resources (issue #37) is a sibling collection to known_locations,
+## not seeded with anything at Village creation -- only ever populated by
+## dropped cargo (see test_village_tasks.gd's Recover section).
+func test_new_village_starts_with_no_known_resources() -> void:
+	var village := Village.new()
+
+	assert_true(village.known_resources.is_empty())
+
+
 func test_knows_location_with_tag_finds_a_tag_present_on_a_known_location() -> void:
 	var village := Village.new()
 	var starting_tags: Array[String] = village.known_locations[0].context_tags

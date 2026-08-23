@@ -6,7 +6,8 @@ extends TaskProvider
 ## village_needs.gd, village_tasks.gd, village_farms.gd (periodic
 ## watering), village_farm_seeding.gd (Seed claim state),
 ## village_farm_watering.gd (Water claim + fetch-leg state),
-## village_farm_labor.gd (Collect/Deliver claim+carry state).
+## village_farm_labor.gd (Collect/Deliver claim+carry state),
+## village_resource_recovery.gd (Recover claim+carry state, issue #37).
 
 const STARTING_LOCATION_NAME := "the Village"
 
@@ -51,6 +52,14 @@ var villagers: Array[Villager] = []
 var known_locations: Array[Location] = []
 var houses: Array[House] = []
 var farms: Array[Farm] = []
+
+## Perishable resource entries a Village's Folk have spotted (ADR-0004,
+## issue #37) — dropped Deliver-Task cargo is currently the only source
+## (see VillageTasks.interrupt_task()); a spotted wild herd or other local
+## event is real future direction, not built here. A sibling collection to
+## known_locations, not merged into it — see systems/location_resource.gd
+## for why LocationResource is kept as its own shape.
+var known_resources: Array[LocationResource] = []
 
 ## Placeholder "the store"/Sleep-fallback position; a spawner sets this to
 ## the Village's actual scattered position.
@@ -121,12 +130,19 @@ var water_dose_amount: float:
 	get: return _farm_watering.water_dose_amount
 	set(value): _farm_watering.water_dose_amount = value
 
+## Recovered-per-Recover-Task amount, forwarded to VillageResourceRecovery
+## (issue #37).
+var recovery_carry_capacity: int:
+	get: return _resource_recovery.carry_capacity
+	set(value): _resource_recovery.carry_capacity = value
+
 var _rng := RandomNumberGenerator.new()
 var _thoughts: VillageThoughts
 var _needs: VillageNeeds
 var _farm_labor: VillageFarmLabor
 var _farm_seeding: VillageFarmSeeding
 var _farm_watering: VillageFarmWatering
+var _resource_recovery: VillageResourceRecovery
 var _tasks: VillageTasks
 var _farm_periodic_watering: VillageFarms
 
@@ -139,7 +155,10 @@ func _init(seed_value: int = -1) -> void:
 	_farm_labor = VillageFarmLabor.new()
 	_farm_seeding = VillageFarmSeeding.new()
 	_farm_watering = VillageFarmWatering.new()
-	_tasks = VillageTasks.new(_rng, _needs, _farm_labor, _farm_seeding, _farm_watering)
+	_resource_recovery = VillageResourceRecovery.new()
+	_tasks = VillageTasks.new(
+		_rng, _needs, _farm_labor, _farm_seeding, _farm_watering, _resource_recovery
+	)
 	_farm_periodic_watering = VillageFarms.new(_rng)
 	var starting_tags: Array[String] = ["village"]
 	known_locations.append(Location.new(STARTING_LOCATION_NAME, starting_tags))
@@ -236,9 +255,11 @@ func should_interrupt(current_task: Task, candidate: Task) -> bool:
 
 
 ## Returns true if the assignment actually changed, so the caller knows to
-## redirect its Mover.
-func advance_task_assignment(villager: Villager) -> bool:
-	return _tasks.advance_task_assignment(villager, farms)
+## redirect its Mover. `observed_at` (default the epoch, i.e. no real time
+## source) only matters when this assignment interrupts a running Task
+## while carrying cargo — see interrupt_task().
+func advance_task_assignment(villager: Villager, observed_at: float = 0.0) -> bool:
+	return _tasks.advance_task_assignment(villager, farms, known_resources, observed_at)
 
 
 func task_destination(task: Task, villager: Villager) -> Vector3:
@@ -252,7 +273,7 @@ static func has_reached_destination(
 
 
 func begin_resolving_task(villager: Villager, resources: Dictionary, day_speed: float) -> void:
-	_tasks.begin_resolving_task(villager, resources, day_speed)
+	_tasks.begin_resolving_task(villager, resources, day_speed, known_resources)
 
 
 func advance_sleeping(villager: Villager, delta: float) -> void:
@@ -267,15 +288,20 @@ func idle_destination(villager: Villager) -> Vector3:
 	return _tasks.idle_destination(villager, site_position)
 
 
-func interrupt_task(villager: Villager) -> void:
-	_tasks.interrupt_task(villager)
+## `observed_at` is stamped onto a dropped-cargo resource entry's
+## last_observed marker, if this interruption catches the villager
+## carrying anything — see VillageTasks.interrupt_task()/
+## LocationResource. Defaults to 0.0 (no real time source) for callers
+## that don't have/care about one, same as advance_task_assignment().
+func interrupt_task(villager: Villager, observed_at: float = 0.0) -> void:
+	_tasks.interrupt_task(villager, known_resources, observed_at)
 
 
 ## TaskProvider override — only ever tasks its own Villagers.
 func query_next_task(folk: Folk) -> Task:
 	if not (folk is Villager):
 		return null
-	return _tasks.query_next_task(folk, farms)
+	return _tasks.query_next_task(folk, farms, known_resources)
 
 
 func knows_location_with_tag(tag: String) -> bool:

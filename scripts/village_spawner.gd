@@ -95,7 +95,10 @@ func _update_nameplate(villager: Villager, nameplate: VillagerNameplate) -> void
 ## Drives one Villager's Task through Village's execution seam: (re)assign,
 ## move the Mover toward the destination, resolve once arrived.
 func _advance_task_execution(villager: Villager, delta: float) -> void:
-	var task_changed := village.advance_task_assignment(villager)
+	# GameState.time_of_day stamps a dropped-cargo resource entry's
+	# last_observed marker (issue #37) when this interrupts a carrying
+	# Villager -- see Village.advance_task_assignment()/interrupt_task().
+	var task_changed := village.advance_task_assignment(villager, GameState.time_of_day)
 	var mover: Mover = _movers[villager]
 	villager.position = mover.global_position
 	var task := villager.current_task

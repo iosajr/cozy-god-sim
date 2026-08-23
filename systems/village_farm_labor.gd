@@ -93,8 +93,11 @@ func take_carrying(villager: Villager) -> int:
 ## concurrently claiming the same Farm untouched, and drops any uncarried/
 ## undelivered amount — called both on a normal Deliver resolution and on
 ## interruption (see issue #33: "released once they finish delivering or
-## are interrupted"). Dropped cargo simply vanishing is a known, temporary
-## simplification — see docs/systems-overview.md's Farm Labor section.
+## are interrupted"). Only clears this collaborator's own bookkeeping —
+## whether an interruption turns the dropped amount into a recoverable
+## Known Territory entry is VillageTasks.interrupt_task()'s concern (issue
+## #37), not this method's; it just no-op-safely forgets the amount
+## either way, same as before.
 func release_claim(villager: Villager) -> void:
 	var farm: Farm = _claimed_farm_by_villager.get(villager)
 	if farm != null and _claims_by_farm.has(farm):
