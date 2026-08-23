@@ -19,8 +19,26 @@ const MAX_STARTING_AGE_YEARS: int = 40
 
 ## Baseline probability a freshly-populated Villager starts with farming
 ## Interest (Villager.is_farmer, issue #39) -- tunable, not defended,
-## same spirit as MIN/MAX_STARTING_AGE_YEARS above.
+## same spirit as MIN/MAX_STARTING_AGE_YEARS above. Applies to a Villager
+## whose Family (see below) does not carry the farming business bias.
 const FARMER_CHANCE: float = 0.5
+
+## A freshly-populated Villager is grouped into a Family sized within this
+## range (issue #40) -- tunable, not defended. A single-Villager populate()
+## call is the one exception: with nobody else to group with, it gets a
+## lone Family of its own rather than being left family-less.
+const MIN_FAMILY_SIZE: int = 2
+const MAX_FAMILY_SIZE: int = 4
+
+## Probability a freshly-formed Family is assigned a farming business bias
+## at populate() time -- tunable, not defended.
+const FAMILY_FARMING_BIAS_CHANCE: float = 0.25
+
+## Probability a Villager whose Family carries the farming business bias
+## starts with is_farmer = true -- must stay above FARMER_CHANCE (the
+## flat baseline a non-biased Family's members still get). Tunable, not
+## defended.
+const FARMER_CHANCE_WITH_FAMILY_BIAS: float = 0.85
 
 ## Minimal, mechanical placeholder pool (issue #43) -- plain first names,
 ## not worldbuilding/naming lore.
@@ -122,6 +140,7 @@ func _init(seed_value: int = -1) -> void:
 
 
 func populate(count: int) -> void:
+	var new_villagers: Array[Villager] = []
 	for i in count:
 		var villager := Villager.new(
 			"villager_%d" % villagers.size(),
@@ -130,8 +149,47 @@ func populate(count: int) -> void:
 		)
 		villager.age_years = _rng.randi_range(MIN_STARTING_AGE_YEARS, MAX_STARTING_AGE_YEARS)
 		villager.villager_name = NAME_POOL[_rng.randi_range(0, NAME_POOL.size() - 1)]
-		villager.is_farmer = _rng.randf() < FARMER_CHANCE
 		villagers.append(villager)
+		new_villagers.append(villager)
+	_group_into_families(new_villagers)
+	for villager in new_villagers:
+		var farmer_chance: float = (
+			FARMER_CHANCE_WITH_FAMILY_BIAS if villager.family.has_farming_bias else FARMER_CHANCE
+		)
+		villager.is_farmer = _rng.randf() < farmer_chance
+
+
+## Groups this populate() call's freshly-created Villagers into Families
+## sized within [MIN_FAMILY_SIZE, MAX_FAMILY_SIZE], leaving none
+## family-less -- every chunk taken here stays in range (any remaining
+## count of MIN_FAMILY_SIZE or more can always be split into in-range
+## pieces; see the leftover correction below), except a population
+## smaller than MIN_FAMILY_SIZE, which necessarily gets a single
+## out-of-range Family of its own.
+func _group_into_families(new_villagers: Array[Villager]) -> void:
+	var i := 0
+	var n := new_villagers.size()
+	while i < n:
+		var remaining: int = n - i
+		var size: int
+		if remaining <= MAX_FAMILY_SIZE:
+			size = remaining
+		else:
+			size = _rng.randi_range(MIN_FAMILY_SIZE, MAX_FAMILY_SIZE)
+			# A too-small leftover can't stand as its own Family -- shift
+			# it onto this chunk instead. Falls back to taking everyone
+			# remaining if even that adjustment can't reach
+			# MIN_FAMILY_SIZE (only possible with unusually tuned
+			# MIN/MAX_FAMILY_SIZE values), preferring an out-of-range
+			# Family over a family-less Villager.
+			var leftover: int = remaining - size
+			if leftover > 0 and leftover < MIN_FAMILY_SIZE:
+				var adjusted_size: int = remaining - MIN_FAMILY_SIZE
+				size = adjusted_size if adjusted_size >= MIN_FAMILY_SIZE else remaining
+		var family := Family.new(_rng.randf() < FAMILY_FARMING_BIAS_CHANCE)
+		for j in size:
+			family.add_member(new_villagers[i + j])
+		i += size
 
 
 func reroll_thought(villager: Villager, pantheon: Pantheon) -> void:

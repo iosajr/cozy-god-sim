@@ -48,6 +48,11 @@ var position: Vector3 = Vector3.ZERO
 ## Provisional, not final — direct pointer, no assignment logic yet.
 var house: House = null
 
+## Seeded directly at Village.populate() time (issue #40) -- every
+## populated Villager gets one, but a bare Villager.new() (e.g. in tests)
+## still defaults to family-less.
+var family: Family = null
+
 ## Null means free to accept a new Task from TaskProvider.query_next_task().
 var current_task: Task = null
 ## False while traveling to current_task's destination, true once

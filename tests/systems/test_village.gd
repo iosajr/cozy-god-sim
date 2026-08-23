@@ -171,3 +171,97 @@ func test_villagers_house_can_be_set_directly() -> void:
 	villager.house = house
 
 	assert_same(villager.house, house)
+
+
+# --- Family (issue #40) ---
+
+
+func test_villager_defaults_family_to_null() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	assert_null(villager.family)
+
+
+func test_populate_leaves_no_villager_family_less() -> void:
+	var village := Village.new()
+
+	village.populate(50)
+
+	for villager: Villager in village.villagers:
+		assert_not_null(villager.family)
+
+
+func test_populate_groups_villagers_into_families_sized_within_the_tunable_range() -> void:
+	var village := Village.new()
+
+	village.populate(200)
+
+	var seen: Dictionary = {}
+	for villager: Villager in village.villagers:
+		var family: Family = villager.family
+		if not seen.has(family):
+			seen[family] = true
+			assert_gte(family.members.size(), Village.MIN_FAMILY_SIZE)
+			assert_lte(family.members.size(), Village.MAX_FAMILY_SIZE)
+
+
+func test_populate_assigns_some_families_a_farming_bias() -> void:
+	var village := Village.new()
+
+	village.populate(200)
+
+	var seen: Dictionary = {}
+	var biased_count := 0
+	for villager: Villager in village.villagers:
+		var family: Family = villager.family
+		if not seen.has(family):
+			seen[family] = true
+			if family.has_farming_bias:
+				biased_count += 1
+	# Roughly Village.FAMILY_FARMING_BIAS_CHANCE of ~60-100 families --
+	# generous bounds, not an exact-probability assertion.
+	assert_gt(biased_count, 0)
+
+
+func test_family_farming_bias_raises_a_members_odds_of_starting_a_farmer() -> void:
+	# Seeded RNG, per this project's existing RNG-seeding test patterns
+	# (see test_same_seed_produces_the_same_villagers below) -- picks a
+	# seed where at least one family lands each side of the bias so the
+	# comparison below is meaningful.
+	var village := Village.new(7)
+
+	village.populate(400)
+
+	var biased_farmer_count := 0
+	var biased_total := 0
+	var baseline_farmer_count := 0
+	var baseline_total := 0
+	for villager: Villager in village.villagers:
+		var family: Family = villager.family
+		if family.has_farming_bias:
+			biased_total += 1
+			if villager.is_farmer:
+				biased_farmer_count += 1
+		else:
+			baseline_total += 1
+			if villager.is_farmer:
+				baseline_farmer_count += 1
+	assert_gt(biased_total, 0)
+	assert_gt(baseline_total, 0)
+	var biased_rate: float = float(biased_farmer_count) / float(biased_total)
+	var baseline_rate: float = float(baseline_farmer_count) / float(baseline_total)
+	assert_gt(biased_rate, baseline_rate)
+
+
+func test_same_seed_produces_the_same_families_and_farmer_bias() -> void:
+	var village_a := Village.new(42)
+	village_a.populate(20)
+
+	var village_b := Village.new(42)
+	village_b.populate(20)
+
+	for i in 20:
+		var family_a: Family = village_a.villagers[i].family
+		var family_b: Family = village_b.villagers[i].family
+		assert_eq(family_a.has_farming_bias, family_b.has_farming_bias)
+		assert_eq(family_a.members.size(), family_b.members.size())
