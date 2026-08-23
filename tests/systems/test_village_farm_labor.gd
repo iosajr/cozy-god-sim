@@ -28,6 +28,7 @@ func test_has_collectible_is_false_when_no_farm_is_ready_to_harvest() -> void:
 func test_has_collectible_is_true_for_an_unclaimed_ready_to_harvest_farm() -> void:
 	var labor := VillageFarmLabor.new()
 	var farm := Farm.new(Vector3.ZERO, 1.0, 20)
+	farm.plant()
 	farm.water(1.0)
 
 	assert_true(labor.has_collectible([farm]))
@@ -36,6 +37,7 @@ func test_has_collectible_is_true_for_an_unclaimed_ready_to_harvest_farm() -> vo
 func test_has_collectible_is_false_once_the_only_ready_farm_is_claimed() -> void:
 	var labor := VillageFarmLabor.new()
 	var farm := Farm.new(Vector3.ZERO, 1.0, 20)
+	farm.plant()
 	farm.water(1.0)
 	var villager_a := Villager.new("v1", true, "")
 	labor.claim_farm(villager_a, [farm])
@@ -46,6 +48,7 @@ func test_has_collectible_is_false_once_the_only_ready_farm_is_claimed() -> void
 func test_claim_farm_returns_and_binds_the_first_eligible_farm() -> void:
 	var labor := VillageFarmLabor.new()
 	var farm := Farm.new(Vector3(3, 0, 4), 1.0, 20)
+	farm.plant()
 	farm.water(1.0)
 	var villager := Villager.new("v1", true, "")
 
@@ -58,8 +61,10 @@ func test_claim_farm_returns_and_binds_the_first_eligible_farm() -> void:
 func test_claim_farm_skips_a_farm_already_claimed_by_someone_else() -> void:
 	var labor := VillageFarmLabor.new()
 	var claimed_farm := Farm.new(Vector3.ZERO, 1.0, 20)
+	claimed_farm.plant()
 	claimed_farm.water(1.0)
 	var free_farm := Farm.new(Vector3.ONE, 1.0, 20)
+	free_farm.plant()
 	free_farm.water(1.0)
 	var villager_a := Villager.new("v1", true, "")
 	var villager_b := Villager.new("v2", true, "")
@@ -93,6 +98,7 @@ func test_resolve_collect_harvests_up_to_carry_capacity_and_marks_carrying() -> 
 	var labor := VillageFarmLabor.new()
 	labor.carry_capacity = 5
 	var farm := Farm.new(Vector3.ZERO, 1.0, 20)
+	farm.plant()
 	farm.water(1.0)
 	var villager := Villager.new("v1", true, "")
 	labor.claim_farm(villager, [farm])
@@ -108,6 +114,7 @@ func test_resolve_collect_releases_the_claim_instead_of_sticking_when_carry_capa
 	var labor := VillageFarmLabor.new()
 	labor.carry_capacity = 0
 	var farm := Farm.new(Vector3.ZERO, 1.0, 20)
+	farm.plant()
 	farm.water(1.0)
 	var villager := Villager.new("v1", true, "")
 	labor.claim_farm(villager, [farm])
@@ -140,6 +147,7 @@ func test_is_carrying_is_false_before_a_collect_resolves() -> void:
 func test_take_carrying_returns_and_clears_the_amount() -> void:
 	var labor := VillageFarmLabor.new()
 	var farm := Farm.new(Vector3.ZERO, 1.0, 20)
+	farm.plant()
 	farm.water(1.0)
 	var villager := Villager.new("v1", true, "")
 	labor.claim_farm(villager, [farm])
@@ -158,6 +166,7 @@ func test_take_carrying_returns_and_clears_the_amount() -> void:
 func test_release_claim_frees_the_farm_for_a_new_claimant() -> void:
 	var labor := VillageFarmLabor.new()
 	var farm := Farm.new(Vector3.ZERO, 1.0, 20)
+	farm.plant()
 	farm.water(1.0)
 	var villager_a := Villager.new("v1", true, "")
 	var villager_b := Villager.new("v2", true, "")
@@ -174,6 +183,7 @@ func test_release_claim_frees_the_farm_for_a_new_claimant() -> void:
 func test_release_claim_also_drops_any_carried_amount() -> void:
 	var labor := VillageFarmLabor.new()
 	var farm := Farm.new(Vector3.ZERO, 1.0, 20)
+	farm.plant()
 	farm.water(1.0)
 	var villager := Villager.new("v1", true, "")
 	labor.claim_farm(villager, [farm])

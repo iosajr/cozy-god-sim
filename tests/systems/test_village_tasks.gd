@@ -586,6 +586,7 @@ func test_interrupt_task_clears_a_resolving_idle_tasks_wander_state() -> void:
 
 func _ready_farm(village: Village) -> Farm:
 	var farm := Farm.new(Vector3(6, 0, 8), 1.0, 20)
+	farm.plant()
 	farm.water(1.0)  # -> Ready-to-Harvest.
 	village.farms.append(farm)
 	return farm
@@ -730,3 +731,104 @@ func test_interrupting_a_deliver_task_drops_the_carried_cargo_and_releases_the_c
 	# gone, per issue #33's "released once ... interrupted".
 	var task := village.query_next_task(villager)
 	assert_eq(task.kind, Task.KIND_COLLECT)
+
+
+# --- Farm Labor: Seed (issue #36) ---
+
+
+func _awaiting_planting_farm(village: Village) -> Farm:
+	var farm := Farm.new(Vector3(2, 0, 3))  # fresh -- starts Awaiting-Planting.
+	village.farms.append(farm)
+	return farm
+
+
+func test_query_next_task_returns_a_seed_task_when_a_farm_is_awaiting_planting_and_unclaimed() -> void:
+	var village := Village.new()
+	_awaiting_planting_farm(village)
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	var task := village.query_next_task(villager)
+
+	assert_not_null(task)
+	assert_eq(task.kind, Task.KIND_SEED)
+	assert_false(task.is_must_do())
+
+
+func test_query_next_task_prefers_seed_over_plain_idle() -> void:
+	assert_true(VillageTasks.SEED_PRIORITY > VillageTasks.IDLE_PRIORITY)
+
+
+func test_query_next_task_still_prefers_eat_over_an_awaiting_planting_farm_when_hungry() -> void:
+	var village := Village.new()
+	_awaiting_planting_farm(village)
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.hunger_state = Villager.HUNGER_HUNGRY
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_EAT)
+
+
+func test_advance_task_assignment_claims_the_farm_for_a_seed_task() -> void:
+	var village := Village.new()
+	var farm := _awaiting_planting_farm(village)
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	var changed := village.advance_task_assignment(villager)
+
+	assert_true(changed)
+	assert_eq(villager.current_task.kind, Task.KIND_SEED)
+	assert_eq(village.task_destination(villager.current_task, villager), farm.position)
+
+
+func test_a_claimed_awaiting_planting_farm_is_not_offered_to_a_second_villager() -> void:
+	var village := Village.new()
+	_awaiting_planting_farm(village)
+	var villager_a := Villager.new("v1", true, "")
+	var villager_b := Villager.new("v2", true, "")
+
+	village.advance_task_assignment(villager_a)
+	var task_b := village.query_next_task(villager_b)
+
+	assert_eq(villager_a.current_task.kind, Task.KIND_SEED)
+	assert_eq(task_b.kind, Task.KIND_IDLE)
+
+
+func test_resolving_a_seed_task_plants_the_farm_and_clears_current_task() -> void:
+	var village := Village.new()
+	var farm := _awaiting_planting_farm(village)
+	var villager := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager)
+
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)
+
+	assert_eq(farm.stage, Farm.FARM_SEEDED)
+	assert_null(villager.current_task)
+	assert_false(villager.task_resolving)
+
+
+func test_a_planted_farm_only_starts_growing_once_watered() -> void:
+	var village := Village.new()
+	var farm := _awaiting_planting_farm(village)
+	var villager := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager)
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)  # plants it.
+
+	farm.water(1.0)
+
+	assert_eq(farm.stage, Farm.FARM_GROWING)
+
+
+func test_interrupting_a_seed_task_releases_the_claim_without_planting() -> void:
+	var village := Village.new()
+	var farm := _awaiting_planting_farm(village)
+	var villager_a := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager_a)  # claims the farm.
+	assert_eq(villager_a.current_task.kind, Task.KIND_SEED)
+
+	village.interrupt_task(villager_a)
+
+	assert_eq(farm.stage, Farm.FARM_AWAITING_PLANTING)
+	var villager_b := Villager.new("v2", true, "")
+	var task_b := village.query_next_task(villager_b)
+	assert_eq(task_b.kind, Task.KIND_SEED)

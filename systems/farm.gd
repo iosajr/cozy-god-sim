@@ -1,10 +1,13 @@
 class_name Farm
 extends RefCounted
-## A single Village-owned food-production plot: seed -> grow (periodic
-## watering) -> ready-to-harvest -> harvest -> back to seeded. Holds a
-## real `position` (unlike Location, which is deliberately not spatial),
-## since delivery needs an actual destination.
+## A single Village-owned food-production plot: awaiting-planting -> seed
+## -> grow (periodic watering) -> ready-to-harvest -> harvest -> back to
+## awaiting-planting. Holds a real `position` (unlike Location, which is
+## deliberately not spatial), since delivery needs an actual destination.
 
+## A brand-new or just-reset Farm — sits here until a Seed Task plants it
+## (issue #36); watering has no effect on this stage.
+const FARM_AWAITING_PLANTING := "awaiting_planting"
 const FARM_SEEDED := "seeded"
 const FARM_GROWING := "growing"
 const FARM_READY_TO_HARVEST := "ready_to_harvest"
@@ -13,7 +16,7 @@ const DEFAULT_GROWTH_THRESHOLD: float = 3.0
 const DEFAULT_HARVEST_YIELD: int = 20
 
 var position: Vector3
-var stage: String = FARM_SEEDED
+var stage: String = FARM_AWAITING_PLANTING
 var water_progress: float = 0.0
 var growth_threshold: float
 var harvest_yield: int
@@ -31,11 +34,12 @@ func _init(
 
 
 ## Agnostic about *why* (rain vs. manual watering) — that's the caller's
-## business. A no-op once already Ready-to-Harvest or for a non-positive
-## amount (avoids a permanent Growing soft-lock from a misconfigured
-## non-positive amount/threshold).
+## business. A no-op once already Ready-to-Harvest, while still
+## Awaiting-Planting (issue #36 — a farm must be planted before watering
+## does anything), or for a non-positive amount (avoids a permanent
+## Growing soft-lock from a misconfigured non-positive amount/threshold).
 func water(amount: float = 1.0) -> void:
-	if stage == FARM_READY_TO_HARVEST or amount <= 0.0:
+	if stage == FARM_READY_TO_HARVEST or stage == FARM_AWAITING_PLANTING or amount <= 0.0:
 		return
 	water_progress += amount
 	if stage == FARM_SEEDED:
@@ -43,6 +47,15 @@ func water(amount: float = 1.0) -> void:
 	if water_progress >= growth_threshold:
 		stage = FARM_READY_TO_HARVEST
 		remaining_harvest = harvest_yield
+
+
+## Plants an Awaiting-Planting Farm, moving it into the same waterable
+## Seeded stage `water()` already expects — a Seed Task's whole effect, in
+## one visit (no countdown). A no-op at any other stage.
+func plant() -> void:
+	if stage != FARM_AWAITING_PLANTING:
+		return
+	stage = FARM_SEEDED
 
 
 ## Drains up to `amount` from remaining_harvest, returning what was
@@ -60,6 +73,6 @@ func harvest(amount: int) -> int:
 
 
 func _reseed() -> void:
-	stage = FARM_SEEDED
+	stage = FARM_AWAITING_PLANTING
 	water_progress = 0.0
 	remaining_harvest = 0
