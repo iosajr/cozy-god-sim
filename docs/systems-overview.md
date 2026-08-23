@@ -116,6 +116,16 @@ The gap between that and everything below is most of the project.
     Collect/Deliver Task needed exactly this shape, and the user's own
     wild-herd comparison confirmed it as a general Known Territory case,
     not a farm-specific one.
+  - **Resource-entry shape — Done (issue #37)**: shipped as
+    `systems/location_resource.gd`'s `LocationResource` (position, amount,
+    last_observed) — a sibling shape to `Location`, kept in its own
+    `Village.known_resources` array rather than folded into
+    `known_locations`, so plain points-of-interest stay untouched. Its
+    only source so far is dropped Deliver-Task cargo (see the Farm Labor
+    section below); a wild-herd sighting or any other local event is still
+    real future direction, not built. `last_observed` is stamped once at
+    creation and otherwise inert — see the "flagged, not yet built" note
+    just below, which this doesn't resolve.
   - **Decay, corrected (2026-08-23)**: not an abstract periodic chance —
     the user's actual intent is a physical act (something else eating the
     food, a herd moving on) that happens while the Village isn't watching.
@@ -405,18 +415,23 @@ existence independent of an actual Villager doing it.
   served; `Farm.harvest()` already returns a safe partial amount, so no
   new mechanism is needed for the sharing itself, only for letting more
   than one Villager target the same farm at once.
-- **Dropped cargo on interruption, resolved (see ADR-0004)**: if a
-  Collect/Deliver Task is interrupted (a genuine Must-do emergency), the
-  carried food drops at the Villager's current position rather than
-  vanishing, as a perishable Known Territory resource entry (position +
-  amount + periodic decay chance) — recoverable via a fresh Task, or
-  eventually gone if ignored too long. Explicitly its own follow-up
-  ticket, blocked by the core Task-based Collect/Deliver work landing
-  first: the core replacement is already a complete, demoable slice
-  without it, and "cargo is simply lost on interruption" is a real,
-  callable-out, temporary simplification in the meantime — same spirit as
-  every other "consequence-free for now, not final" caveat already in
-  this doc.
+- **Dropped cargo on interruption — Done (issue #37, see ADR-0004)**: if a
+  Villager carrying anything (from a Farm harvest or an already-recovered
+  resource entry alike) is interrupted mid-Deliver, the carried amount
+  drops at the Villager's current position as a fresh `LocationResource`
+  entry instead of vanishing — `VillageTasks.interrupt_task()` checks the
+  carried amount generically, not the interrupted Task's kind, so this
+  covers every path that can leave a Villager carrying something, not
+  just the original farm-Collect case. A fifth Task kind, `KIND_RECOVER`
+  (`systems/village_resource_recovery.gd`), is the Collect-equivalent half
+  of a second Collect→Deliver pipeline for these entries — reusing the
+  exact same generic `KIND_DELIVER` Task, per its original "not
+  farm-specific" design. Unlike Seed/Water/Collect, Recover isn't gated
+  behind `Villager.is_farmer`: recovering a known resource is generic
+  work, offered to any idle Villager once no real farm work is pending. No
+  decay/removal-while-unobserved exists yet — an unrecovered entry just
+  sits there until someone collects it, explicitly out of scope for this
+  ticket (see the Known Territory section above).
 - **Interest, a new per-Villager trait (proposed, see `CONTEXT.md`)**: a
   bare `is_farmer` bool, not a general profession system — deliberately
   minimal until a second Interest actually exists. Assigned at
