@@ -60,8 +60,7 @@ func _process(delta: float) -> void:
 		villager.advance(delta)
 		_advance_task_execution(villager, delta)
 		var nameplate: VillagerNameplate = _nameplates[villager]
-		if nameplate.text != villager.current_thought:
-			nameplate.show_thought(villager.current_thought)
+		_update_nameplate(villager, nameplate)
 		if villager.is_renowned and nameplate.modulate != VillagerNameplate.RENOWNED_COLOR:
 			nameplate.set_renowned(true)
 			var click_body: StaticBody3D = _click_bodies.get(villager)
@@ -72,6 +71,19 @@ func _process(delta: float) -> void:
 			Villager.DEFAULT_FAITH_THRESHOLD, Villager.DEFAULT_RENOWN_THRESHOLD
 		)
 		_debug_infos[villager].sync(villager)
+
+
+## Shows the Name/Age baseline whenever there's no active Thought to
+## display (issue #43); otherwise shows the Thought, same as before.
+## Skips the write if the nameplate already shows the right text, same
+## guard the pre-#43 code used for Thought alone.
+func _update_nameplate(villager: Villager, nameplate: VillagerNameplate) -> void:
+	if villager.current_thought.is_empty():
+		var baseline := VillagerNameplate.format_baseline(villager.villager_name, villager.age_years)
+		if nameplate.text != baseline:
+			nameplate.text = baseline
+	elif nameplate.text != villager.current_thought:
+		nameplate.show_thought(villager.current_thought)
 
 
 ## Drives one Villager's Task through Village's execution seam: (re)assign,
@@ -136,9 +148,9 @@ func _spawn_villagers() -> void:
 		nameplate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		nameplate.font_size = 24
 		nameplate.outline_size = 6
-		nameplate.show_thought(villager.current_thought)
 		root.add_child(nameplate)
 		_nameplates[villager] = nameplate
+		_update_nameplate(villager, nameplate)
 
 		var debug_info := FolkDebugInfo.new()
 		debug_info.name = "DebugInfo"
