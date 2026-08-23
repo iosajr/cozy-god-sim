@@ -7,6 +7,13 @@ extends TaskProvider
 
 const STARTING_LOCATION_NAME := "the Village"
 
+## A freshly-populated Villager's age_years is randomized within this
+## range so a starting population is immediately eligible for
+## Reproducing's 18-year maturity floor, rather than needing 18 in-game
+## years to pass first. Tunable, not defended (see issue #34).
+const MIN_STARTING_AGE_YEARS: int = 20
+const MAX_STARTING_AGE_YEARS: int = 40
+
 var villagers: Array[Villager] = []
 var known_locations: Array[Location] = []
 var houses: Array[House] = []
@@ -74,11 +81,13 @@ func _init(seed_value: int = -1) -> void:
 
 func populate(count: int) -> void:
 	for i in count:
-		villagers.append(Villager.new(
+		var villager := Villager.new(
 			"villager_%d" % villagers.size(),
 			_rng.randf() < 0.5,
 			_thoughts.random_thought()
-		))
+		)
+		villager.age_years = _rng.randi_range(MIN_STARTING_AGE_YEARS, MAX_STARTING_AGE_YEARS)
+		villagers.append(villager)
 
 
 func reroll_thought(villager: Villager, pantheon: Pantheon) -> void:

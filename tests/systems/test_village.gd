@@ -23,6 +23,25 @@ func test_populated_villager_has_faith_flag_and_thought_from_pool() -> void:
 	assert_has(VillageThoughts.THOUGHT_POOL, villager.current_thought)
 
 
+func test_populated_villager_starts_at_a_believable_adult_age() -> void:
+	var village := Village.new()
+
+	village.populate(1)
+
+	var villager: Villager = village.villagers[0]
+	assert_gte(villager.age_years, Village.MIN_STARTING_AGE_YEARS)
+	assert_lte(villager.age_years, Village.MAX_STARTING_AGE_YEARS)
+
+
+func test_no_populated_villager_ever_starts_below_the_minimum_starting_age() -> void:
+	var village := Village.new()
+
+	village.populate(50)
+
+	for villager: Villager in village.villagers:
+		assert_gte(villager.age_years, 20)
+
+
 func test_same_seed_produces_the_same_villagers() -> void:
 	var village_a := Village.new(42)
 	village_a.populate(6)
@@ -33,6 +52,7 @@ func test_same_seed_produces_the_same_villagers() -> void:
 	for i in 6:
 		assert_eq(village_a.villagers[i].has_faith, village_b.villagers[i].has_faith)
 		assert_eq(village_a.villagers[i].current_thought, village_b.villagers[i].current_thought)
+		assert_eq(village_a.villagers[i].age_years, village_b.villagers[i].age_years)
 
 
 func test_village_is_a_task_provider() -> void:
