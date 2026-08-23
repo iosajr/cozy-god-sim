@@ -1361,3 +1361,189 @@ func test_interrupt_task_stamps_observed_at_onto_the_dropped_entry() -> void:
 	village.interrupt_task(villager, 14.5)
 
 	assert_eq(village.known_resources[0].last_observed, 14.5)
+
+
+# --- Reproducing: Reproduce Task + gestation (issue #42) ---
+
+
+## "v1" sorts before "v2" -- VillageReproduction only ever offers the
+## Reproduce Task to the lexicographically-first partner (see its own
+## tests/doc comment), so villager_a here is always the one offered it.
+func _paired_villagers() -> Array[Villager]:
+	var a := Villager.new("v1", true, "")
+	var b := Villager.new("v2", true, "")
+	a.paired_with = b
+	b.paired_with = a
+	return [a, b]
+
+
+func test_query_next_task_returns_a_reproduce_task_for_a_paired_villager() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+
+	var task := village.query_next_task(pair[0])
+
+	assert_not_null(task)
+	assert_eq(task.kind, Task.KIND_REPRODUCE)
+	assert_false(task.is_must_do())
+
+
+func test_query_next_task_returns_idle_for_the_non_designated_partner() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+
+	var task := village.query_next_task(pair[1])
+
+	assert_eq(task.kind, Task.KIND_IDLE)
+
+
+func test_reproduce_priority_is_below_eat_and_sleep_important_tier_priorities() -> void:
+	assert_true(VillageReproduction.REPRODUCE_PRIORITY < VillageNeeds.EAT_PRIORITY_HUNGRY)
+	assert_true(VillageReproduction.REPRODUCE_PRIORITY < VillageNeeds.SLEEP_PRIORITY_TIRED)
+
+
+func test_query_next_task_prefers_reproduce_over_plain_idle() -> void:
+	assert_true(VillageReproduction.REPRODUCE_PRIORITY > VillageTasks.IDLE_PRIORITY)
+
+
+func test_query_next_task_still_prefers_eat_over_reproduce_when_hungry() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	pair[0].hunger_state = Villager.HUNGER_HUNGRY
+
+	var task := village.query_next_task(pair[0])
+
+	assert_eq(task.kind, Task.KIND_EAT)
+
+
+func test_query_next_task_prefers_real_farm_work_over_reproduce() -> void:
+	var village := Village.new()
+	_ready_farm(village)
+	var pair := _paired_villagers()
+	pair[0].is_farmer = true
+
+	var task := village.query_next_task(pair[0])
+
+	assert_eq(task.kind, Task.KIND_COLLECT)
+
+
+func test_advance_task_assignment_assigns_a_reproduce_task_to_a_paired_villager() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+
+	var changed := village.advance_task_assignment(pair[0])
+
+	assert_true(changed)
+	assert_eq(pair[0].current_task.kind, Task.KIND_REPRODUCE)
+
+
+func test_begin_resolving_task_reproduce_starts_resolving_without_clearing_current_task() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	var task := Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	pair[0].current_task = task
+
+	village.begin_resolving_task(pair[0], {"food": 100}, 1.0)
+
+	assert_same(pair[0].current_task, task)
+	assert_true(pair[0].task_resolving)
+
+
+func test_advance_gestation_does_not_add_a_newborn_before_the_full_duration_elapses() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	pair[0].current_task = Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	village.begin_resolving_task(pair[0], {"food": 100}, 1.0)
+	var count_before := village.villagers.size()
+
+	village.advance_gestation(pair[0], VillageReproduction.GESTATION_DURATION_SECONDS - 1.0)
+
+	assert_eq(village.villagers.size(), count_before)
+	assert_not_null(pair[0].current_task)
+
+
+func test_advance_gestation_adds_exactly_one_newborn_once_the_full_duration_elapses() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	village.villagers.append_array(pair)
+	pair[0].current_task = Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	village.begin_resolving_task(pair[0], {"food": 100}, 1.0)
+	var count_before := village.villagers.size()
+
+	village.advance_gestation(pair[0], VillageReproduction.GESTATION_DURATION_SECONDS)
+
+	assert_eq(village.villagers.size(), count_before + 1)
+	assert_null(pair[0].current_task)
+	assert_false(pair[0].task_resolving)
+
+
+func test_newborn_villager_starts_at_age_zero_and_unpaired() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	village.villagers.append_array(pair)
+	pair[0].current_task = Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	village.begin_resolving_task(pair[0], {"food": 100}, 1.0)
+
+	village.advance_gestation(pair[0], VillageReproduction.GESTATION_DURATION_SECONDS)
+
+	var newborn: Villager = village.villagers.back()
+	assert_eq(newborn.age_years, 0)
+	assert_null(newborn.paired_with)
+
+
+func test_newborn_villager_fails_the_maturity_gate_and_is_never_pairing_eligible() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	village.villagers.append_array(pair)
+	pair[0].current_task = Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	village.begin_resolving_task(pair[0], {"food": 100}, 1.0)
+
+	village.advance_gestation(pair[0], VillageReproduction.GESTATION_DURATION_SECONDS)
+
+	var newborn: Villager = village.villagers.back()
+	assert_false(VillagePairing.is_eligible(newborn))
+
+
+func test_advance_gestation_is_a_noop_while_still_traveling_not_yet_resolving() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	pair[0].current_task = Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	# begin_resolving_task() was never called, so task_resolving stays false.
+	var count_before := village.villagers.size()
+
+	village.advance_gestation(pair[0], 1000.0)
+
+	assert_eq(village.villagers.size(), count_before)
+	assert_not_null(pair[0].current_task)
+
+
+func test_interrupt_task_cuts_a_resolving_reproduce_task_short_without_adding_a_newborn() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	pair[0].current_task = Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	village.begin_resolving_task(pair[0], {"food": 100}, 1.0)
+	village.advance_gestation(pair[0], VillageReproduction.GESTATION_DURATION_SECONDS - 1.0)  # nearly finished.
+	var count_before := village.villagers.size()
+
+	village.interrupt_task(pair[0])
+
+	assert_null(pair[0].current_task)
+	assert_false(pair[0].task_resolving)
+	assert_eq(village.villagers.size(), count_before)
+
+
+func test_interrupt_task_then_a_fresh_reproduce_task_restarts_the_full_duration() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	pair[0].current_task = Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	village.begin_resolving_task(pair[0], {"food": 100}, 1.0)
+	village.advance_gestation(pair[0], VillageReproduction.GESTATION_DURATION_SECONDS - 1.0)  # nearly finished.
+	village.interrupt_task(pair[0])
+
+	pair[0].current_task = Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	village.begin_resolving_task(pair[0], {"food": 100}, 1.0)
+	var count_before := village.villagers.size()
+	village.advance_gestation(pair[0], VillageReproduction.GESTATION_DURATION_SECONDS - 1.0)  # only 1s short again.
+
+	assert_not_null(pair[0].current_task)
+	assert_eq(village.villagers.size(), count_before)

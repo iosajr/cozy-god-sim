@@ -3,11 +3,17 @@ extends RefCounted
 ## Task assignment, travel-then-resolve execution, and idle wandering for a
 ## Village's Villagers. Merges Eat/Sleep candidates (VillageNeeds) against
 ## every labor-pipeline candidate (VillageLaborTasks — Seed/Water/Collect/
-## Deliver/Recover) by priority, and owns Sleep/Idle's own countdown
-## execution directly; everything else about a labor Task kind (claiming,
-## destination, resolving) is delegated to VillageLaborTasks — see that
-## file's doc comment for why it's a separate collaborator rather than
-## more inline branches here.
+## Deliver/Recover) and the Reproduce candidate (VillageReproduction, issue
+## #42) by priority, and owns Sleep/Idle's own countdown execution directly;
+## everything else about a labor Task kind (claiming, destination,
+## resolving) is delegated to VillageLaborTasks — see that file's doc
+## comment for why it's a separate collaborator rather than more inline
+## branches here. Reproduce's gestation countdown works the same way Sleep's
+## does (see advance_gestation()), just delegated to VillageReproduction
+## since, unlike Sleep, completion needs to add a new Villager — Village.gd
+## itself does that (see Village.advance_gestation()), the same "Village
+## owns what VillageTasks can't reach" split known_resources/farms already
+## have.
 
 const SLEEP_DURATION_HOURS: float = 8.0
 
@@ -21,6 +27,7 @@ const IDLE_STAND_SECONDS_MAX: float = 8.0
 var _rng: RandomNumberGenerator
 var _needs: VillageNeeds
 var _labor: VillageLaborTasks
+var _reproduction: VillageReproduction
 
 var _sleep_seconds_remaining: Dictionary = {}  # Villager -> float seconds remaining
 var _idle_targets: Dictionary = {}  # Villager -> Vector3
@@ -42,13 +49,17 @@ func _init(
 	_rng = rng
 	_needs = needs
 	_labor = VillageLaborTasks.new(farm_labor, farm_seeding, farm_watering, resource_recovery)
+	_reproduction = VillageReproduction.new()
 
 
 ## Never null — falls back through Eat/Sleep (VillageNeeds, whichever's
 ## higher priority when both apply) / whatever VillageLaborTasks offers
 ## (Deliver if carrying / Seed / Water / Collect / Recover, see its
 ## candidate_for() doc comment for the full ordering and is_farmer gating)
-## / a shared Idle Task once nothing else applies.
+## / Reproduce (VillageReproduction, if villager is a pair's designated
+## parent — checked after labor so real village work always comes first,
+## an implementer's call since issue #42 doesn't specify the ordering) /
+## a shared Idle Task once nothing else applies.
 func query_next_task(
 	villager: Villager, farms: Array[Farm], known_resources: Array[LocationResource]
 ) -> Task:
@@ -63,6 +74,9 @@ func query_next_task(
 	var labor_task := _labor.candidate_for(villager, farms, known_resources)
 	if labor_task != null:
 		return labor_task
+	var reproduce_task := _reproduction.candidate_for(villager)
+	if reproduce_task != null:
+		return reproduce_task
 	if _idle_task == null:
 		_idle_task = Task.new(Task.KIND_IDLE, IDLE_PRIORITY)
 	return _idle_task
@@ -152,6 +166,8 @@ func begin_resolving_task(
 			_sleep_seconds_remaining[villager] = _sleep_duration_seconds(day_speed)
 		Task.KIND_IDLE:
 			_idle_stand_seconds_remaining[villager] = _random_idle_stand_seconds()
+		Task.KIND_REPRODUCE:
+			_reproduction.begin_gestation(villager)
 		_:
 			# Seed/Water(2nd leg)/Collect/Recover/Deliver all resolve
 			# instantly and finish, same shape as Eat — delegated to
@@ -176,6 +192,22 @@ func advance_sleeping(villager: Villager, delta: float) -> void:
 		_finish_task(villager)
 	else:
 		_sleep_seconds_remaining[villager] = remaining
+
+
+## Same countdown shape as advance_sleeping(), but this class can't itself
+## produce the new Villager a completed gestation implies (it only knows
+## about farms/known_resources, not villagers/populate()) — returns true
+## exactly on the call where gestation completes so Village.advance_gestation()
+## knows to add one, mirroring how advance_idle()'s bool return tells its
+## caller to redirect the Mover.
+func advance_gestation(villager: Villager, delta: float) -> bool:
+	var task := villager.current_task
+	if task == null or task.kind != Task.KIND_REPRODUCE or not villager.task_resolving:
+		return false
+	if not _reproduction.advance_gestation(villager, delta):
+		return false
+	_finish_task(villager)
+	return true
 
 
 ## Returns true exactly on the frame a fresh wander leg starts (Idle never
@@ -221,6 +253,7 @@ func interrupt_task(
 	_idle_stand_seconds_remaining.erase(villager)
 	_idle_targets.erase(villager)
 	_labor.release_all_claims(villager)
+	_reproduction.release(villager)
 	_finish_task(villager)
 
 

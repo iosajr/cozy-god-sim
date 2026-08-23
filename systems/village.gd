@@ -7,7 +7,10 @@ extends TaskProvider
 ## watering), village_farm_seeding.gd (Seed claim state),
 ## village_farm_watering.gd (Water claim + fetch-leg state),
 ## village_farm_labor.gd (Collect/Deliver claim+carry state),
-## village_resource_recovery.gd (Recover claim+carry state, issue #37).
+## village_resource_recovery.gd (Recover claim+carry state, issue #37),
+## village_pairing.gd (pairing-formation detection, issue #41), and
+## village_tasks.gd's own VillageReproduction collaborator (Reproduce Task
+## candidacy + gestation countdown, issue #42).
 
 const STARTING_LOCATION_NAME := "the Village"
 
@@ -300,6 +303,31 @@ func begin_resolving_task(villager: Villager, resources: Dictionary, day_speed: 
 
 func advance_sleeping(villager: Villager, delta: float) -> void:
 	_tasks.advance_sleeping(villager, delta)
+
+
+## Call once per frame/tick for a Villager whose current_task is a
+## resolving Reproduce Task (mirrors advance_sleeping()). VillageTasks
+## can't itself add the newborn (it only knows farms/known_resources, not
+## villagers/populate()) — Village does that here, the moment gestation
+## reports complete (issue #42).
+func advance_gestation(villager: Villager, delta: float) -> void:
+	if _tasks.advance_gestation(villager, delta):
+		_spawn_newborn()
+
+
+## Adds exactly one newborn Villager, generated the same way populate()
+## already generates one (issue #42's acceptance criteria) — reusing
+## populate(1) wholesale (id/has_faith/thought/name/sex/Family/is_farmer,
+## all rolled the same way) is simpler and more DRY than duplicating that
+## generation logic here, then overriding age_years to 0 (populate()'s own
+## MIN/MAX_STARTING_AGE_YEARS roll is for a fresh starting population, not
+## a newborn). age_years == 0 also means the newborn correctly fails
+## VillagePairing's maturity gate and paired_with stays null (populate()'s
+## defaults), so it's never itself eligible for pairing.
+func _spawn_newborn() -> void:
+	var newborn_index := villagers.size()
+	populate(1)
+	villagers[newborn_index].age_years = 0
 
 
 func advance_idle(villager: Villager, delta: float) -> bool:
