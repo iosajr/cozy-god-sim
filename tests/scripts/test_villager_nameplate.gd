@@ -12,6 +12,28 @@ func test_show_thought_sets_displayed_text() -> void:
 	assert_eq(nameplate.text, "The bread smells almost ready.")
 
 
+func test_show_baseline_sets_displayed_text_to_name_and_age() -> void:
+	var nameplate: VillagerNameplate = autofree(VillagerNameplate.new())
+
+	nameplate.show_baseline("Ada", 27)
+
+	assert_eq(nameplate.text, "Ada, 27")
+
+
+func test_format_baseline_matches_show_baselines_output() -> void:
+	assert_eq(VillagerNameplate.format_baseline("Ada", 27), "Ada, 27")
+
+
+func test_set_renowned_tints_the_label_regardless_of_baseline_or_thought_showing() -> void:
+	var nameplate: VillagerNameplate = autofree(VillagerNameplate.new())
+	nameplate.show_baseline("Ada", 27)
+
+	nameplate.set_renowned(true)
+
+	assert_eq(nameplate.modulate, VillagerNameplate.RENOWNED_COLOR)
+	assert_eq(nameplate.text, "Ada, 27")
+
+
 func test_set_renowned_true_changes_the_nameplate_color() -> void:
 	var nameplate: VillagerNameplate = autofree(VillagerNameplate.new())
 	var ordinary_color: Color = nameplate.modulate

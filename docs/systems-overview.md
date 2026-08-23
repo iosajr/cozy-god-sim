@@ -116,6 +116,16 @@ The gap between that and everything below is most of the project.
     Collect/Deliver Task needed exactly this shape, and the user's own
     wild-herd comparison confirmed it as a general Known Territory case,
     not a farm-specific one.
+  - **Resource-entry shape — Done (issue #37)**: shipped as
+    `systems/location_resource.gd`'s `LocationResource` (position, amount,
+    last_observed) — a sibling shape to `Location`, kept in its own
+    `Village.known_resources` array rather than folded into
+    `known_locations`, so plain points-of-interest stay untouched. Its
+    only source so far is dropped Deliver-Task cargo (see the Farm Labor
+    section below); a wild-herd sighting or any other local event is still
+    real future direction, not built. `last_observed` is stamped once at
+    creation and otherwise inert — see the "flagged, not yet built" note
+    just below, which this doesn't resolve.
   - **Decay, corrected (2026-08-23)**: not an abstract periodic chance —
     the user's actual intent is a physical act (something else eating the
     food, a herd moving on) that happens while the Village isn't watching.
@@ -405,18 +415,23 @@ existence independent of an actual Villager doing it.
   served; `Farm.harvest()` already returns a safe partial amount, so no
   new mechanism is needed for the sharing itself, only for letting more
   than one Villager target the same farm at once.
-- **Dropped cargo on interruption, resolved (see ADR-0004)**: if a
-  Collect/Deliver Task is interrupted (a genuine Must-do emergency), the
-  carried food drops at the Villager's current position rather than
-  vanishing, as a perishable Known Territory resource entry (position +
-  amount + periodic decay chance) — recoverable via a fresh Task, or
-  eventually gone if ignored too long. Explicitly its own follow-up
-  ticket, blocked by the core Task-based Collect/Deliver work landing
-  first: the core replacement is already a complete, demoable slice
-  without it, and "cargo is simply lost on interruption" is a real,
-  callable-out, temporary simplification in the meantime — same spirit as
-  every other "consequence-free for now, not final" caveat already in
-  this doc.
+- **Dropped cargo on interruption — Done (issue #37, see ADR-0004)**: if a
+  Villager carrying anything (from a Farm harvest or an already-recovered
+  resource entry alike) is interrupted mid-Deliver, the carried amount
+  drops at the Villager's current position as a fresh `LocationResource`
+  entry instead of vanishing — `VillageTasks.interrupt_task()` checks the
+  carried amount generically, not the interrupted Task's kind, so this
+  covers every path that can leave a Villager carrying something, not
+  just the original farm-Collect case. A fifth Task kind, `KIND_RECOVER`
+  (`systems/village_resource_recovery.gd`), is the Collect-equivalent half
+  of a second Collect→Deliver pipeline for these entries — reusing the
+  exact same generic `KIND_DELIVER` Task, per its original "not
+  farm-specific" design. Unlike Seed/Water/Collect, Recover isn't gated
+  behind `Villager.is_farmer`: recovering a known resource is generic
+  work, offered to any idle Villager once no real farm work is pending. No
+  decay/removal-while-unobserved exists yet — an unrecovered entry just
+  sits there until someone collects it, explicitly out of scope for this
+  ticket (see the Known Territory section above).
 - **Interest, a new per-Villager trait (proposed, see `CONTEXT.md`)**: a
   bare `is_farmer` bool, not a general profession system — deliberately
   minimal until a second Interest actually exists. Assigned at
@@ -746,10 +761,9 @@ Roadmap items below.
   ambient, non-menu-driven villager behavior, matching this project's
   existing "no menus" principle elsewhere) — this is meant to happen
   autonomously in the background of the simulation, not as a Player-
-  triggered mechanic. **Genuinely open, not yet asked**: how two
-  Villagers actually get paired (proximity? an existing relationship
-  concept, none of which exist yet? random?), how long "time" actually
-  is.
+  triggered mechanic. **Genuinely open, not yet asked**: how long "time"
+  (pairing to offspring) actually is — see issue #41 below for how
+  pairing itself now gets detected.
   - **Maturity gate resolved (2026-08-22, user-confirmed): a plain age
     threshold, not a life-stage concept.** A Villager needs
     `age_years >= 18` (Ageing's bare year counter, above) to be eligible
@@ -771,6 +785,59 @@ Roadmap items below.
     redesign below (Family/Interest needed a believable starting
     population too). Own ticket — unrelated to farm work beyond both
     touching `populate()`.
+  - **Pairing detection — Done (issue #41)**: resolves "how two
+    Villagers actually get paired" as sustained proximity, per the
+    user's own "male-female → time → baby" framing above. `Villager`
+    gains a `sex: Sex` enum (rolled 50/50 at `Village.populate()`, same
+    pattern as `has_faith`) and a nullable `paired_with: Villager`
+    pointer. New `systems/village_pairing.gd` (`VillagePairing`, a plain
+    collaborator wired into `Village` the same way as
+    `village_farm_labor.gd`) tracks how long each opposite-Sex,
+    both-unpaired, both-past-`Villager.MIN_REPRODUCTION_AGE` pair of
+    Villagers has stayed within `pairing_proximity_threshold` of each
+    other; crossing `pairing_duration` sets a mutual `paired_with` on
+    both. Progress resets the moment a pair drifts apart before pairing
+    — no partial credit banked across a separation, an implementer's
+    call since no decay rule was specified. Data/detection only — no
+    Task, no offspring yet; that's issue #42, which builds directly on
+    this `sex`/`paired_with` shape.
+  - **Reproduce Task + gestation — Done (issue #42)**: the Task/offspring
+    half `paired_with` above sets up. New `Task.KIND_REPRODUCE`, offered
+    at a fixed Passtime-tier priority (`VillageReproduction.
+    REPRODUCE_PRIORITY`, same tier as every `VillageLaborTasks` kind,
+    below Eat/Sleep's Important tier and `PRIORITY_MUST_DO_THRESHOLD`).
+    New `systems/village_reproduction.gd` (`VillageReproduction`, owned
+    by `VillageTasks` the same way `VillageLaborTasks` already is)
+    offers the Task and tracks a per-Villager gestation countdown
+    (`GESTATION_DURATION_SECONDS`, tunable) once it starts resolving —
+    same countdown shape as Sleep, just delegated since `VillageTasks`
+    can't itself add the new Villager gestation implies (see below).
+    Only the lexicographically-first-id partner of a pair is ever
+    offered the Task — gestation is tracked once per pair, not once per
+    Villager, an implementer's call to stop both partners independently
+    gestating and each producing a newborn from one pairing. Once
+    gestation completes, `Village.advance_gestation()` (Village owns
+    this, not `VillageTasks`, since only Village can reach `villagers`/
+    `populate()`) adds exactly one newborn by calling `populate(1)`
+    wholesale — reusing its whole id/has_faith/thought/name/sex/Family/
+    is_farmer generation — then overriding `age_years` to 0 (`populate()`
+    seeds a believable starting-population age otherwise). The newborn's
+    `age_years == 0` and default `paired_with == null` mean it correctly
+    fails `VillagePairing`'s maturity gate on its own, no separate
+    newborn-exclusion check needed. **Genuinely open, flagged not
+    fixed**: nothing unpairs a couple or cools their eligibility down
+    afterward, so a standing pair keeps producing a newborn every
+    `GESTATION_DURATION_SECONDS` indefinitely — read as the intended
+    shape of ambient, autonomous population growth rather than a bug,
+    since issue #42 doesn't specify a fertility limit, but worth a
+    dedicated look if unbounded growth turns out to be unwanted.
+    Also folded in here: `village_spawner.gd` never actually called
+    `Village.advance_pairing()` despite issue #41 landing and testing it
+    — without that fix pairing (and so Reproduce) could never fire in a
+    running game at all; the same pass also had to teach
+    `village_spawner.gd` to spawn a Mover/nameplate/click-body/debug-info
+    for a newborn appearing mid-game, not just the initial batch
+    `_spawn_villagers()` already handles.
 
 ## Listening and Acting
 

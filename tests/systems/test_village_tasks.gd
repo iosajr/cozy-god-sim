@@ -21,6 +21,12 @@ func test_villager_defaults_task_resolving_to_false() -> void:
 	assert_false(villager.task_resolving)
 
 
+func test_villager_defaults_is_farmer_to_false() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	assert_false(villager.is_farmer)
+
+
 # --- query_next_task() ---
 
 
@@ -579,3 +585,965 @@ func test_interrupt_task_clears_a_resolving_idle_tasks_wander_state() -> void:
 	assert_false(villager.task_resolving)
 	village.advance_idle(villager, 1000.0)  # not resolving yet -> no-op.
 	assert_eq(villager.current_task.kind, Task.KIND_IDLE)
+
+
+# --- Farm Labor: Collect/Deliver (issue #33) ---
+
+
+func _ready_farm(village: Village) -> Farm:
+	var farm := Farm.new(Vector3(6, 0, 8), 1.0, 20)
+	farm.plant()
+	farm.water(1.0)  # -> Ready-to-Harvest.
+	village.farms.append(farm)
+	return farm
+
+
+func test_query_next_task_returns_a_collect_task_when_a_farm_is_ready_and_unclaimed() -> void:
+	var village := Village.new()
+	_ready_farm(village)
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_farmer = true
+
+	var task := village.query_next_task(villager)
+
+	assert_not_null(task)
+	assert_eq(task.kind, Task.KIND_COLLECT)
+	assert_false(task.is_must_do())
+
+
+func test_query_next_task_prefers_collect_over_plain_idle() -> void:
+	assert_true(VillageLaborTasks.COLLECT_PRIORITY > VillageTasks.IDLE_PRIORITY)
+
+
+func test_query_next_task_still_prefers_eat_over_a_ready_farm_when_hungry() -> void:
+	var village := Village.new()
+	_ready_farm(village)
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.hunger_state = Villager.HUNGER_HUNGRY
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_EAT)
+
+
+func test_advance_task_assignment_claims_the_farm_for_a_collect_task() -> void:
+	var village := Village.new()
+	var farm := _ready_farm(village)
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_farmer = true
+
+	var changed := village.advance_task_assignment(villager)
+
+	assert_true(changed)
+	assert_eq(villager.current_task.kind, Task.KIND_COLLECT)
+	assert_eq(village.task_destination(villager.current_task, villager), farm.position)
+
+
+func test_a_farm_below_capacity_is_still_offered_to_a_second_villager() -> void:
+	var village := Village.new()
+	_ready_farm(village)
+	var villager_a := Villager.new("v1", true, "")
+	villager_a.is_farmer = true
+	var villager_b := Villager.new("v2", true, "")
+	villager_b.is_farmer = true
+
+	village.advance_task_assignment(villager_a)
+	var task_b := village.query_next_task(villager_b)
+
+	assert_eq(villager_a.current_task.kind, Task.KIND_COLLECT)
+	# Below the default capacity (4) -- issue #35 -- so still offered.
+	assert_eq(task_b.kind, Task.KIND_COLLECT)
+
+
+func test_a_farm_at_capacity_is_not_offered_to_an_additional_villager() -> void:
+	var village := Village.new()
+	village.farm_worker_capacity = 1
+	_ready_farm(village)
+	var villager_a := Villager.new("v1", true, "")
+	villager_a.is_farmer = true
+	var villager_b := Villager.new("v2", true, "")
+	villager_b.is_farmer = true
+
+	village.advance_task_assignment(villager_a)
+	var task_b := village.query_next_task(villager_b)
+
+	assert_eq(villager_a.current_task.kind, Task.KIND_COLLECT)
+	assert_eq(task_b.kind, Task.KIND_IDLE)
+
+
+func test_resolving_a_collect_task_harvests_the_farm_and_clears_current_task() -> void:
+	var village := Village.new()
+	village.carry_capacity = 5
+	var farm := _ready_farm(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+	village.advance_task_assignment(villager)
+
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)
+
+	assert_eq(farm.remaining_harvest, 15)
+	assert_null(villager.current_task)
+	assert_false(villager.task_resolving)
+
+
+func test_a_deliver_task_naturally_resurfaces_after_a_collect_task_resolves() -> void:
+	var village := Village.new()
+	village.carry_capacity = 5
+	_ready_farm(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+	village.advance_task_assignment(villager)
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)
+
+	var changed := village.advance_task_assignment(villager)
+
+	assert_true(changed)
+	assert_eq(villager.current_task.kind, Task.KIND_DELIVER)
+
+
+func test_deliver_task_destination_is_the_village_store_position() -> void:
+	var village := Village.new()
+	village.site_position = Vector3(1, 0, 2)
+	var task := Task.new(Task.KIND_DELIVER, VillageLaborTasks.DELIVER_PRIORITY)
+	var villager := Villager.new("v1", true, "")
+
+	assert_eq(village.task_destination(task, villager), Vector3(1, 0, 2))
+
+
+func test_resolving_a_deliver_task_adds_the_carried_amount_to_food_and_releases_the_claim() -> void:
+	var village := Village.new()
+	village.carry_capacity = 5
+	var farm := _ready_farm(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+	village.advance_task_assignment(villager)  # Collect.
+	village.begin_resolving_task(villager, {"food": 0}, 1.0)  # harvests 5.
+	village.advance_task_assignment(villager)  # Deliver.
+	var resources := {"food": 10}
+
+	village.begin_resolving_task(villager, resources, 1.0)
+
+	assert_eq(resources["food"], 15)
+	assert_null(villager.current_task)
+	# Claim released -> the farm (still has 15 remaining) is collectible again.
+	var villager_b := Villager.new("v2", true, "")
+	villager_b.is_farmer = true
+	assert_true(village.query_next_task(villager_b).kind == Task.KIND_COLLECT)
+	assert_eq(farm.remaining_harvest, 15)
+
+
+func test_interrupting_a_collect_task_releases_the_farm_claim() -> void:
+	var village := Village.new()
+	_ready_farm(village)
+	var villager_a := Villager.new("v1", true, "")
+	villager_a.is_farmer = true
+	village.advance_task_assignment(villager_a)  # claims the farm.
+	assert_eq(villager_a.current_task.kind, Task.KIND_COLLECT)
+
+	village.interrupt_task(villager_a)
+
+	var villager_b := Villager.new("v2", true, "")
+	villager_b.is_farmer = true
+	var task_b := village.query_next_task(villager_b)
+	assert_eq(task_b.kind, Task.KIND_COLLECT)
+
+
+func test_interrupting_a_deliver_task_drops_the_carried_cargo_as_a_recoverable_resource_entry() -> void:
+	# Revises the old "cargo is simply gone" behavior (issue #33) per issue
+	# #37/ADR-0004: the claim is still released the same way, but the
+	# carried amount becomes a recoverable Known Territory entry instead
+	# of vanishing.
+	var village := Village.new()
+	village.carry_capacity = 5
+	_ready_farm(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+	villager.position = Vector3(9, 0, 9)
+	village.advance_task_assignment(villager)  # Collect.
+	village.begin_resolving_task(villager, {"food": 0}, 1.0)  # harvests 5, now carrying.
+	village.advance_task_assignment(villager)  # Deliver.
+	assert_eq(villager.current_task.kind, Task.KIND_DELIVER)
+
+	village.interrupt_task(villager)
+
+	assert_null(villager.current_task)
+	assert_eq(village.known_resources.size(), 1)
+	var entry: LocationResource = village.known_resources[0]
+	assert_eq(entry.position, Vector3(9, 0, 9))
+	assert_eq(entry.amount, 5)
+	# Re-querying doesn't resurface a phantom Deliver -- the farm claim
+	# really is released, same as before (issue #33).
+	var task := village.query_next_task(villager)
+	assert_eq(task.kind, Task.KIND_COLLECT)
+
+
+# --- Farm Labor: Seed (issue #36) ---
+
+
+func _awaiting_planting_farm(village: Village) -> Farm:
+	var farm := Farm.new(Vector3(2, 0, 3))  # fresh -- starts Awaiting-Planting.
+	village.farms.append(farm)
+	return farm
+
+
+func test_query_next_task_returns_a_seed_task_when_a_farm_is_awaiting_planting_and_unclaimed() -> void:
+	var village := Village.new()
+	_awaiting_planting_farm(village)
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_farmer = true
+
+	var task := village.query_next_task(villager)
+
+	assert_not_null(task)
+	assert_eq(task.kind, Task.KIND_SEED)
+	assert_false(task.is_must_do())
+
+
+func test_query_next_task_prefers_seed_over_plain_idle() -> void:
+	assert_true(VillageLaborTasks.SEED_PRIORITY > VillageTasks.IDLE_PRIORITY)
+
+
+func test_query_next_task_still_prefers_eat_over_an_awaiting_planting_farm_when_hungry() -> void:
+	var village := Village.new()
+	_awaiting_planting_farm(village)
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.hunger_state = Villager.HUNGER_HUNGRY
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_EAT)
+
+
+func test_advance_task_assignment_claims_the_farm_for_a_seed_task() -> void:
+	var village := Village.new()
+	var farm := _awaiting_planting_farm(village)
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_farmer = true
+
+	var changed := village.advance_task_assignment(villager)
+
+	assert_true(changed)
+	assert_eq(villager.current_task.kind, Task.KIND_SEED)
+	assert_eq(village.task_destination(villager.current_task, villager), farm.position)
+
+
+func test_a_claimed_awaiting_planting_farm_is_not_offered_to_a_second_villager() -> void:
+	var village := Village.new()
+	_awaiting_planting_farm(village)
+	var villager_a := Villager.new("v1", true, "")
+	villager_a.is_farmer = true
+	var villager_b := Villager.new("v2", true, "")
+
+	village.advance_task_assignment(villager_a)
+	var task_b := village.query_next_task(villager_b)
+
+	assert_eq(villager_a.current_task.kind, Task.KIND_SEED)
+	assert_eq(task_b.kind, Task.KIND_IDLE)
+
+
+func test_resolving_a_seed_task_plants_the_farm_and_clears_current_task() -> void:
+	var village := Village.new()
+	var farm := _awaiting_planting_farm(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+	village.advance_task_assignment(villager)
+
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)
+
+	assert_eq(farm.stage, Farm.FARM_SEEDED)
+	assert_null(villager.current_task)
+	assert_false(villager.task_resolving)
+
+
+func test_a_planted_farm_only_starts_growing_once_watered() -> void:
+	var village := Village.new()
+	var farm := _awaiting_planting_farm(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+	village.advance_task_assignment(villager)
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)  # plants it.
+
+	farm.water(1.0)
+
+	assert_eq(farm.stage, Farm.FARM_GROWING)
+
+
+func test_interrupting_a_seed_task_releases_the_claim_without_planting() -> void:
+	var village := Village.new()
+	var farm := _awaiting_planting_farm(village)
+	var villager_a := Villager.new("v1", true, "")
+	villager_a.is_farmer = true
+	village.advance_task_assignment(villager_a)  # claims the farm.
+	assert_eq(villager_a.current_task.kind, Task.KIND_SEED)
+
+	village.interrupt_task(villager_a)
+
+	assert_eq(farm.stage, Farm.FARM_AWAITING_PLANTING)
+	var villager_b := Villager.new("v2", true, "")
+	villager_b.is_farmer = true
+	var task_b := village.query_next_task(villager_b)
+	assert_eq(task_b.kind, Task.KIND_SEED)
+
+
+# --- Farm Labor: Water (issue #38) ---
+
+
+func _seeded_farm(village: Village) -> Farm:
+	var farm := Farm.new(Vector3(5, 0, 1), 3.0, 20)
+	farm.plant()  # -> Seeded, below its growth threshold.
+	village.farms.append(farm)
+	return farm
+
+
+func test_query_next_task_returns_a_water_task_when_a_farm_is_seeded_and_unclaimed() -> void:
+	var village := Village.new()
+	_seeded_farm(village)
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_farmer = true
+
+	var task := village.query_next_task(villager)
+
+	assert_not_null(task)
+	assert_eq(task.kind, Task.KIND_WATER)
+	assert_false(task.is_must_do())
+
+
+func test_query_next_task_returns_a_water_task_when_a_farm_is_growing_and_unclaimed() -> void:
+	var village := Village.new()
+	var farm := _seeded_farm(village)
+	farm.water(1.0)  # -> Growing, still below the threshold.
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_WATER)
+
+
+func test_query_next_task_prefers_water_over_plain_idle() -> void:
+	assert_true(VillageLaborTasks.WATER_PRIORITY > VillageTasks.IDLE_PRIORITY)
+
+
+func test_query_next_task_still_prefers_eat_over_a_waterable_farm_when_hungry() -> void:
+	var village := Village.new()
+	_seeded_farm(village)
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.hunger_state = Villager.HUNGER_HUNGRY
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_EAT)
+
+
+func test_an_awaiting_planting_farm_is_not_offered_as_a_water_task() -> void:
+	var village := Village.new()
+	_awaiting_planting_farm(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_SEED)  # not Water -- it isn't planted yet.
+
+
+func test_a_ready_to_harvest_farm_is_not_offered_as_a_water_task() -> void:
+	var village := Village.new()
+	_ready_farm(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_COLLECT)  # not Water -- nothing left to water.
+
+
+func test_advance_task_assignment_claims_the_farm_for_a_water_task() -> void:
+	var village := Village.new()
+	_seeded_farm(village)
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.is_farmer = true
+
+	var changed := village.advance_task_assignment(villager)
+
+	assert_true(changed)
+	assert_eq(villager.current_task.kind, Task.KIND_WATER)
+	# The fetch leg -- destination is the water source first, not the
+	# Farm (see task_destination() tests below for the full round trip).
+	assert_eq(village.task_destination(villager.current_task, villager), village.water_source_position)
+
+
+func test_a_claimed_waterable_farm_is_not_offered_to_a_second_villager() -> void:
+	var village := Village.new()
+	_seeded_farm(village)
+	var villager_a := Villager.new("v1", true, "")
+	villager_a.is_farmer = true
+	var villager_b := Villager.new("v2", true, "")
+
+	village.advance_task_assignment(villager_a)
+	var task_b := village.query_next_task(villager_b)
+
+	assert_eq(villager_a.current_task.kind, Task.KIND_WATER)
+	assert_eq(task_b.kind, Task.KIND_IDLE)
+
+
+func test_water_task_destination_is_the_water_source_before_the_fetch_leg_completes() -> void:
+	var village := Village.new()
+	village.water_source_position = Vector3(9, 0, 9)
+	_seeded_farm(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+	village.advance_task_assignment(villager)
+
+	assert_eq(village.task_destination(villager.current_task, villager), Vector3(9, 0, 9))
+
+
+func test_water_task_destination_moves_to_the_farm_after_the_fetch_leg_completes() -> void:
+	var village := Village.new()
+	village.water_source_position = Vector3(9, 0, 9)
+	var farm := _seeded_farm(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+	village.advance_task_assignment(villager)
+
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)  # reaches the water source.
+
+	assert_eq(village.task_destination(villager.current_task, villager), farm.position)
+
+
+func test_reaching_the_water_source_does_not_finish_the_task_or_enter_resolving() -> void:
+	var village := Village.new()
+	_seeded_farm(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+	village.advance_task_assignment(villager)
+
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)  # reaches the water source.
+
+	assert_not_null(villager.current_task)
+	assert_eq(villager.current_task.kind, Task.KIND_WATER)
+	assert_false(villager.task_resolving)
+
+
+func test_resolving_a_water_task_at_the_farm_deposits_the_dose_and_clears_current_task() -> void:
+	var village := Village.new()
+	var farm := _seeded_farm(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+	village.advance_task_assignment(villager)
+
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)  # reaches the water source.
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)  # reaches the farm.
+
+	assert_eq(farm.stage, Farm.FARM_GROWING)
+	assert_eq(farm.water_progress, village.water_dose_amount)
+	assert_null(villager.current_task)
+	assert_false(villager.task_resolving)
+
+
+func test_multiple_water_visits_accumulate_toward_the_growth_threshold() -> void:
+	var village := Village.new()
+	var farm := _seeded_farm(village)  # growth_threshold 3.0.
+	village.water_dose_amount = 1.0
+
+	for i in 3:
+		var villager := Villager.new("v%d" % i, true, "")
+		villager.is_farmer = true
+		village.advance_task_assignment(villager)
+		village.begin_resolving_task(villager, {"food": 100}, 1.0)  # water source.
+		village.begin_resolving_task(villager, {"food": 100}, 1.0)  # farm.
+
+	assert_eq(farm.stage, Farm.FARM_READY_TO_HARVEST)
+	assert_eq(farm.remaining_harvest, farm.harvest_yield)
+
+
+func test_interrupting_a_water_task_releases_the_claim_without_watering() -> void:
+	var village := Village.new()
+	var farm := _seeded_farm(village)
+	var villager_a := Villager.new("v1", true, "")
+	villager_a.is_farmer = true
+	village.advance_task_assignment(villager_a)  # claims the farm.
+	assert_eq(villager_a.current_task.kind, Task.KIND_WATER)
+
+	village.interrupt_task(villager_a)
+
+	assert_eq(farm.water_progress, 0.0)
+	var villager_b := Villager.new("v2", true, "")
+	villager_b.is_farmer = true
+	var task_b := village.query_next_task(villager_b)
+	assert_eq(task_b.kind, Task.KIND_WATER)
+
+
+func test_interrupting_a_water_task_mid_fetch_leg_releases_the_claim() -> void:
+	var village := Village.new()
+	_seeded_farm(village)
+	var villager_a := Villager.new("v1", true, "")
+	villager_a.is_farmer = true
+	village.advance_task_assignment(villager_a)
+	village.begin_resolving_task(villager_a, {"food": 100}, 1.0)  # reaches the water source.
+
+	village.interrupt_task(villager_a)
+
+	assert_null(villager_a.current_task)
+	var villager_b := Villager.new("v2", true, "")
+	villager_b.is_farmer = true
+	var task_b := village.query_next_task(villager_b)
+	assert_eq(task_b.kind, Task.KIND_WATER)
+
+
+# --- Farm Labor: Interest gating (issue #39) ---
+
+
+func test_query_next_task_never_offers_collect_to_a_non_farmer() -> void:
+	var village := Village.new()
+	_ready_farm(village)
+	var villager := Villager.new("v1", true, "")  # is_farmer defaults to false.
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_IDLE)
+
+
+func test_query_next_task_never_offers_seed_to_a_non_farmer() -> void:
+	var village := Village.new()
+	_awaiting_planting_farm(village)
+	var villager := Villager.new("v1", true, "")
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_IDLE)
+
+
+func test_query_next_task_never_offers_water_to_a_non_farmer() -> void:
+	var village := Village.new()
+	_seeded_farm(village)
+	var villager := Villager.new("v1", true, "")
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_IDLE)
+
+
+func test_a_non_farmer_never_claims_a_farm_via_advance_task_assignment() -> void:
+	var village := Village.new()
+	_ready_farm(village)
+	var villager := Villager.new("v1", true, "")
+
+	var changed := village.advance_task_assignment(villager)
+
+	assert_true(changed)
+	assert_eq(villager.current_task.kind, Task.KIND_IDLE)
+
+
+func test_a_farmer_is_offered_collect_once_the_same_farm_is_no_longer_claimed_by_a_non_farmer() -> void:
+	var village := Village.new()
+	_ready_farm(village)
+	var non_farmer := Villager.new("v1", true, "")
+	village.advance_task_assignment(non_farmer)  # -> Idle, never claims the farm.
+	var farmer := Villager.new("v2", true, "")
+	farmer.is_farmer = true
+
+	var task := village.query_next_task(farmer)
+
+	assert_eq(task.kind, Task.KIND_COLLECT)
+
+
+# --- Recovering a dropped/known resource entry (issue #37) ---
+
+
+func _known_resource(village: Village, amount: int = 5) -> LocationResource:
+	var entry := LocationResource.new(Vector3(4, 0, 7), amount)
+	village.known_resources.append(entry)
+	return entry
+
+
+func test_query_next_task_returns_a_recover_task_when_a_resource_entry_is_unclaimed() -> void:
+	var village := Village.new()
+	_known_resource(village)
+	var villager := Villager.new("v1", true, "")
+
+	var task := village.query_next_task(villager)
+
+	assert_not_null(task)
+	assert_eq(task.kind, Task.KIND_RECOVER)
+	assert_false(task.is_must_do())
+
+
+func test_query_next_task_offers_recover_to_a_non_farmer_unlike_seed_water_collect() -> void:
+	var village := Village.new()
+	_known_resource(village)
+	var villager := Villager.new("v1", true, "")  # is_farmer defaults to false.
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_RECOVER)
+
+
+func test_query_next_task_prefers_recover_over_plain_idle() -> void:
+	assert_true(VillageLaborTasks.RECOVER_PRIORITY > VillageTasks.IDLE_PRIORITY)
+
+
+func test_query_next_task_still_prefers_eat_over_a_recoverable_entry_when_hungry() -> void:
+	var village := Village.new()
+	_known_resource(village)
+	var villager := Villager.new("v1", true, "")
+	villager.hunger_state = Villager.HUNGER_HUNGRY
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_EAT)
+
+
+func test_a_farmer_with_real_farm_work_pending_is_offered_that_before_recovering() -> void:
+	var village := Village.new()
+	_ready_farm(village)
+	_known_resource(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_COLLECT)
+
+
+func test_advance_task_assignment_claims_the_entry_for_a_recover_task() -> void:
+	var village := Village.new()
+	var entry := _known_resource(village)
+	var villager := Villager.new("v1", true, "")
+
+	var changed := village.advance_task_assignment(villager)
+
+	assert_true(changed)
+	assert_eq(villager.current_task.kind, Task.KIND_RECOVER)
+	assert_eq(village.task_destination(villager.current_task, villager), entry.position)
+
+
+func test_a_claimed_resource_entry_is_not_offered_to_a_second_villager() -> void:
+	var village := Village.new()
+	_known_resource(village)
+	var villager_a := Villager.new("v1", true, "")
+	var villager_b := Villager.new("v2", true, "")
+
+	village.advance_task_assignment(villager_a)
+	var task_b := village.query_next_task(villager_b)
+
+	assert_eq(villager_a.current_task.kind, Task.KIND_RECOVER)
+	assert_eq(task_b.kind, Task.KIND_IDLE)
+
+
+func test_resolving_a_recover_task_drains_the_entry_and_clears_current_task() -> void:
+	var village := Village.new()
+	village.recovery_carry_capacity = 5
+	_known_resource(village, 20)
+	var villager := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager)
+
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)
+
+	assert_eq(village.known_resources[0].amount, 15)
+	assert_null(villager.current_task)
+	assert_false(villager.task_resolving)
+
+
+func test_a_deliver_task_naturally_resurfaces_after_a_recover_task_resolves() -> void:
+	var village := Village.new()
+	_known_resource(village)
+	var villager := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager)
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)
+
+	var changed := village.advance_task_assignment(villager)
+
+	assert_true(changed)
+	assert_eq(villager.current_task.kind, Task.KIND_DELIVER)
+
+
+func test_resolving_a_deliver_task_from_a_recovered_entry_adds_the_carried_amount_to_food() -> void:
+	var village := Village.new()
+	village.recovery_carry_capacity = 5
+	_known_resource(village, 5)
+	var villager := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager)  # Recover.
+	village.begin_resolving_task(villager, {"food": 0}, 1.0)  # takes all 5.
+	village.advance_task_assignment(villager)  # Deliver.
+	var resources := {"food": 10}
+
+	village.begin_resolving_task(villager, resources, 1.0)
+
+	assert_eq(resources["food"], 15)
+	assert_null(villager.current_task)
+
+
+func test_resolving_a_recover_task_removes_a_fully_drained_entry_from_known_resources() -> void:
+	var village := Village.new()
+	village.recovery_carry_capacity = 5
+	_known_resource(village, 5)
+	var villager := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager)
+
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)
+
+	assert_true(village.known_resources.is_empty())
+
+
+func test_resolving_a_recover_task_leaves_a_partially_drained_entry_recoverable() -> void:
+	var village := Village.new()
+	village.recovery_carry_capacity = 5
+	_known_resource(village, 20)
+	var villager_a := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager_a)
+	village.begin_resolving_task(villager_a, {"food": 100}, 1.0)
+
+	assert_eq(village.known_resources.size(), 1)
+	var villager_b := Villager.new("v2", true, "")
+	var task_b := village.query_next_task(villager_b)
+	assert_eq(task_b.kind, Task.KIND_RECOVER)
+
+
+func test_interrupting_a_recover_task_releases_the_claim_without_draining_it() -> void:
+	var village := Village.new()
+	var entry := _known_resource(village, 5)
+	var villager_a := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager_a)  # claims the entry.
+	assert_eq(villager_a.current_task.kind, Task.KIND_RECOVER)
+
+	village.interrupt_task(villager_a)
+
+	assert_eq(entry.amount, 5)
+	var villager_b := Villager.new("v2", true, "")
+	var task_b := village.query_next_task(villager_b)
+	assert_eq(task_b.kind, Task.KIND_RECOVER)
+
+
+func test_interrupting_a_deliver_task_from_a_recovered_entry_drops_a_fresh_resource_entry() -> void:
+	var village := Village.new()
+	village.recovery_carry_capacity = 5
+	_known_resource(village, 5)
+	var villager := Villager.new("v1", true, "")
+	villager.position = Vector3(1, 0, 1)
+	village.advance_task_assignment(villager)  # Recover.
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)  # now carrying 5.
+	village.advance_task_assignment(villager)  # Deliver.
+	villager.position = Vector3(2, 0, 2)  # moved on before being interrupted.
+
+	village.interrupt_task(villager)
+
+	assert_eq(village.known_resources.size(), 1)
+	var dropped: LocationResource = village.known_resources[0]
+	assert_eq(dropped.position, Vector3(2, 0, 2))
+	assert_eq(dropped.amount, 5)
+
+
+func test_interrupting_a_task_while_carrying_nothing_does_not_add_a_resource_entry() -> void:
+	# Issue #37's acceptance criteria: interrupting a Collect Task before
+	# any harvest resolved must not fabricate an entry out of nothing.
+	var village := Village.new()
+	_ready_farm(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+	village.advance_task_assignment(villager)  # Collect, not yet resolved.
+	assert_eq(villager.current_task.kind, Task.KIND_COLLECT)
+
+	village.interrupt_task(villager)
+
+	assert_true(village.known_resources.is_empty())
+
+
+func test_interrupt_task_stamps_observed_at_onto_the_dropped_entry() -> void:
+	var village := Village.new()
+	village.carry_capacity = 5
+	_ready_farm(village)
+	var villager := Villager.new("v1", true, "")
+	villager.is_farmer = true
+	village.advance_task_assignment(villager)  # Collect.
+	village.begin_resolving_task(villager, {"food": 0}, 1.0)  # now carrying.
+	village.advance_task_assignment(villager)  # Deliver.
+
+	village.interrupt_task(villager, 14.5)
+
+	assert_eq(village.known_resources[0].last_observed, 14.5)
+
+
+# --- Reproducing: Reproduce Task + gestation (issue #42) ---
+
+
+## "v1" sorts before "v2" -- VillageReproduction only ever offers the
+## Reproduce Task to the lexicographically-first partner (see its own
+## tests/doc comment), so villager_a here is always the one offered it.
+func _paired_villagers() -> Array[Villager]:
+	var a := Villager.new("v1", true, "")
+	var b := Villager.new("v2", true, "")
+	a.paired_with = b
+	b.paired_with = a
+	return [a, b]
+
+
+func test_query_next_task_returns_a_reproduce_task_for_a_paired_villager() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+
+	var task := village.query_next_task(pair[0])
+
+	assert_not_null(task)
+	assert_eq(task.kind, Task.KIND_REPRODUCE)
+	assert_false(task.is_must_do())
+
+
+func test_query_next_task_returns_idle_for_the_non_designated_partner() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+
+	var task := village.query_next_task(pair[1])
+
+	assert_eq(task.kind, Task.KIND_IDLE)
+
+
+func test_reproduce_priority_is_below_eat_and_sleep_important_tier_priorities() -> void:
+	assert_true(VillageReproduction.REPRODUCE_PRIORITY < VillageNeeds.EAT_PRIORITY_HUNGRY)
+	assert_true(VillageReproduction.REPRODUCE_PRIORITY < VillageNeeds.SLEEP_PRIORITY_TIRED)
+
+
+func test_query_next_task_prefers_reproduce_over_plain_idle() -> void:
+	assert_true(VillageReproduction.REPRODUCE_PRIORITY > VillageTasks.IDLE_PRIORITY)
+
+
+func test_query_next_task_still_prefers_eat_over_reproduce_when_hungry() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	pair[0].hunger_state = Villager.HUNGER_HUNGRY
+
+	var task := village.query_next_task(pair[0])
+
+	assert_eq(task.kind, Task.KIND_EAT)
+
+
+func test_query_next_task_prefers_real_farm_work_over_reproduce() -> void:
+	var village := Village.new()
+	_ready_farm(village)
+	var pair := _paired_villagers()
+	pair[0].is_farmer = true
+
+	var task := village.query_next_task(pair[0])
+
+	assert_eq(task.kind, Task.KIND_COLLECT)
+
+
+func test_advance_task_assignment_assigns_a_reproduce_task_to_a_paired_villager() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+
+	var changed := village.advance_task_assignment(pair[0])
+
+	assert_true(changed)
+	assert_eq(pair[0].current_task.kind, Task.KIND_REPRODUCE)
+
+
+func test_begin_resolving_task_reproduce_starts_resolving_without_clearing_current_task() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	var task := Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	pair[0].current_task = task
+
+	village.begin_resolving_task(pair[0], {"food": 100}, 1.0)
+
+	assert_same(pair[0].current_task, task)
+	assert_true(pair[0].task_resolving)
+
+
+func test_advance_gestation_does_not_add_a_newborn_before_the_full_duration_elapses() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	pair[0].current_task = Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	village.begin_resolving_task(pair[0], {"food": 100}, 1.0)
+	var count_before := village.villagers.size()
+
+	village.advance_gestation(pair[0], VillageReproduction.GESTATION_DURATION_SECONDS - 1.0)
+
+	assert_eq(village.villagers.size(), count_before)
+	assert_not_null(pair[0].current_task)
+
+
+func test_advance_gestation_adds_exactly_one_newborn_once_the_full_duration_elapses() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	village.villagers.append_array(pair)
+	pair[0].current_task = Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	village.begin_resolving_task(pair[0], {"food": 100}, 1.0)
+	var count_before := village.villagers.size()
+
+	village.advance_gestation(pair[0], VillageReproduction.GESTATION_DURATION_SECONDS)
+
+	assert_eq(village.villagers.size(), count_before + 1)
+	assert_null(pair[0].current_task)
+	assert_false(pair[0].task_resolving)
+
+
+func test_newborn_villager_starts_at_age_zero_and_unpaired() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	village.villagers.append_array(pair)
+	pair[0].current_task = Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	village.begin_resolving_task(pair[0], {"food": 100}, 1.0)
+
+	village.advance_gestation(pair[0], VillageReproduction.GESTATION_DURATION_SECONDS)
+
+	var newborn: Villager = village.villagers.back()
+	assert_eq(newborn.age_years, 0)
+	assert_null(newborn.paired_with)
+
+
+func test_newborn_villager_fails_the_maturity_gate_and_is_never_pairing_eligible() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	village.villagers.append_array(pair)
+	pair[0].current_task = Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	village.begin_resolving_task(pair[0], {"food": 100}, 1.0)
+
+	village.advance_gestation(pair[0], VillageReproduction.GESTATION_DURATION_SECONDS)
+
+	var newborn: Villager = village.villagers.back()
+	assert_false(VillagePairing.is_eligible(newborn))
+
+
+func test_advance_gestation_is_a_noop_while_still_traveling_not_yet_resolving() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	pair[0].current_task = Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	# begin_resolving_task() was never called, so task_resolving stays false.
+	var count_before := village.villagers.size()
+
+	village.advance_gestation(pair[0], 1000.0)
+
+	assert_eq(village.villagers.size(), count_before)
+	assert_not_null(pair[0].current_task)
+
+
+func test_interrupt_task_cuts_a_resolving_reproduce_task_short_without_adding_a_newborn() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	pair[0].current_task = Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	village.begin_resolving_task(pair[0], {"food": 100}, 1.0)
+	village.advance_gestation(pair[0], VillageReproduction.GESTATION_DURATION_SECONDS - 1.0)  # nearly finished.
+	var count_before := village.villagers.size()
+
+	village.interrupt_task(pair[0])
+
+	assert_null(pair[0].current_task)
+	assert_false(pair[0].task_resolving)
+	assert_eq(village.villagers.size(), count_before)
+
+
+func test_interrupt_task_then_a_fresh_reproduce_task_restarts_the_full_duration() -> void:
+	var village := Village.new()
+	var pair := _paired_villagers()
+	pair[0].current_task = Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	village.begin_resolving_task(pair[0], {"food": 100}, 1.0)
+	village.advance_gestation(pair[0], VillageReproduction.GESTATION_DURATION_SECONDS - 1.0)  # nearly finished.
+	village.interrupt_task(pair[0])
+
+	pair[0].current_task = Task.new(Task.KIND_REPRODUCE, VillageReproduction.REPRODUCE_PRIORITY)
+	village.begin_resolving_task(pair[0], {"food": 100}, 1.0)
+	var count_before := village.villagers.size()
+	village.advance_gestation(pair[0], VillageReproduction.GESTATION_DURATION_SECONDS - 1.0)  # only 1s short again.
+
+	assert_not_null(pair[0].current_task)
+	assert_eq(village.villagers.size(), count_before)
