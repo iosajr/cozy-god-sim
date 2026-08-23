@@ -76,6 +76,22 @@ func test_populate_assigns_is_farmer_with_a_baseline_probability() -> void:
 	assert_lt(farmer_count, 200)
 
 
+func test_populate_assigns_sex_with_roughly_even_split() -> void:
+	var village := Village.new()
+
+	village.populate(200)
+
+	var female_count := 0
+	for villager: Villager in village.villagers:
+		if villager.sex == Villager.Sex.FEMALE:
+			female_count += 1
+	# Roughly half of 200 -- generous bounds, not an exact-probability
+	# assertion (same spirit as test_populate_assigns_is_farmer_with_a_
+	# baseline_probability above).
+	assert_gt(female_count, 0)
+	assert_lt(female_count, 200)
+
+
 func test_same_seed_produces_the_same_villagers() -> void:
 	var village_a := Village.new(42)
 	village_a.populate(6)
@@ -89,6 +105,7 @@ func test_same_seed_produces_the_same_villagers() -> void:
 		assert_eq(village_a.villagers[i].age_years, village_b.villagers[i].age_years)
 		assert_eq(village_a.villagers[i].villager_name, village_b.villagers[i].villager_name)
 		assert_eq(village_a.villagers[i].is_farmer, village_b.villagers[i].is_farmer)
+		assert_eq(village_a.villagers[i].sex, village_b.villagers[i].sex)
 
 
 func test_village_is_a_task_provider() -> void:
@@ -183,6 +200,52 @@ func test_villagers_house_can_be_set_directly() -> void:
 
 
 # --- Family (issue #40) ---
+
+
+# --- Pairing (issue #41) ---
+
+
+func test_villager_defaults_sex_to_male() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	assert_eq(villager.sex, Villager.Sex.MALE)
+
+
+func test_villagers_sex_can_be_set_directly() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	villager.sex = Villager.Sex.FEMALE
+
+	assert_eq(villager.sex, Villager.Sex.FEMALE)
+
+
+func test_villager_defaults_paired_with_to_null() -> void:
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	assert_null(villager.paired_with)
+
+
+func test_min_reproduction_age_is_18() -> void:
+	assert_eq(Villager.MIN_REPRODUCTION_AGE, 18)
+
+
+func test_advance_pairing_pairs_two_eligible_villagers_who_stay_close_long_enough() -> void:
+	var village := Village.new()
+	village.pairing_duration = 10.0
+	var a := Villager.new("v1", false, "")
+	a.sex = Villager.Sex.MALE
+	a.age_years = Villager.MIN_REPRODUCTION_AGE
+	var b := Villager.new("v2", false, "")
+	b.sex = Villager.Sex.FEMALE
+	b.age_years = Villager.MIN_REPRODUCTION_AGE
+	b.position = Vector3(1, 0, 0)
+	village.villagers.append(a)
+	village.villagers.append(b)
+
+	village.advance_pairing(10.0)
+
+	assert_same(a.paired_with, b)
+	assert_same(b.paired_with, a)
 
 
 func test_villager_defaults_family_to_null() -> void:
