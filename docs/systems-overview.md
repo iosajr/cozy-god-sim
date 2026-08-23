@@ -761,10 +761,9 @@ Roadmap items below.
   ambient, non-menu-driven villager behavior, matching this project's
   existing "no menus" principle elsewhere) — this is meant to happen
   autonomously in the background of the simulation, not as a Player-
-  triggered mechanic. **Genuinely open, not yet asked**: how two
-  Villagers actually get paired (proximity? an existing relationship
-  concept, none of which exist yet? random?), how long "time" actually
-  is.
+  triggered mechanic. **Genuinely open, not yet asked**: how long "time"
+  (pairing to offspring) actually is — see issue #41 below for how
+  pairing itself now gets detected.
   - **Maturity gate resolved (2026-08-22, user-confirmed): a plain age
     threshold, not a life-stage concept.** A Villager needs
     `age_years >= 18` (Ageing's bare year counter, above) to be eligible
@@ -786,6 +785,22 @@ Roadmap items below.
     redesign below (Family/Interest needed a believable starting
     population too). Own ticket — unrelated to farm work beyond both
     touching `populate()`.
+  - **Pairing detection — Done (issue #41)**: resolves "how two
+    Villagers actually get paired" as sustained proximity, per the
+    user's own "male-female → time → baby" framing above. `Villager`
+    gains a `sex: Sex` enum (rolled 50/50 at `Village.populate()`, same
+    pattern as `has_faith`) and a nullable `paired_with: Villager`
+    pointer. New `systems/village_pairing.gd` (`VillagePairing`, a plain
+    collaborator wired into `Village` the same way as
+    `village_farm_labor.gd`) tracks how long each opposite-Sex,
+    both-unpaired, both-past-`Villager.MIN_REPRODUCTION_AGE` pair of
+    Villagers has stayed within `pairing_proximity_threshold` of each
+    other; crossing `pairing_duration` sets a mutual `paired_with` on
+    both. Progress resets the moment a pair drifts apart before pairing
+    — no partial credit banked across a separation, an implementer's
+    call since no decay rule was specified. Data/detection only — no
+    Task, no offspring yet; that's issue #42, which builds directly on
+    this `sex`/`paired_with` shape.
 
 ## Listening and Acting
 
