@@ -40,3 +40,18 @@ func test_ready_leaves_site_position_at_the_origin_for_a_spawner_left_at_the_ori
 	add_child_autofree(spawner)
 
 	assert_eq(spawner.village.site_position, Vector3.ZERO)
+
+
+## Water source position (issue #38) -- a fixed offset from site_position,
+## same "single placeholder point" tier.
+func test_ready_sets_water_source_position_relative_to_the_spawners_own_position() -> void:
+	var spawner: Node3D = VillageSpawnerScript.new()
+	spawner.villager_count = 1
+	spawner.position = Vector3(10, 0, 5)
+
+	add_child_autofree(spawner)
+
+	assert_eq(
+		spawner.village.water_source_position,
+		Vector3(10, 0, 5) + VillageSpawnerScript.WATER_SOURCE_OFFSET
+	)

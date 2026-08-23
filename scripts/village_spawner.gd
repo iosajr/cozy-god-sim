@@ -20,6 +20,11 @@ extends Node3D
 ## No real per-Villager name exists yet.
 const RENOWNED_VILLAGER_SPEAKER_NAME := "A Renowned Villager"
 
+## Placeholder water-source position (issue #38), fixed relative to the
+## Village's own site_position — same "single fixed point" tier, just a
+## second one a Water Task's fetch leg visits before the claimed Farm.
+const WATER_SOURCE_OFFSET := Vector3(12.0, 0.0, 0.0)
+
 var village: Village
 
 var _rng := RandomNumberGenerator.new()
@@ -41,6 +46,7 @@ func _ready() -> void:
 	# Real spawned world position, not the Vector3.ZERO default -- Eat/
 	# Sleep/Farm-delivery/Watering destinations read this (issue #31).
 	village.site_position = global_position
+	village.water_source_position = global_position + WATER_SOURCE_OFFSET
 	village.populate(villager_count)
 	GameState.village = village
 
@@ -105,6 +111,14 @@ func _advance_task_execution(villager: Villager, delta: float) -> void:
 			village.begin_resolving_task(villager, GameState.resources, GameState.day_speed)
 			if GameState.resources.food != food_before:
 				GameState.resource_changed.emit("food", GameState.resources.food)
+			# A Water Task's fetch leg (issue #38) doesn't finish on
+			# reaching the water source -- current_task survives, just
+			# pointed at a new destination (the claimed Farm). Nothing else
+			# calls move_to() again here since task_changed is false (same
+			# Task instance), so redirect explicitly, mirroring how
+			# advance_idle()'s fresh wander leg below gets its own.
+			if task.kind == Task.KIND_WATER and villager.current_task == task:
+				mover.move_to(village.task_destination(task, villager))
 	elif task.kind == Task.KIND_SLEEP:
 		village.advance_sleeping(villager, delta)
 	elif is_idle:
