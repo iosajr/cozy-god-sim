@@ -832,3 +832,192 @@ func test_interrupting_a_seed_task_releases_the_claim_without_planting() -> void
 	var villager_b := Villager.new("v2", true, "")
 	var task_b := village.query_next_task(villager_b)
 	assert_eq(task_b.kind, Task.KIND_SEED)
+
+
+# --- Farm Labor: Water (issue #38) ---
+
+
+func _seeded_farm(village: Village) -> Farm:
+	var farm := Farm.new(Vector3(5, 0, 1), 3.0, 20)
+	farm.plant()  # -> Seeded, below its growth threshold.
+	village.farms.append(farm)
+	return farm
+
+
+func test_query_next_task_returns_a_water_task_when_a_farm_is_seeded_and_unclaimed() -> void:
+	var village := Village.new()
+	_seeded_farm(village)
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	var task := village.query_next_task(villager)
+
+	assert_not_null(task)
+	assert_eq(task.kind, Task.KIND_WATER)
+	assert_false(task.is_must_do())
+
+
+func test_query_next_task_returns_a_water_task_when_a_farm_is_growing_and_unclaimed() -> void:
+	var village := Village.new()
+	var farm := _seeded_farm(village)
+	farm.water(1.0)  # -> Growing, still below the threshold.
+
+	var task := village.query_next_task(Villager.new("v1", true, ""))
+
+	assert_eq(task.kind, Task.KIND_WATER)
+
+
+func test_query_next_task_prefers_water_over_plain_idle() -> void:
+	assert_true(VillageTasks.WATER_PRIORITY > VillageTasks.IDLE_PRIORITY)
+
+
+func test_query_next_task_still_prefers_eat_over_a_waterable_farm_when_hungry() -> void:
+	var village := Village.new()
+	_seeded_farm(village)
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+	villager.hunger_state = Villager.HUNGER_HUNGRY
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_EAT)
+
+
+func test_an_awaiting_planting_farm_is_not_offered_as_a_water_task() -> void:
+	var village := Village.new()
+	_awaiting_planting_farm(village)
+	var villager := Villager.new("v1", true, "")
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_SEED)  # not Water -- it isn't planted yet.
+
+
+func test_a_ready_to_harvest_farm_is_not_offered_as_a_water_task() -> void:
+	var village := Village.new()
+	_ready_farm(village)
+	var villager := Villager.new("v1", true, "")
+
+	var task := village.query_next_task(villager)
+
+	assert_eq(task.kind, Task.KIND_COLLECT)  # not Water -- nothing left to water.
+
+
+func test_advance_task_assignment_claims_the_farm_for_a_water_task() -> void:
+	var village := Village.new()
+	_seeded_farm(village)
+	var villager := Villager.new("v1", true, "The bread smells almost ready.")
+
+	var changed := village.advance_task_assignment(villager)
+
+	assert_true(changed)
+	assert_eq(villager.current_task.kind, Task.KIND_WATER)
+	# The fetch leg -- destination is the water source first, not the
+	# Farm (see task_destination() tests below for the full round trip).
+	assert_eq(village.task_destination(villager.current_task, villager), village.water_source_position)
+
+
+func test_a_claimed_waterable_farm_is_not_offered_to_a_second_villager() -> void:
+	var village := Village.new()
+	_seeded_farm(village)
+	var villager_a := Villager.new("v1", true, "")
+	var villager_b := Villager.new("v2", true, "")
+
+	village.advance_task_assignment(villager_a)
+	var task_b := village.query_next_task(villager_b)
+
+	assert_eq(villager_a.current_task.kind, Task.KIND_WATER)
+	assert_eq(task_b.kind, Task.KIND_IDLE)
+
+
+func test_water_task_destination_is_the_water_source_before_the_fetch_leg_completes() -> void:
+	var village := Village.new()
+	village.water_source_position = Vector3(9, 0, 9)
+	_seeded_farm(village)
+	var villager := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager)
+
+	assert_eq(village.task_destination(villager.current_task, villager), Vector3(9, 0, 9))
+
+
+func test_water_task_destination_moves_to_the_farm_after_the_fetch_leg_completes() -> void:
+	var village := Village.new()
+	village.water_source_position = Vector3(9, 0, 9)
+	var farm := _seeded_farm(village)
+	var villager := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager)
+
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)  # reaches the water source.
+
+	assert_eq(village.task_destination(villager.current_task, villager), farm.position)
+
+
+func test_reaching_the_water_source_does_not_finish_the_task_or_enter_resolving() -> void:
+	var village := Village.new()
+	_seeded_farm(village)
+	var villager := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager)
+
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)  # reaches the water source.
+
+	assert_not_null(villager.current_task)
+	assert_eq(villager.current_task.kind, Task.KIND_WATER)
+	assert_false(villager.task_resolving)
+
+
+func test_resolving_a_water_task_at_the_farm_deposits_the_dose_and_clears_current_task() -> void:
+	var village := Village.new()
+	var farm := _seeded_farm(village)
+	var villager := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager)
+
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)  # reaches the water source.
+	village.begin_resolving_task(villager, {"food": 100}, 1.0)  # reaches the farm.
+
+	assert_eq(farm.stage, Farm.FARM_GROWING)
+	assert_eq(farm.water_progress, village.water_dose_amount)
+	assert_null(villager.current_task)
+	assert_false(villager.task_resolving)
+
+
+func test_multiple_water_visits_accumulate_toward_the_growth_threshold() -> void:
+	var village := Village.new()
+	var farm := _seeded_farm(village)  # growth_threshold 3.0.
+	village.water_dose_amount = 1.0
+
+	for i in 3:
+		var villager := Villager.new("v%d" % i, true, "")
+		village.advance_task_assignment(villager)
+		village.begin_resolving_task(villager, {"food": 100}, 1.0)  # water source.
+		village.begin_resolving_task(villager, {"food": 100}, 1.0)  # farm.
+
+	assert_eq(farm.stage, Farm.FARM_READY_TO_HARVEST)
+	assert_eq(farm.remaining_harvest, farm.harvest_yield)
+
+
+func test_interrupting_a_water_task_releases_the_claim_without_watering() -> void:
+	var village := Village.new()
+	var farm := _seeded_farm(village)
+	var villager_a := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager_a)  # claims the farm.
+	assert_eq(villager_a.current_task.kind, Task.KIND_WATER)
+
+	village.interrupt_task(villager_a)
+
+	assert_eq(farm.water_progress, 0.0)
+	var villager_b := Villager.new("v2", true, "")
+	var task_b := village.query_next_task(villager_b)
+	assert_eq(task_b.kind, Task.KIND_WATER)
+
+
+func test_interrupting_a_water_task_mid_fetch_leg_releases_the_claim() -> void:
+	var village := Village.new()
+	_seeded_farm(village)
+	var villager_a := Villager.new("v1", true, "")
+	village.advance_task_assignment(villager_a)
+	village.begin_resolving_task(villager_a, {"food": 100}, 1.0)  # reaches the water source.
+
+	village.interrupt_task(villager_a)
+
+	assert_null(villager_a.current_task)
+	var villager_b := Villager.new("v2", true, "")
+	var task_b := village.query_next_task(villager_b)
+	assert_eq(task_b.kind, Task.KIND_WATER)

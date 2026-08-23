@@ -12,6 +12,11 @@ const KIND_IDLE := "idle"
 ## Walk to a claimed awaiting-planting Farm and plant it, done in one
 ## visit (issue #36).
 const KIND_SEED := "seed"
+## Fetch-then-deposit round trip (issue #38): walk to the Village's water
+## source, then to a claimed Farm below its growth threshold, and deposit
+## one fixed dose. Two legs, one Task — see VillageTasks.task_destination()/
+## begin_resolving_task().
+const KIND_WATER := "water"
 ## Walk to a claimed Farm and harvest it up to carry capacity (issue #33).
 const KIND_COLLECT := "collect"
 ## Walk to the store and deposit carried goods (issue #33). Deliberately

@@ -5,6 +5,7 @@ extends TaskProvider
 ## needs, task, and farm behavior to systems/village_thoughts.gd,
 ## village_needs.gd, village_tasks.gd, village_farms.gd (periodic
 ## watering), village_farm_seeding.gd (Seed claim state),
+## village_farm_watering.gd (Water claim + fetch-leg state),
 ## village_farm_labor.gd (Collect/Deliver claim+carry state).
 
 const STARTING_LOCATION_NAME := "the Village"
@@ -31,6 +32,13 @@ var farms: Array[Farm] = []
 ## Placeholder "the store"/Sleep-fallback position; a spawner sets this to
 ## the Village's actual scattered position.
 var site_position: Vector3 = Vector3.ZERO
+
+## Placeholder water-source position for the Water Task (issue #38) —
+## same tier as site_position ("the store"): a single fixed point, not a
+## real river/Location (see docs/systems-overview.md's Watering section
+## for why that's still an open question). A spawner sets this alongside
+## site_position.
+var water_source_position: Vector3 = Vector3.ZERO
 
 ## Tunables below just forward to the collaborator that actually owns
 ## them, so external code can keep setting them directly on Village.
@@ -61,30 +69,37 @@ var sleep_check_interval_max: float:
 	set(value): _needs.sleep_check_interval_max = value
 
 var farm_check_interval_min: float:
-	get: return _farm_watering.farm_check_interval_min
-	set(value): _farm_watering.farm_check_interval_min = value
+	get: return _farm_periodic_watering.farm_check_interval_min
+	set(value): _farm_periodic_watering.farm_check_interval_min = value
 var farm_check_interval_max: float:
-	get: return _farm_watering.farm_check_interval_max
-	set(value): _farm_watering.farm_check_interval_max = value
+	get: return _farm_periodic_watering.farm_check_interval_max
+	set(value): _farm_periodic_watering.farm_check_interval_max = value
 var rain_chance: float:
-	get: return _farm_watering.rain_chance
-	set(value): _farm_watering.rain_chance = value
+	get: return _farm_periodic_watering.rain_chance
+	set(value): _farm_periodic_watering.rain_chance = value
 var rain_water_amount: float:
-	get: return _farm_watering.rain_water_amount
-	set(value): _farm_watering.rain_water_amount = value
+	get: return _farm_periodic_watering.rain_water_amount
+	set(value): _farm_periodic_watering.rain_water_amount = value
 
 ## Harvested-per-Collect-Task amount, forwarded to VillageFarmLabor.
 var carry_capacity: int:
 	get: return _farm_labor.carry_capacity
 	set(value): _farm_labor.carry_capacity = value
 
+## Fixed dose deposited per Water Task visit, forwarded to
+## VillageFarmWatering.
+var water_dose_amount: float:
+	get: return _farm_watering.water_dose_amount
+	set(value): _farm_watering.water_dose_amount = value
+
 var _rng := RandomNumberGenerator.new()
 var _thoughts: VillageThoughts
 var _needs: VillageNeeds
 var _farm_labor: VillageFarmLabor
 var _farm_seeding: VillageFarmSeeding
+var _farm_watering: VillageFarmWatering
 var _tasks: VillageTasks
-var _farm_watering: VillageFarms
+var _farm_periodic_watering: VillageFarms
 
 
 func _init(seed_value: int = -1) -> void:
@@ -94,8 +109,9 @@ func _init(seed_value: int = -1) -> void:
 	_needs = VillageNeeds.new(_rng)
 	_farm_labor = VillageFarmLabor.new()
 	_farm_seeding = VillageFarmSeeding.new()
-	_tasks = VillageTasks.new(_rng, _needs, _farm_labor, _farm_seeding)
-	_farm_watering = VillageFarms.new(_rng)
+	_farm_watering = VillageFarmWatering.new()
+	_tasks = VillageTasks.new(_rng, _needs, _farm_labor, _farm_seeding, _farm_watering)
+	_farm_periodic_watering = VillageFarms.new(_rng)
 	var starting_tags: Array[String] = ["village"]
 	known_locations.append(Location.new(STARTING_LOCATION_NAME, starting_tags))
 
@@ -142,7 +158,7 @@ func advance_sleep_checks(delta: float) -> void:
 
 
 func advance_farms(delta: float) -> void:
-	_farm_watering.advance_farms(farms, delta)
+	_farm_periodic_watering.advance_farms(farms, delta)
 
 
 func should_interrupt(current_task: Task, candidate: Task) -> bool:
@@ -156,7 +172,7 @@ func advance_task_assignment(villager: Villager) -> bool:
 
 
 func task_destination(task: Task, villager: Villager) -> Vector3:
-	return _tasks.task_destination(task, villager, site_position)
+	return _tasks.task_destination(task, villager, site_position, water_source_position)
 
 
 static func has_reached_destination(
