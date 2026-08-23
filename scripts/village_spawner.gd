@@ -38,6 +38,9 @@ func _ready() -> void:
 	village = Village.new(seed_value)
 	village.reroll_interval_min = reroll_interval_min
 	village.reroll_interval_max = reroll_interval_max
+	# Real spawned world position, not the Vector3.ZERO default -- Eat/
+	# Sleep/Farm-delivery/Watering destinations read this (issue #31).
+	village.site_position = global_position
 	village.populate(villager_count)
 	GameState.village = village
 
