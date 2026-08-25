@@ -17,7 +17,14 @@ extends Node
 signal wish_ready(response_text: String)
 signal request_failed(error_message: String)
 
-const HOST := "http://localhost:11434"
+## 127.0.0.1, not "localhost" -- Godot's HTTPRequest resolving
+## "localhost" is a known source of tens-of-seconds stalls on Windows
+## (it tries an IPv6 (::1) connection first and waits on that before
+## falling back to IPv4), even though curl/`ollama run` resolve it
+## instantly via a different path. This was the actual cause of
+## villager-ideas taking 30-60s through this client when the same
+## request was instant from the command line.
+const HOST := "http://127.0.0.1:11434"
 const MODEL := "villager-ideas"
 const TIMEOUT_SECONDS := 60.0
 
