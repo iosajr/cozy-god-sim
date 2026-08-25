@@ -359,3 +359,10 @@ func knows_location_with_tag(tag: String) -> bool:
 		if tag in location.context_tags:
 			return true
 	return false
+
+
+## JSON-safe snapshot for the local-LLM idea pipeline in Request/ (see
+## Request/README.md). Delegates to VillageStateExport, same pattern as
+## the collaborator delegation above.
+func export_state() -> Dictionary:
+	return VillageStateExport.export_village(self)

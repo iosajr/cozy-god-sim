@@ -22,3 +22,10 @@ Thumbs.db
 
 # Scratch git worktrees created for isolated agent sessions
 .claude/worktrees/
+
+# Request/ (villager-idea pipeline, see Request/README.md): generated/
+# personal state, not shared -- game_state.example.json IS committed.
+Request/__pycache__/
+Request/*.pyc
+Request/game_state.json
+Request/review_queue.jsonl
