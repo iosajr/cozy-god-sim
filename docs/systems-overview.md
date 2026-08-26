@@ -11,7 +11,11 @@ now there mostly aren't any yet.
 
 - `autoload/game_state.gd`: a `time_of_day`/`day_speed` clock, a flat
   `resources` dict (`food`, `wood`), and `village: Village` (a real
-  Village, replacing the old `population: int` headcount).
+  Village, replacing the old `population: int` headcount). Also tracks
+  `absolute_game_time` alongside `time_of_day` (issue #55) — same
+  hours-per-second growth, but never wraps at 24.0, so a later system
+  (issue #57's weather query) has a strictly-increasing time axis to key
+  off instead of a repeating 0.0-24.0 value.
 - `systems/village.gd` / `systems/villager.gd`: real Villager entities
   with a Faith bool (stored, not gating anything yet — no Presence
   exists to gate) and a cycling Thought, shown via
