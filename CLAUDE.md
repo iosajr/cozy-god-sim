@@ -25,10 +25,10 @@ A cozy 3D god-sim / simulation game built in Godot 4 (GDScript).
   `villager.gd` and `god.gd`/`pantheon.gd` so far.
 - `assets/{models,textures,audio}/` — real art/audio assets go here as they
   replace the placeholder primitives in `scripts/world_gen.gd`.
-- `ui/` — UI scenes/scripts. First resident: `villager_ideas_review.tscn`,
-  a standalone dev tool for the local-LLM idea pipeline (see
-  `ui/villager_ideas_review.md`) — not part of the player-facing game,
-  doesn't touch `project.godot`'s main scene.
+- `ui/` — UI scenes/scripts. First resident: `folk_console.tscn`, a
+  developer console for the local-LLM idea pipeline (see
+  `ui/folk_console.md`) — instanced hidden into `scenes/main.tscn`,
+  toggled with F2; not part of the player-facing game.
 - `tests/` — GUT tests (`extends GutTest`, `test_*.gd`), mirroring the
   layout of what they test (e.g. `tests/systems/test_village.gd`).
 - `addons/gut/` — vendored GUT addon; see the Stack exception above.

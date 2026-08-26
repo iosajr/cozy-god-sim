@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/world_gen.gd" id="2_worldgen"]
@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://scripts/farm_spawner.gd" id="11_farmspawner"]
 [ext_resource type="PackedScene" path="res://scenes/weather_field.tscn" id="12_weatherfield"]
 [ext_resource type="Script" path="res://scripts/renowned_interaction.gd" id="13_renownedinteraction"]
+[ext_resource type="PackedScene" path="res://ui/folk_console.tscn" id="14_folkconsole"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
 size = Vector2(200, 200)
@@ -123,3 +124,5 @@ script = ExtResource("13_renownedinteraction")
 dialogue_box_path = NodePath("../DialogueBox")
 
 [node name="WeatherField" parent="." instance=ExtResource("12_weatherfield")]
+
+[node name="FolkConsole" parent="." instance=ExtResource("14_folkconsole")]

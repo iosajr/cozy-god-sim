@@ -1,34 +1,31 @@
 extends Control
-## Frontend for asking villager-ideas (a local Ollama model) to react to a
-## villager's situation and propose a Wish -- a small feature idea for
-## cozy-god-sim. Nothing publishes until a human clicks Approve here
-## (see systems/villager_wish_publisher.gd) -- this replaces the old
-## Python Request/ pipeline entirely; this scene *is* the frontend now.
+## Folk Console: a live developer tool for asking a local Ollama model to
+## react to any real, currently-spawned Folk member's situation and
+## propose a Wish -- a small feature idea for cozy-god-sim. Nothing is
+## archived until a human clicks Approve here (see systems/wish_archive.gd).
 ##
-## Run it directly: open this scene in the editor and press "Run Current
-## Scene" (F6) -- it doesn't touch project.godot's main scene, so the
-## real game is unaffected.
+## Reads GameState.village/GameState.pantheon directly -- no throwaway
+## population of its own -- so it needs live game state to have anything
+## to show. Instanced (hidden by default) into main.tscn; toggled open
+## via a debug key (see scripts/main.gd), not run standalone.
 ##
 ## Builds the whole UI in code rather than as scene-file children -- see
 ## _build_ui() -- so there's exactly one place to look for the layout.
 ## Every "Ask" click is one independent, stateless request (see
 ## systems/ollama_chat_client.gd's doc comment) -- no conversation
-## history accumulates across clicks, which is what degraded villager-
-## ideas during extended interactive `ollama run` sessions.
+## history accumulates across clicks.
 
-const VILLAGER_COUNT := 8
-const TICKS := 20
-const TICK_DELTA := 5.0
-
-var _village: Village
 var _systems_summary: String = ""
 var _queued_titles: Array[String] = []
 var _client: OllamaChatClient
+var _archive := WishArchive.new()
 var _current_villager_data: Dictionary = {}
 var _current_response: Dictionary = {"in_character": "", "wish": "", "parsed_ok": false}
 
 var _villager_picker: OptionButton
+var _model_field: LineEdit
 var _situation_label: Label
+var _prompt_edit: TextEdit
 var _ask_button: Button
 var _in_character_label: RichTextLabel
 var _wish_label: RichTextLabel
@@ -37,7 +34,7 @@ var _reject_button: Button
 var _skip_button: Button
 var _status_label: Label
 var _history_list: ItemList
-var _new_village_button: Button
+var _refresh_folk_button: Button
 var _refresh_context_button: Button
 
 
@@ -53,12 +50,18 @@ func _ready() -> void:
 	_approve_button.pressed.connect(_on_approve_pressed)
 	_reject_button.pressed.connect(_on_reject_pressed)
 	_skip_button.pressed.connect(_on_skip_pressed)
-	_new_village_button.pressed.connect(_regenerate_village)
+	_refresh_folk_button.pressed.connect(_refresh_folk_list)
 	_refresh_context_button.pressed.connect(_refresh_context)
 	_villager_picker.item_selected.connect(_on_villager_selected)
 
+
+## Called when the debug toggle opens this console -- refreshes from
+## whatever the live game currently looks like, since it may have moved
+## on since the last time this was open.
+func open() -> void:
 	_refresh_context()
-	_regenerate_village()
+	_refresh_folk_list()
+	visible = true
 
 
 func _build_ui() -> void:
@@ -76,12 +79,17 @@ func _build_ui() -> void:
 
 	var top_bar := HBoxContainer.new()
 	root_vbox.add_child(top_bar)
-	top_bar.add_child(_make_label("Villager:"))
+	top_bar.add_child(_make_label("Folk:"))
 	_villager_picker = OptionButton.new()
 	top_bar.add_child(_villager_picker)
-	_new_village_button = Button.new()
-	_new_village_button.text = "New Village"
-	top_bar.add_child(_new_village_button)
+	top_bar.add_child(_make_label("Model:"))
+	_model_field = LineEdit.new()
+	_model_field.text = OllamaChatClient.DEFAULT_MODEL
+	_model_field.custom_minimum_size = Vector2(140, 0)
+	top_bar.add_child(_model_field)
+	_refresh_folk_button = Button.new()
+	_refresh_folk_button.text = "Refresh Folk"
+	top_bar.add_child(_refresh_folk_button)
 	_refresh_context_button = Button.new()
 	_refresh_context_button.text = "Refresh Context"
 	top_bar.add_child(_refresh_context_button)
@@ -90,8 +98,15 @@ func _build_ui() -> void:
 	_situation_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	root_vbox.add_child(_situation_label)
 
+	root_vbox.add_child(_make_label("Prompt (hand-editable before sending):"))
+	_prompt_edit = TextEdit.new()
+	_prompt_edit.custom_minimum_size = Vector2(0, 160)
+	_prompt_edit.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_prompt_edit.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	root_vbox.add_child(_prompt_edit)
+
 	_ask_button = Button.new()
-	_ask_button.text = "Ask villager-ideas"
+	_ask_button.text = "Ask"
 	root_vbox.add_child(_ask_button)
 
 	root_vbox.add_child(_make_label("In character:"))
@@ -105,7 +120,7 @@ func _build_ui() -> void:
 	var action_bar := HBoxContainer.new()
 	root_vbox.add_child(action_bar)
 	_approve_button = Button.new()
-	_approve_button.text = "Approve && Publish"
+	_approve_button.text = "Approve && Archive"
 	action_bar.add_child(_approve_button)
 	_reject_button = Button.new()
 	_reject_button.text = "Reject"
@@ -139,26 +154,16 @@ func _make_response_label() -> RichTextLabel:
 	return label
 
 
-func _regenerate_village() -> void:
-	## No live game to pull from yet (see docs/systems-overview.md's gap
-	## list) -- builds a throwaway Village, ticked briefly so current_task
-	## isn't just a just-populated default.
-	_village = Village.new()
-	_village.populate(VILLAGER_COUNT)
-	for i in TICKS:
-		for villager: Villager in _village.villagers:
-			_village.advance_task_assignment(villager)
-		_village.advance_pairing(TICK_DELTA)
-		for villager: Villager in _village.villagers:
-			if villager.paired_with != null:
-				_village.advance_gestation(villager, TICK_DELTA)
-
+## Pulls the live Village's currently-spawned Folk -- no throwaway
+## population, per this tool's whole point (issue #53).
+func _refresh_folk_list() -> void:
 	_villager_picker.clear()
-	for villager: Villager in _village.villagers:
+	for villager: Villager in GameState.village.villagers:
 		_villager_picker.add_item(villager.villager_name)
-	_villager_picker.select(0)
-	_on_villager_selected(0)
-	_status_label.text = "New village generated (%d villagers)." % VILLAGER_COUNT
+	if not GameState.village.villagers.is_empty():
+		_villager_picker.select(0)
+		_on_villager_selected(0)
+	_status_label.text = "Folk list refreshed (%d currently spawned)." % GameState.village.villagers.size()
 
 
 func _refresh_context() -> void:
@@ -168,23 +173,22 @@ func _refresh_context() -> void:
 
 
 func _on_villager_selected(index: int) -> void:
-	var villager: Villager = _village.villagers[index]
+	var villager: Villager = GameState.village.villagers[index]
 	_current_villager_data = VillageStateExport.export_villager(villager)
-	_situation_label.text = VillagerIdeasPrompt.situation_lines(
-		VillageStateExport.export_village(_village), _current_villager_data
+	var village_data := VillageStateExport.export_village(GameState.village)
+	_situation_label.text = VillagerIdeasPrompt.situation_lines(village_data, _current_villager_data)
+	_prompt_edit.text = VillagerIdeasPrompt.build(
+		_current_villager_data, village_data, _systems_summary, _queued_titles, GameState.village.event_log.recent_text()
 	)
 	_set_response_visible(false)
 
 
 func _on_ask_pressed() -> void:
-	var village_data := VillageStateExport.export_village(_village)
-	var prompt := VillagerIdeasPrompt.build(
-		_current_villager_data, village_data, _systems_summary, _queued_titles, _village.event_log.recent_text()
-	)
+	_client.model = _model_field.text if _model_field.text != "" else OllamaChatClient.DEFAULT_MODEL
 	_ask_button.disabled = true
 	_set_response_visible(false)
-	_status_label.text = "Asking villager-ideas..."
-	_client.ask(prompt)
+	_status_label.text = "Asking %s..." % _client.model
+	_client.ask(_prompt_edit.text)
 
 
 func _on_wish_ready(raw_response: String) -> void:
@@ -206,23 +210,18 @@ func _on_request_failed(error_message: String) -> void:
 
 func _on_approve_pressed() -> void:
 	if not _current_response["parsed_ok"]:
-		_status_label.text = "Nothing to publish -- no parseable WISH."
+		_status_label.text = "Nothing to archive -- no parseable WISH."
 		return
 	var villager_name: String = _current_villager_data.get("name", "Unknown")
-	var error := VillagerWishPublisher.publish(
-		villager_name, _current_response["in_character"], _current_response["wish"]
-	)
-	if error != "":
-		_status_label.text = "Publish failed: %s" % error
-		return
-	_log_decision(villager_name, "approved & published")
-	_status_label.text = "Published as a GitHub issue."
+	_archive.append(villager_name, _current_response["in_character"], _current_response["wish"])
+	_log_decision(villager_name, "approved & archived")
+	_status_label.text = "Archived locally (no network/gh call)."
 	_set_response_visible(false)
 
 
 func _on_reject_pressed() -> void:
 	_log_decision(_current_villager_data.get("name", "Unknown"), "rejected")
-	_status_label.text = "Rejected (not published)."
+	_status_label.text = "Rejected (not archived)."
 	_set_response_visible(false)
 
 
