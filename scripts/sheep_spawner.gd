@@ -35,6 +35,9 @@ func _process(delta: float) -> void:
 			a_sheep, _bodies.get(a_sheep), camera_rig, favored_radius, favored_gain_rate, delta,
 			Folk.DEFAULT_FAITH_THRESHOLD, Sheep.RENOWN_THRESHOLD
 		)
+		FolkSpawnerSupport.maybe_log_divine_exposure(
+			a_sheep, _bodies.get(a_sheep), camera_rig, favored_radius, GameState.absolute_game_time
+		)
 		_sync_renown_tint(a_sheep)
 		_debug_infos[a_sheep].sync(a_sheep)
 

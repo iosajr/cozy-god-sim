@@ -93,6 +93,9 @@ func _process(delta: float) -> void:
 			villager, _bodies.get(villager), camera_rig, favored_radius, favored_gain_rate, delta,
 			Villager.DEFAULT_FAITH_THRESHOLD, Villager.DEFAULT_RENOWN_THRESHOLD
 		)
+		FolkSpawnerSupport.maybe_log_divine_exposure(
+			villager, _bodies.get(villager), camera_rig, favored_radius, GameState.absolute_game_time
+		)
 		_debug_infos[villager].sync(villager)
 
 

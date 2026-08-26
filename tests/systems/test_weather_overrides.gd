@@ -50,3 +50,23 @@ func test_clear_all_removes_every_registered_override() -> void:
 	WeatherOverrides.clear_all()
 
 	assert_eq(WeatherOverrides.category_at(Vector3.ZERO, 500.0), "")
+
+
+## active_override_at() (issue #60): same lookup as category_at(), but
+## returns the covering WeatherOverride object itself so a caller (e.g.
+## FolkSpawnerSupport's divine-exposure logging) can dedupe against the
+## exact override instance rather than just its category string.
+func test_active_override_at_returns_null_with_nothing_registered() -> void:
+	assert_null(WeatherOverrides.active_override_at(Vector3.ZERO, 0.0))
+
+
+func test_active_override_at_returns_the_covering_override_instance() -> void:
+	var override := WeatherOverrides.register(Vector3(10.0, 0.0, 10.0), WeatherQuery.CATEGORY_STORM, 100.0, 200.0)
+
+	assert_eq(WeatherOverrides.active_override_at(Vector3(10.0, 0.0, 10.0), 150.0), override)
+
+
+func test_active_override_at_returns_null_outside_the_overrides_radius() -> void:
+	WeatherOverrides.register(Vector3.ZERO, WeatherQuery.CATEGORY_STORM, 100.0, 200.0, 5.0)
+
+	assert_null(WeatherOverrides.active_override_at(Vector3(500.0, 0.0, 0.0), 150.0))
