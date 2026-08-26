@@ -218,6 +218,29 @@ The gap between that and everything below is most of the project.
   `favored_gain_per_exposure` (a flat per-event amount) to match. Mere
   proximity with nothing logged — no active override, out of range, or a
   repeat frame of an override already logged — grants no Favored at all.
+- **Renowned Thought Memory — Done (issue #50)**: a standalone, directly-
+  testable curated cache of past {situation, response} pairs for Renowned
+  Folk interactions — nothing calls it live yet, later tickets (#52) wire
+  it in. `systems/renowned_situation_signature.gd`
+  (`RenownedSituationSignature.derive()`) turns a villager snapshot
+  Dictionary (`systems/village_state_export.gd`'s shape) into a compact
+  key from task/mood/paired/farming-bias/standing, reusing
+  `systems/villager_ideas_prompt.gd`'s own field reads and derived
+  helpers (`mood_from_state()`, and a newly extracted
+  `standing_from_state()` for the Faith/Renown branch) rather than a
+  parallel derivation — "close enough" comes from those helpers already
+  bucketing continuous state into a handful of discrete values, not from
+  fuzzy matching on top of the signature. `systems/renowned_thought_memory.gd`
+  (`RenownedThoughtMemory`) is the store: `find(signature)` looks up a
+  saved entry or returns `null`; `remember(signature, villager_name,
+  in_character, wish)` is an explicit, never-automatic curation step that
+  saves (or replaces an existing signature's) entry and persists
+  immediately. Entries (`systems/renowned_thought_memory_entry.gd`,
+  a `Resource`) are saved to `res://data/renowned_thought_memory.tres` —
+  deliberately `res://`, not `user://`, for easy hand-inspection during
+  this phase (see issue #46's Implementation Decisions) — and reloaded
+  the next time a `RenownedThoughtMemory` is constructed against that
+  path.
 
 ## Survival (not in CONTEXT.md yet — still being sharpened)
 

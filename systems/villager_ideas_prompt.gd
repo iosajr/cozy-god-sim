@@ -28,6 +28,16 @@ static func role_from_state(villager: Dictionary) -> String:
 	return "villager with a farming interest" if villager.get("is_farmer", false) else "villager"
 
 
+## "renowned", "faith", or "" -- Faith is a Renown prerequisite (systems/
+## folk.gd), so Renowned implies Faith and only the higher tier is reported.
+static func standing_from_state(villager: Dictionary) -> String:
+	if villager.get("is_renowned", false):
+		return "renowned"
+	elif villager.get("has_faith", false):
+		return "faith"
+	return ""
+
+
 static func situation_lines(village: Dictionary, villager: Dictionary) -> String:
 	var lines: Array[String] = []
 	if villager.get("current_wish"):
@@ -40,9 +50,10 @@ static func situation_lines(village: Dictionary, villager: Dictionary) -> String
 		lines.append("Has a paired partner")
 	if villager.get("family_has_farming_bias"):
 		lines.append("Belongs to a family with a farming bias")
-	if villager.get("is_renowned"):
+	var standing := standing_from_state(villager)
+	if standing == "renowned":
 		lines.append("Is Renowned")
-	elif villager.get("has_faith"):
+	elif standing == "faith":
 		lines.append("Has Faith")
 	lines.append("Village population: %s" % village.get("population", "unknown"))
 
