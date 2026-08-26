@@ -16,7 +16,7 @@ const MIN_REPRODUCTION_AGE: int = 18
 enum Sex { MALE, FEMALE }
 
 var current_thought: String
-var current_wish: Wish
+var current_wish: String
 
 ## Set at creation (Village.populate() rolls it, same direct-post-
 ## construction-assignment pattern as villager_name/is_farmer/age_years,
@@ -80,7 +80,7 @@ var current_task: Task = null
 var task_resolving: bool = false
 
 
-func _init(p_id: String, p_has_faith: bool, p_current_thought: String, p_current_wish: Wish = null) -> void:
+func _init(p_id: String, p_has_faith: bool, p_current_thought: String, p_current_wish: String = "") -> void:
 	super(p_id, p_has_faith)
 	current_thought = p_current_thought
 	current_wish = p_current_wish

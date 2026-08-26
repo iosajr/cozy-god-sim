@@ -18,19 +18,14 @@ now there mostly aren't any yet.
   off instead of a repeating 0.0-24.0 value.
 - `systems/village.gd` / `systems/villager.gd`: real Villager entities
   with a Faith bool (stored, not gating anything yet — no Presence
-  exists to gate) and a cycling Thought, shown via
-  `scripts/villager_nameplate.gd`. Most rerolls stay flavor, per
-  `CONTEXT.md`'s "not every Thought is a Wish" — a minority draw a
-  `systems/wish.gd` Wish instead (issue #4), immediately linked to a God
-  via `Pantheon.get_by_domain()` and resolved to a placeholder outcome
-  (`Village.resolve_wish()`). Single-Domain-lookup shipped as a known
-  simplification, not a settled design — see `docs/adr/0003`.
+  exists to gate), plus `current_thought`/`current_wish` `String` fields
+  shown via `scripts/villager_nameplate.gd`. Renowned-only, LLM-driven,
+  see the Listening and Acting section below — `docs/adr/0005`.
 - `systems/god.gd` / `systems/pantheon.gd`: a static, explicitly
   placeholder God roster (`docs/adr/0002`), queryable by Domain via
-  `get_by_domain()`. Wired in as of issue #4 — `Village.resolve_wish()` is
-  its first caller, via a `Pantheon` reference `GameState` holds and
-  `scripts/village_spawner.gd` forwards in (Village/Villager never reach
-  into `GameState` directly).
+  `get_by_domain()`. Currently no caller (its former one, Wish-domain
+  linking, was retired — `docs/adr/0005`) — still used directly for God
+  dialogue/flavor.
 - `scripts/world_gen.gd`: placeholder primitives, explicitly disposable
   per `CLAUDE.md` — nothing here should be read as a design decision.
 - `systems/villager.gd`: also has `favored: float` and `is_renowned: bool`
@@ -906,21 +901,16 @@ Roadmap items below.
 
 ## Listening and Acting
 
-- **Thought**: built — a per-Villager cycling string, shown via a
-  nameplate. **Wish**: built (issue #4) — a Thought that specifically
-  wants something, tagged with a Domain (`systems/wish.gd`), drawn as a
-  minority of rerolls (`VillageThoughts.WISH_POOL`/`wish_chance`) and
-  linked to a God via `Pantheon.get_by_domain()` (`Village.resolve_wish()`,
-  which now delegates to `systems/village_thoughts.gd`), with the
-  God's reaction stored as inert placeholder data (resolved/ignored) —
-  explicitly to-be-developed-on, not a finished mechanic; no Petition, no
-  Player input, no visible effect yet. **Open question the user has
-  raised, still not resolved**: whether linking always works via a single
-  Domain match is even correct, versus some Wishes having multiple
-  resolving outcomes/paths. Shipped the single-Domain lookup as a known
-  simplification, not a settled decision — see
-  `docs/adr/0003-wish-resolves-via-a-single-domain-lookup.md` (same
-  pattern as ADR-0001/0002).
+- **Thought**/**Wish**: Renowned-only now (issue #49) — plain `String`
+  fields on `Villager`, empty by default, populated only through a
+  Renowned Folk member's LLM-driven interaction (the villager-ideas
+  pipeline). The earlier timer-driven canned reroll (every Villager, a
+  minority drawing a Domain-tagged Wish linked to a God via
+  `Pantheon.get_by_domain()`) is retired outright, not merely gated to
+  Renowned — see `docs/adr/0005-thought-wish-retired-for-llm-driven-renowned-only.md`,
+  which supersedes ADR-0003's mechanic. Pantheon itself is untouched and
+  still used for God dialogue/flavor; only the Wish-domain-linking
+  caller is gone.
 - **Petition**: per `CONTEXT.md`, specifically a *Player* action —
   drawing a God's attention to a Wish. Deliberately not what the planned
   next slice builds: Player-input design is being deferred, so that

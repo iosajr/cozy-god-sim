@@ -48,14 +48,14 @@ func test_export_villager_reports_null_task_and_wish_when_none_active() -> void:
 	var data: Dictionary = VillageStateExport.export_villager(villager)
 
 	assert_eq(data["current_task"], null)
-	assert_eq(data["current_wish"], null)
+	assert_eq(data["current_wish"], "")
 
 
 func test_export_villager_reports_wish_text_when_one_is_active() -> void:
 	var village := Village.new()
 	village.populate(1)
 	var villager: Villager = village.villagers[0]
-	villager.current_wish = Wish.new("I wish the harvest holds through winter.", "agriculture")
+	villager.current_wish = "I wish the harvest holds through winter."
 
 	var data: Dictionary = VillageStateExport.export_villager(villager)
 

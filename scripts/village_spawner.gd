@@ -1,17 +1,15 @@
 extends Node3D
 ## Spawns one Village's Villagers as placeholder 3D bodies + nameplates,
-## drives their Thought/Wish rerolling, Favored/Renown, Survival, and Task
-## execution each frame, and opens the dialogue box for a Renowned
-## Villager's click. Favored rises in discrete steps tied to logged
-## divine-exposure entries (issue #61), not continuous per-frame
-## proximity.
+## drives their Favored/Renown, Survival, and Task execution each frame,
+## and opens the dialogue box for a Renowned Villager's click. Favored
+## rises in discrete steps tied to logged divine-exposure entries (issue
+## #61), not continuous per-frame proximity. Thought/Wish are not
+## populated by anything here.
 
 @export var villager_count: int = 6
 @export var ground_size: float = 200.0
 @export var world_gen_path: NodePath = ^"../World"
 @export var seed_value: int = 2
-@export var reroll_interval_min: float = 12.0
-@export var reroll_interval_max: float = 24.0
 ## Stands in for the Player's position.
 @export var camera_rig_path: NodePath = ^"../CameraRig"
 @export var favored_radius: float = 8.0
@@ -53,8 +51,6 @@ func _ready() -> void:
 	_rng.seed = seed_value
 
 	village = Village.new(seed_value)
-	village.reroll_interval_min = reroll_interval_min
-	village.reroll_interval_max = reroll_interval_max
 	# Real spawned world position, not the Vector3.ZERO default -- Eat/
 	# Sleep/Farm-delivery/Watering destinations read this (issue #31).
 	village.site_position = global_position
@@ -70,7 +66,6 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	village.advance_thoughts(delta, GameState.pantheon)
 	village.advance_eating_checks(delta)
 	village.advance_sleep_checks(delta)
 	# Issue #41 built and tested this but never wired it in here -- without
@@ -219,6 +214,6 @@ func _on_dialogue_target_clicked(body: Node3D) -> void:
 ## Reuses existing data only — no invented dialogue writing.
 func _dialogue_lines_for(villager: Villager) -> Array[String]:
 	var lines: Array[String] = [villager.current_thought]
-	if villager.current_wish != null:
-		lines.append(villager.current_wish.text)
+	if villager.current_wish != "":
+		lines.append(villager.current_wish)
 	return lines

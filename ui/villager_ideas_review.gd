@@ -21,7 +21,6 @@ const TICKS := 20
 const TICK_DELTA := 5.0
 
 var _village: Village
-var _pantheon: Pantheon
 var _systems_summary: String = ""
 var _queued_titles: Array[String] = []
 var _client: OllamaChatClient
@@ -142,16 +141,17 @@ func _make_response_label() -> RichTextLabel:
 
 func _regenerate_village() -> void:
 	## No live game to pull from yet (see docs/systems-overview.md's gap
-	## list) -- builds a throwaway Village the same way tools/
-	## dump_state.gd does, ticked briefly so current_task/current_thought
-	## aren't all just-populated defaults.
+	## list) -- builds a throwaway Village, ticked briefly so current_task
+	## isn't just a just-populated default.
 	_village = Village.new()
 	_village.populate(VILLAGER_COUNT)
-	_pantheon = Pantheon.new()
 	for i in TICKS:
-		_village.advance_thoughts(TICK_DELTA, _pantheon)
 		for villager: Villager in _village.villagers:
 			_village.advance_task_assignment(villager)
+		_village.advance_pairing(TICK_DELTA)
+		for villager: Villager in _village.villagers:
+			if villager.paired_with != null:
+				_village.advance_gestation(villager, TICK_DELTA)
 
 	_villager_picker.clear()
 	for villager: Villager in _village.villagers:
@@ -179,7 +179,7 @@ func _on_villager_selected(index: int) -> void:
 func _on_ask_pressed() -> void:
 	var village_data := VillageStateExport.export_village(_village)
 	var prompt := VillagerIdeasPrompt.build(
-		_current_villager_data, village_data, _systems_summary, _queued_titles
+		_current_villager_data, village_data, _systems_summary, _queued_titles, _village.event_log.recent_text()
 	)
 	_ask_button.disabled = true
 	_set_response_visible(false)

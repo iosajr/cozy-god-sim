@@ -1,14 +1,13 @@
 class_name VillageStateExport
 extends RefCounted
 ## Turns a Village's live state into a plain, JSON-safe Dictionary snapshot
-## for the local-LLM idea pipeline in Request/ (see Request/README.md and
-## Request/state_reader.py, which reads exactly this shape).
+## for the local-LLM idea pipeline (VillagerIdeasPrompt).
 ##
 ## Deliberately exposes only fields that are real per
 ## docs/systems-overview.md -- no invented "mood"/"relationships"/
-## "recent_memory" the game doesn't actually track. Callers building a
-## prompt (Request/persona.py) work off of what's here plus flavor text
-## (current_thought/current_wish), not made-up state.
+## "recent_memory" the game doesn't actually track. Prompt-building works
+## off of what's here plus flavor text (current_thought/current_wish),
+## not made-up state.
 
 
 static func export_villager(villager: Villager) -> Dictionary:
@@ -22,7 +21,7 @@ static func export_villager(villager: Villager) -> Dictionary:
 		"favored": villager.favored,
 		"is_renowned": villager.is_renowned,
 		"current_thought": villager.current_thought,
-		"current_wish": villager.current_wish.text if villager.current_wish != null else null,
+		"current_wish": villager.current_wish,
 		"current_task": villager.current_task.kind if villager.current_task != null else null,
 		"hunger_state": villager.hunger_state,
 		"tiredness_state": villager.tiredness_state,

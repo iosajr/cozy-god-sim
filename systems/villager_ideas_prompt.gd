@@ -62,14 +62,21 @@ static func queued_block(queued_titles: Array[String]) -> String:
 
 
 static func build(
-	villager: Dictionary, village: Dictionary, systems_summary: String, queued_titles: Array[String]
+	villager: Dictionary,
+	village: Dictionary,
+	systems_summary: String,
+	queued_titles: Array[String],
+	recent_history: String = "(nothing notable yet)"
 ) -> String:
 	return """Villager: %s
 Role: %s
 Age: %s
 Mood: %s
 
-Recent events / current situation:
+Current situation:
+%s
+
+Recent village history:
 %s
 
 Current systems (already built -- don't suggest these as new):
@@ -83,6 +90,7 @@ Already queued (don't duplicate these):
 		villager.get("age_years", "unknown"),
 		mood_from_state(villager),
 		situation_lines(village, villager),
+		recent_history,
 		systems_summary,
 		queued_block(queued_titles),
 	]

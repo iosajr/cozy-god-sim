@@ -53,9 +53,8 @@ ui/villager_ideas_review.tscn (you run this in the editor)
   crowding out its system prompt is the first thing to check.
 - **No live game state yet.** There's still no "running game exports its
   own state" mechanism (see `docs/systems-overview.md`'s gap list) — the
-  scene builds a fresh, throwaway `Village` on load, same as the earlier
-  `tools/dump_state.gd`. Wiring this to the actual live game is real
-  future work.
+  scene builds a fresh, throwaway `Village` on load. Wiring this to the
+  actual live game is real future work.
 - **Nothing publishes without a click.** `systems/villager_wish_publisher.gd`
   is the only code path that reaches the internet, and it only runs from
   the Approve button.

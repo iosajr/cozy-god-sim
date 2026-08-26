@@ -1,10 +1,9 @@
 class_name Village
 extends TaskProvider
 ## A collection of Villagers plus their Known Territory, Houses, and Farms.
-## Plain data/logic, no scene tree (Seam 1). Delegates thought/wish,
-## needs, task, and farm behavior to systems/village_thoughts.gd,
-## village_needs.gd, village_tasks.gd, village_farms.gd (weather-driven
-## watering, issue #59), village_farm_seeding.gd (Seed claim state),
+## Plain data/logic, no scene tree (Seam 1). Delegates needs, task, and
+## farm behavior to village_needs.gd, village_tasks.gd, village_farms.gd
+## (weather-driven watering, issue #59), village_farm_seeding.gd (Seed claim state),
 ## village_farm_watering.gd (Water claim + fetch-leg state),
 ## village_farm_labor.gd (Collect/Deliver claim+carry state),
 ## village_resource_recovery.gd (Recover claim+carry state, issue #37),
@@ -87,21 +86,11 @@ var site_position: Vector3 = Vector3.ZERO
 ## site_position.
 var water_source_position: Vector3 = Vector3.ZERO
 
+## Recent-history context for the villager-ideas prompt (issue #51).
+var event_log := VillageEventLog.new()
+
 ## Tunables below just forward to the collaborator that actually owns
 ## them, so external code can keep setting them directly on Village.
-var reroll_interval_min: float:
-	get: return _thoughts.reroll_interval_min
-	set(value): _thoughts.reroll_interval_min = value
-var reroll_interval_max: float:
-	get: return _thoughts.reroll_interval_max
-	set(value): _thoughts.reroll_interval_max = value
-var wish_chance: float:
-	get: return _thoughts.wish_chance
-	set(value): _thoughts.wish_chance = value
-var empty_chance: float:
-	get: return _thoughts.empty_chance
-	set(value): _thoughts.empty_chance = value
-
 var eating_check_interval_min: float:
 	get: return _needs.eating_check_interval_min
 	set(value): _needs.eating_check_interval_min = value
@@ -158,7 +147,6 @@ var pairing_duration: float:
 	set(value): _pairing.pairing_duration = value
 
 var _rng := RandomNumberGenerator.new()
-var _thoughts: VillageThoughts
 var _needs: VillageNeeds
 var _farm_labor: VillageFarmLabor
 var _farm_seeding: VillageFarmSeeding
@@ -172,7 +160,6 @@ var _pairing: VillagePairing
 func _init(seed_value: int = -1) -> void:
 	if seed_value >= 0:
 		_rng.seed = seed_value
-	_thoughts = VillageThoughts.new(_rng)
 	_needs = VillageNeeds.new(_rng)
 	_farm_labor = VillageFarmLabor.new()
 	_farm_seeding = VillageFarmSeeding.new()
@@ -194,7 +181,7 @@ func populate(count: int) -> void:
 		var villager := Villager.new(
 			"villager_%d" % villagers.size(),
 			_rng.randf() < 0.5,
-			_thoughts.random_thought()
+			""
 		)
 		villager.age_years = _rng.randi_range(MIN_STARTING_AGE_YEARS, MAX_STARTING_AGE_YEARS)
 		villager.villager_name = NAME_POOL[_rng.randi_range(0, NAME_POOL.size() - 1)]
@@ -256,19 +243,6 @@ func _group_into_families(new_villagers: Array[Villager]) -> void:
 		i += size
 
 
-func reroll_thought(villager: Villager, pantheon: Pantheon) -> void:
-	_thoughts.reroll_thought(villager, pantheon)
-
-
-## Call once per frame/tick; Village itself has no _process.
-func advance_thoughts(delta: float, pantheon: Pantheon) -> void:
-	_thoughts.advance_thoughts(villagers, delta, pantheon)
-
-
-func resolve_wish(wish: Wish, pantheon: Pantheon) -> void:
-	_thoughts.resolve_wish(wish, pantheon)
-
-
 func check_eating(villager: Villager) -> String:
 	return _needs.check_eating(villager)
 
@@ -296,7 +270,15 @@ func advance_farms(delta: float, absolute_time: float = 0.0) -> void:
 ## Call once per frame/tick; Village itself has no _process. Detection
 ## only -- no Task, no offspring (issue #41; see issue #42).
 func advance_pairing(delta: float) -> void:
+	var previously_paired: Array[bool] = []
+	for villager in villagers:
+		previously_paired.append(villager.paired_with != null)
 	_pairing.advance_pairing(villagers, delta)
+	for i in villagers.size():
+		var partner: Villager = villagers[i].paired_with
+		# id < partner.id: log the pair once, not once per side.
+		if not previously_paired[i] and partner != null and villagers[i].id < partner.id:
+			event_log.log_event("%s paired with %s" % [villagers[i].villager_name, partner.villager_name])
 
 
 func should_interrupt(current_task: Task, candidate: Task) -> bool:
@@ -307,8 +289,16 @@ func should_interrupt(current_task: Task, candidate: Task) -> bool:
 ## redirect its Mover. `observed_at` (default the epoch, i.e. no real time
 ## source) only matters when this assignment interrupts a running Task
 ## while carrying cargo — see interrupt_task().
+## Kinds routine/frequent enough (multiple times per in-game day) that
+## logging every start would be noise, not a notable event.
+const _ROUTINE_TASK_KINDS: Array[String] = [Task.KIND_EAT, Task.KIND_SLEEP, Task.KIND_IDLE]
+
+
 func advance_task_assignment(villager: Villager, observed_at: float = 0.0) -> bool:
-	return _tasks.advance_task_assignment(villager, farms, known_resources, observed_at)
+	var assigned := _tasks.advance_task_assignment(villager, farms, known_resources, observed_at)
+	if assigned and not _ROUTINE_TASK_KINDS.has(villager.current_task.kind):
+		event_log.log_event("%s started a %s task" % [villager.villager_name, villager.current_task.kind])
+	return assigned
 
 
 func task_destination(task: Task, villager: Villager) -> Vector3:
@@ -337,6 +327,7 @@ func advance_sleeping(villager: Villager, delta: float) -> void:
 func advance_gestation(villager: Villager, delta: float) -> void:
 	if _tasks.advance_gestation(villager, delta):
 		_spawn_newborn()
+		event_log.log_event("%s and %s had a child" % [villager.villager_name, villager.paired_with.villager_name])
 
 
 ## Adds exactly one newborn Villager, generated the same way populate()

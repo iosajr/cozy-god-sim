@@ -40,3 +40,17 @@ func test_build_includes_name_and_systems_summary_and_queued_titles() -> void:
 	assert_true(prompt.contains("Villager: Noor"))
 	assert_true(prompt.contains("Villages have Houses."))
 	assert_true(prompt.contains("- Fix the gate"))
+	assert_true(prompt.contains("(nothing notable yet)"), "recent_history should default when omitted")
+
+
+func test_build_includes_recent_history_when_given() -> void:
+	var villager := {"name": "Noor"}
+	var village := {"population": 6}
+	var titles: Array[String] = []
+
+	var prompt := VillagerIdeasPrompt.build(
+		villager, village, "", titles, "- Noor started a Collect task\n- Ravi paired with Sena"
+	)
+
+	assert_true(prompt.contains("Noor started a Collect task"))
+	assert_true(prompt.contains("Ravi paired with Sena"))

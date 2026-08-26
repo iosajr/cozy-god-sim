@@ -1,8 +1,8 @@
 extends GutTest
 ## Tests for systems/village.gd's own surface: population, Known Territory,
-## Houses, and TaskProvider identity. Thought/Wish, Needs, Task, and Farm
-## behavior have their own test files (test_village_thoughts.gd,
-## test_village_needs.gd, test_village_tasks.gd, test_village_farms.gd).
+## Houses, and TaskProvider identity. Needs, Task, and Farm behavior have
+## their own test files (test_village_needs.gd, test_village_tasks.gd,
+## test_village_farms.gd).
 
 
 func test_populate_creates_n_villagers() -> void:
@@ -13,14 +13,15 @@ func test_populate_creates_n_villagers() -> void:
 	assert_eq(village.villagers.size(), 6)
 
 
-func test_populated_villager_has_faith_flag_and_thought_from_pool() -> void:
+func test_populated_villager_has_faith_flag_and_no_canned_thought() -> void:
 	var village := Village.new()
 
 	village.populate(1)
 
 	var villager: Villager = village.villagers[0]
 	assert_typeof(villager.has_faith, TYPE_BOOL)
-	assert_has(VillageThoughts.THOUGHT_POOL, villager.current_thought)
+	assert_eq(villager.current_thought, "")
+	assert_eq(villager.current_wish, "")
 
 
 func test_populated_villager_starts_at_a_believable_adult_age() -> void:

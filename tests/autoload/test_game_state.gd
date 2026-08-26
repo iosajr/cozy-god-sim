@@ -23,9 +23,6 @@ func test_game_state_village_defaults_to_an_empty_village_not_null() -> void:
 
 
 func test_game_state_exposes_a_pantheon_not_null() -> void:
-	# issue #3 deferred this on purpose; issue #4 fills it in so
-	# village_spawner.gd has something to pass into Village's Wish-linking
-	# (see systems/village.gd's resolve_wish()).
 	var gs: Node = autofree(preload("res://autoload/game_state.gd").new())
 
 	assert_not_null(gs.pantheon, "pantheon should never be null — a real Pantheon, not a missing one")
