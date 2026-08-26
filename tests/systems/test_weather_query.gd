@@ -79,3 +79,45 @@ func test_answers_a_position_time_pair_nothing_has_actively_simulated() -> void:
 	var category: String = WeatherQuery.category_at(position, absolute_time)
 
 	assert_true(category is String and category != "")
+
+
+# --- Pantheon-forced overrides (issue #58) ---
+#
+# category_at() is the single entry point callers use; a registered
+# WeatherOverrides interval is checked transparently inside it, so any
+# caller (including #59's farm-watering hook) gets override-awareness for
+# free without changing how it calls this function.
+
+
+func after_each() -> void:
+	WeatherOverrides.clear_all()
+
+
+func test_category_at_returns_the_forced_state_inside_an_active_override() -> void:
+	var position := Vector3(12.0, 0.0, -34.0)
+	var absolute_time := 57.5
+	var base: String = WeatherQuery.category_at(position, absolute_time)
+	var forced := WeatherQuery.CATEGORY_STORM if base != WeatherQuery.CATEGORY_STORM else WeatherQuery.CATEGORY_CLEAR
+	WeatherOverrides.register(position, forced, absolute_time - 1.0, absolute_time + 1.0)
+
+	assert_eq(WeatherQuery.category_at(position, absolute_time), forced)
+
+
+func test_category_at_is_unaffected_by_an_override_at_a_different_position() -> void:
+	var position := Vector3(12.0, 0.0, -34.0)
+	var absolute_time := 57.5
+	var base: String = WeatherQuery.category_at(position, absolute_time)
+	WeatherOverrides.register(
+		Vector3(9000.0, 0.0, 9000.0), WeatherQuery.CATEGORY_STORM, absolute_time - 1.0, absolute_time + 1.0, 1.0
+	)
+
+	assert_eq(WeatherQuery.category_at(position, absolute_time), base)
+
+
+func test_category_at_is_unaffected_by_an_override_before_or_after_its_interval() -> void:
+	var position := Vector3(12.0, 0.0, -34.0)
+	var absolute_time := 57.5
+	var base: String = WeatherQuery.category_at(position, absolute_time)
+	WeatherOverrides.register(position, WeatherQuery.CATEGORY_STORM, absolute_time + 10.0, absolute_time + 20.0)
+
+	assert_eq(WeatherQuery.category_at(position, absolute_time), base)
