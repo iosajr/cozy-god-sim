@@ -20,6 +20,12 @@ func test_role_reflects_farming_interest_not_a_job_title() -> void:
 	assert_eq(VillagerIdeasPrompt.role_from_state({"is_farmer": false}), "villager")
 
 
+func test_standing_reports_renowned_over_faith() -> void:
+	assert_eq(VillagerIdeasPrompt.standing_from_state({"is_renowned": true, "has_faith": true}), "renowned")
+	assert_eq(VillagerIdeasPrompt.standing_from_state({"is_renowned": false, "has_faith": true}), "faith")
+	assert_eq(VillagerIdeasPrompt.standing_from_state({"is_renowned": false, "has_faith": false}), "")
+
+
 func test_queued_block_reports_placeholder_when_empty() -> void:
 	var empty: Array[String] = []
 	assert_eq(VillagerIdeasPrompt.queued_block(empty), "- (nothing queued yet)")
