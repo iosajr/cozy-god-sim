@@ -337,3 +337,61 @@ func test_same_seed_produces_the_same_families_and_farmer_bias() -> void:
 		var family_b: Family = village_b.villagers[i].family
 		assert_eq(family_a.has_farming_bias, family_b.has_farming_bias)
 		assert_eq(family_a.members.size(), family_b.members.size())
+
+
+# --- Renowned starters (issue #56) ---
+
+
+func test_populate_seeds_a_couple_of_starter_villagers_as_renowned() -> void:
+	var village := Village.new(1)
+
+	village.populate(6)
+
+	var renowned_count := 0
+	for villager: Villager in village.villagers:
+		if villager.is_renowned:
+			renowned_count += 1
+	assert_eq(renowned_count, Village.STARTER_RENOWNED_COUNT)
+
+
+func test_renowned_starters_also_have_faith_per_gain_favored() -> void:
+	var village := Village.new(1)
+
+	village.populate(6)
+
+	for villager: Villager in village.villagers:
+		if villager.is_renowned:
+			assert_true(villager.has_faith)
+
+
+func test_non_renowned_starters_get_no_forced_faith_or_favored() -> void:
+	var village := Village.new(1)
+
+	village.populate(6)
+
+	var seen_non_renowned := false
+	for villager: Villager in village.villagers:
+		if not villager.is_renowned:
+			seen_non_renowned = true
+			assert_eq(villager.favored, 0.0)
+	assert_true(seen_non_renowned)
+
+
+func test_same_seed_produces_the_same_renowned_starters() -> void:
+	var village_a := Village.new(42)
+	village_a.populate(6)
+
+	var village_b := Village.new(42)
+	village_b.populate(6)
+
+	for i in 6:
+		assert_eq(village_a.villagers[i].is_renowned, village_b.villagers[i].is_renowned)
+
+
+func test_a_later_populate_call_does_not_renown_the_new_villagers() -> void:
+	var village := Village.new(1)
+	village.populate(6)
+
+	village.populate(1)
+
+	assert_false(village.villagers[6].is_renowned)
