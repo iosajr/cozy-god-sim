@@ -12,6 +12,14 @@ signal resource_changed(resource_name: String, amount: int)
 @export var day_speed: float = 0.25
 @export var paused: bool = false
 
+## Absolute, ever-increasing point in game time (total elapsed game-hours),
+## alongside time_of_day above: never wraps, so a later system (e.g. issue
+## #57's weather query) can ask "how far has game time progressed overall"
+## and get a value that keeps growing day over day instead of looping.
+## Starts equal to time_of_day's default -- keep the two literals in sync
+## if that starting hour ever changes.
+var absolute_game_time: float = 8.0
+
 ## No "faith" key — Faith is a per-Folk trait, not a global stockpile.
 var resources: Dictionary = {
 	"food": 100,
@@ -30,6 +38,7 @@ func _process(delta: float) -> void:
 		return
 	time_of_day = fmod(time_of_day + delta * day_speed, 24.0)
 	time_of_day_changed.emit(time_of_day)
+	absolute_game_time += delta * day_speed
 
 
 func add_resource(resource_name: String, amount: int) -> void:
