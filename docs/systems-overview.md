@@ -166,6 +166,34 @@ The gap between that and everything below is most of the project.
   is the "weather system" the Farm Labor section above deferred rain's
   durational-watering question to — that question is still open, just no
   longer blocked on this existing.
+- **Pantheon-forced overrides — Done (issue #58)**: `systems/weather_overrides.gd`
+  (`WeatherOverrides`, a static registry) lets a caller `register(position,
+  category, start_time, end_time, radius)` a forced weather state over an
+  area/time span — consistent with existing Pantheon lore that a God can
+  act "deliberately, at will." `WeatherQuery.category_at()` checks a
+  covering override first, transparently, before falling back to the
+  deterministic base — so every existing and future caller (farm
+  watering below, the visual overlay) gets override-awareness for free
+  with no signature change. Overrides are plain registered data, not
+  separately simulated. `radius` (default 20.0) is an addition beyond
+  the issue's own text — a zero-radius override tied to an exact
+  `Vector3` would only ever match that one point, which isn't a usable
+  "area" for a real caller.
+- **Weather visual — Done**: `systems/weather_field.gd`
+  (`WeatherField.bake_image()`, GUT-tested) bakes a grid of real
+  `WeatherQuery` samples into an `Image`, so a ground-covering overlay
+  plane (`scripts/weather_field.gd`, `scenes/weather_field.tscn`,
+  instanced into `main.tscn`) shows actual weather regions with visible
+  borders across the world rather than one flat value — reused directly
+  rather than reimplementing the noise function, so nothing can drift
+  out of sync with the real query. Unshaded, translucent, no particles
+  and no lighting changes — `systems/weather_visual.gd` maps a category
+  to a tint/intensity, tuned for legibility (overcast is the
+  statistically most common category, so it needs its own distinct,
+  fairly dark tint to read at a glance, not just the rarer ones). A
+  plain "Weather: X" text label (sampled at the Village's site position)
+  gives an unambiguous readout alongside the visual, since the overlay's
+  color alone isn't enough to identify which category is active.
 - **Farm watering hook — Done (issue #59)**: `systems/village_farms.gd`
   now answers that durational-watering question — it replaced its old
   RNG-based periodic "it rained" stand-in outright. Each tick,
@@ -924,6 +952,24 @@ Roadmap items below.
 
 ## Listening and Acting
 
+- **Ollama client decoupled from a custom model — Done (issue #48)**:
+  `systems/ollama_chat_client.gd`'s `OllamaChatClient.SYSTEM_PROMPT`
+  holds the full `IN CHARACTER:`/`WISH:` contract in Godot/git (ported
+  verbatim from the old hand-built `villager-ideas` Ollama Modelfile's
+  `SYSTEM` block), sent as an explicit chat `system` message on every
+  request. `DEFAULT_MODEL` (`phi4-mini`, the plain base the custom model
+  was built from) is a constructor-overridable default — nothing
+  requires the custom Modelfile build to exist anymore.
+- **Recent-event history — Done (issue #51)**: `systems/village_event_log.gd`
+  (`VillageEventLog`, GUT-tested) is an append-only per-Village log,
+  capped to `MAX_CHARS` the same hard-budget way as
+  `systems_overview_reader.gd`/`queued_tickets_reader.gd` — more history
+  existing never means more gets sent. `Village.event_log` logs real
+  choke points it already owns: a non-routine Task starting (eat/sleep/
+  idle excluded as noise), a pair forming, and gestation completing into
+  a newborn. `VillagerIdeasPrompt.build()` takes this as an optional
+  `recent_history` param, included as its own prompt section alongside
+  the existing instant-snapshot situation lines.
 - **Thought**/**Wish**: Renowned-only now (issue #49) — plain `String`
   fields on `Villager`, empty by default, populated only through a
   Renowned Folk member's LLM-driven interaction (the villager-ideas
@@ -941,6 +987,19 @@ Roadmap items below.
   `OllamaChatClient` with `VillageEventLog`'s recent-history context
   included. A fresh response is shown with an explicit remember/dismiss
   choice before anything is persisted for reuse.
+- **Folk Console — Done (issue #53)**: `ui/folk_console.gd`/`.tscn`
+  (renamed from `villager_ideas_review` — entity-agnostic, not
+  Villager-specific) is a developer console reading `GameState.village`'s
+  real, currently-spawned Folk directly (no throwaway population). No
+  longer a standalone F6 scene, since it needs live state — instanced
+  hidden into `main.tscn`, toggled with F2 (`scripts/main.gd`). Shows the
+  built prompt (model default + #48's system prompt + #51's recent
+  history) pre-filled in an editable box, with an editable model-name
+  field. Approving a Wish appends to `systems/wish_archive.gd`'s local
+  Resource (`res://data/approved_wishes.tres`) — no network/`gh` call;
+  replaces the old `gh issue create`-based publisher entirely. Distinct
+  from the Renowned-click flow above: this always asks fresh, it's a
+  tuning tool, not the gameplay path.
 - **Petition**: per `CONTEXT.md`, specifically a *Player* action —
   drawing a God's attention to a Wish. Deliberately not what the planned
   next slice builds: Player-input design is being deferred, so that
