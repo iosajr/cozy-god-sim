@@ -44,6 +44,18 @@ const FAMILY_FARMING_BIAS_CHANCE: float = 0.25
 ## defended.
 const FARMER_CHANCE_WITH_FAMILY_BIAS: float = 0.85
 
+## How many of the very first populate() call's Villagers start already
+## Renowned (issue #56, spec'd in #54's "Seeding" section) -- so a
+## Renowned Folk member is always immediately available to interact with,
+## rather than every starter needing to climb Faith->Renown from zero.
+## Only applies to the Village's starting population (see populate()'s
+## is_starting_population check below) -- a later populate() call, e.g.
+## _spawn_newborn()'s populate(1), never forces this. Fixed/tunable, not
+## randomized: the first STARTER_RENOWNED_COUNT Villagers in creation
+## order are chosen, so this stays deterministic without consuming any
+## extra RNG draws (existing seeded-populate() tests are unaffected).
+const STARTER_RENOWNED_COUNT: int = 2
+
 ## Minimal, mechanical placeholder pool (issue #43) -- plain first names,
 ## not worldbuilding/naming lore.
 const NAME_POOL: Array[String] = [
@@ -183,6 +195,7 @@ func _init(seed_value: int = -1) -> void:
 
 
 func populate(count: int) -> void:
+	var is_starting_population := villagers.is_empty()
 	var new_villagers: Array[Villager] = []
 	for i in count:
 		var villager := Villager.new(
@@ -201,6 +214,20 @@ func populate(count: int) -> void:
 			FARMER_CHANCE_WITH_FAMILY_BIAS if villager.family.has_farming_bias else FARMER_CHANCE
 		)
 		villager.is_farmer = _rng.randf() < farmer_chance
+	if is_starting_population:
+		_seed_renowned_starters(new_villagers)
+
+
+## Forces the first STARTER_RENOWNED_COUNT of the starting population's
+## Villagers (in creation order) to already be Renowned -- see
+## STARTER_RENOWNED_COUNT's own comment. Routes through
+## Folk.gain_favored() (rather than setting is_renowned directly) so
+## Renown's documented Faith prerequisite stays honored: has_faith also
+## ends up true, per gain_favored()'s own crossing logic.
+func _seed_renowned_starters(new_villagers: Array[Villager]) -> void:
+	var renowned_count: int = mini(STARTER_RENOWNED_COUNT, new_villagers.size())
+	for i in renowned_count:
+		new_villagers[i].gain_favored(Folk.DEFAULT_RENOWN_THRESHOLD)
 
 
 ## Groups this populate() call's freshly-created Villagers into Families

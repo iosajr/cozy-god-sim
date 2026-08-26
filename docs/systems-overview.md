@@ -894,6 +894,20 @@ Roadmap items below.
   toward a mythological form (horse → centaur, tree → dryad, etc.) — this
   implies each such species eventually needs a Renown-variant asset, which
   is a real content cost worth remembering when scoping species.
+  - **Starter Renowned seeding — Done (issue #56, part of #54)**:
+    `Village.populate()`'s very first call (i.e. `villagers` empty
+    beforehand — a later `populate()` call, like `_spawn_newborn()`'s
+    `populate(1)`, is unaffected) now forces the first
+    `Village.STARTER_RENOWNED_COUNT` Villagers in creation order through
+    `Folk.gain_favored(Folk.DEFAULT_RENOWN_THRESHOLD)`, so they land
+    `is_renowned == true` with `has_faith == true` alongside it (Renown's
+    Faith prerequisite, above) — a Renowned Folk member (and the #46/#52
+    Renowned-click LLM flow it unlocks) is available immediately rather
+    than waiting on Favored accrual from zero. Deterministic by
+    construction (first-N-by-creation-order, no extra RNG draw), not by
+    reseeding, so it doesn't disturb existing seeded-`populate()` tests.
+    The rest of the starting population is untouched: no forced Faith/
+    Favored beyond the chosen few.
 
 ## UI / presentation directions (not decided in detail — early sketch)
 
