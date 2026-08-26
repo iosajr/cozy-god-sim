@@ -6,6 +6,13 @@ extends RefCounted
 ## incremental per-tick simulation and no stored running state -- a
 ## position/time nothing has actively simulated yet is answered exactly the
 ## same way as one that has, purely from the noise function of the inputs.
+##
+## A Pantheon-forced WeatherOverrides interval (issue #58) is checked
+## transparently inside category_at() before falling back to the noise
+## function below, so this stays the one entry point every caller
+## (including issue #59's farm-watering hook) uses to get override-aware
+## weather -- overrides are still plain registered data, not something
+## simulated per-tick.
 
 const CATEGORY_CLEAR := "clear"
 const CATEGORY_OVERCAST := "overcast"
@@ -33,8 +40,14 @@ const STORM_THRESHOLD: float = 0.5
 ## `absolute_time` (an absolute game-time value, e.g.
 ## `GameState.absolute_game_time`). Deterministic: the same pair always
 ## produces the same category, with zero dependency on call order or
-## anything simulated in between.
+## anything simulated in between -- except for a currently-active
+## WeatherOverrides interval at that exact position/time, which takes
+## precedence over the deterministic base computed below.
 static func category_at(position: Vector3, absolute_time: float) -> String:
+	var forced := WeatherOverrides.category_at(position, absolute_time)
+	if forced != "":
+		return forced
+
 	var noise := FastNoiseLite.new()
 	noise.seed = NOISE_SEED
 	var value: float = noise.get_noise_3d(
