@@ -4,7 +4,7 @@ extends ColorRect
 ## whole world -- see WeatherVisual for the category-to-tint/intensity
 ## mapping. Polls on a timer (WeatherQuery has no change signal to hook)
 ## and queries at the Village's site_position, same reference point Farm
-## watering already uses (issue #59).
+## watering already uses.
 
 @export var poll_interval_seconds: float = 1.0
 
