@@ -60,10 +60,15 @@ func advance(delta: float, seconds_per_year: float = DEFAULT_SECONDS_PER_YEAR) -
 ## `source_ref` is given, dedupes against it: a repeat call with the same
 ## source_ref (e.g. the same still-active WeatherOverride instance) is a
 ## no-op rather than a second entry. Omit source_ref for one-off events
-## that never need dedup.
-func log_divine_exposure(kind: String, detail: String, absolute_time: float, source_ref: Object = null) -> void:
+## that never need dedup. Returns true when an entry was actually
+## appended, false on a deduped no-op -- issue #61's discrete Favored
+## grant fires only on the true case, so a caller re-checking every frame
+## against the same still-active source doesn't re-grant Favored each
+## frame either.
+func log_divine_exposure(kind: String, detail: String, absolute_time: float, source_ref: Object = null) -> bool:
 	if source_ref != null:
 		if _logged_exposure_sources.has(source_ref):
-			return
+			return false
 		_logged_exposure_sources.append(source_ref)
 	divine_exposures.append(DivineExposure.new(kind, detail, absolute_time))
+	return true

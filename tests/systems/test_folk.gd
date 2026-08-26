@@ -238,3 +238,23 @@ func test_log_divine_exposure_without_a_source_ref_never_dedupes() -> void:
 	folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 2.0)
 
 	assert_eq(folk.divine_exposures.size(), 2)
+
+
+func test_log_divine_exposure_returns_true_when_it_appends_an_entry() -> void:
+	# Issue #61's discrete Favored grant hooks off this return value -- a
+	# caller only gains Favored when an entry was actually logged.
+	var folk := Folk.new("f1", true)
+
+	var logged := folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 1.0)
+
+	assert_true(logged)
+
+
+func test_log_divine_exposure_returns_false_when_deduped_by_source_ref() -> void:
+	var folk := Folk.new("f1", true)
+	var source_ref := RefCounted.new()
+
+	folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 1.0, source_ref)
+	var logged_again := folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 2.0, source_ref)
+
+	assert_false(logged_again)

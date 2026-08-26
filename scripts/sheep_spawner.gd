@@ -1,7 +1,8 @@
 extends Node3D
 ## Spawns a flock of Sheep as placeholder 3D bodies, mirrors
-## village_spawner.gd's Favored proximity loop, and tints a Sheep's own
-## body (no nameplate exists for Sheep) once it turns Renowned.
+## village_spawner.gd's Favored-from-exposure loop (issue #61), and tints
+## a Sheep's own body (no nameplate exists for Sheep) once it turns
+## Renowned.
 
 ## Off-white wool tone, distinct from Villager's tan capsule.
 const BODY_COLOR: Color = Color(0.93, 0.92, 0.88)
@@ -12,7 +13,10 @@ const BODY_COLOR: Color = Color(0.93, 0.92, 0.88)
 @export var seed_value: int = 5
 @export var camera_rig_path: NodePath = ^"../CameraRig"
 @export var favored_radius: float = 8.0
-@export var favored_gain_rate: float = 5.0
+## Discrete Favored grant per logged divine-exposure entry (issue #61) --
+## no longer a per-second rate, since Favored gain is no longer
+## continuous.
+@export var favored_gain_per_exposure: float = 5.0
 
 var flock: Array[Sheep] = []
 
@@ -31,12 +35,9 @@ func _process(delta: float) -> void:
 	var camera_rig: Node3D = get_node_or_null(camera_rig_path)
 	for a_sheep in flock:
 		a_sheep.advance(delta)
-		FolkSpawnerSupport.maybe_gain_favored(
-			a_sheep, _bodies.get(a_sheep), camera_rig, favored_radius, favored_gain_rate, delta,
-			Folk.DEFAULT_FAITH_THRESHOLD, Sheep.RENOWN_THRESHOLD
-		)
 		FolkSpawnerSupport.maybe_log_divine_exposure(
-			a_sheep, _bodies.get(a_sheep), camera_rig, favored_radius, GameState.absolute_game_time
+			a_sheep, _bodies.get(a_sheep), camera_rig, favored_radius, GameState.absolute_game_time,
+			favored_gain_per_exposure, Folk.DEFAULT_FAITH_THRESHOLD, Sheep.RENOWN_THRESHOLD
 		)
 		_sync_renown_tint(a_sheep)
 		_debug_infos[a_sheep].sync(a_sheep)
