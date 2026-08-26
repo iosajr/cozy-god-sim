@@ -27,7 +27,7 @@ var divine_exposures: Array[DivineExposure] = []
 ## Source objects (e.g. a WeatherOverride instance) already logged, so a
 ## caller re-checking every frame while the same underlying event stays
 ## active/witnessed logs it once, not once per frame.
-var _logged_exposure_sources: Array = []
+var _logged_exposure_sources: Array[Object] = []
 
 
 func _init(p_id: String, p_has_faith: bool) -> void:

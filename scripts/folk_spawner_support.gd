@@ -16,9 +16,7 @@ static func maybe_gain_favored(
 	faith_threshold: float,
 	renown_threshold: float
 ) -> void:
-	if camera_rig == null or body == null:
-		return
-	if body.global_position.distance_to(camera_rig.global_position) <= radius:
+	if _is_within_presence(body, camera_rig, radius):
 		folk.gain_favored(gain_rate * delta, faith_threshold, renown_threshold)
 
 
@@ -39,14 +37,23 @@ static func maybe_log_divine_exposure(
 	radius: float,
 	absolute_time: float
 ) -> void:
-	if camera_rig == null or body == null:
-		return
-	if body.global_position.distance_to(camera_rig.global_position) > radius:
+	if not _is_within_presence(body, camera_rig, radius):
 		return
 	var override := WeatherOverrides.active_override_at(body.global_position, absolute_time)
 	if override == null:
 		return
 	folk.log_divine_exposure("weather_override", override.category, absolute_time, override)
+
+
+## Shared Presence-proximity gate: true if both `body` and `camera_rig`
+## exist and `body` is within `radius` of it. The one proximity check
+## both maybe_gain_favored() and maybe_log_divine_exposure() gate on --
+## kept as a single spot rather than each re-deriving its own
+## distance_to() every frame.
+static func _is_within_presence(body: Node3D, camera_rig: Node3D, radius: float) -> bool:
+	if camera_rig == null or body == null:
+		return false
+	return body.global_position.distance_to(camera_rig.global_position) <= radius
 
 
 ## Appends any item from `spawned` not already present in `target`.
