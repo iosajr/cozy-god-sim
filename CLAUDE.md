@@ -48,6 +48,14 @@ A cozy 3D god-sim / simulation game built in Godot 4 (GDScript).
   work and AFK/cloud agent sessions. Don't go refactor someone else's
   (or another agent's) existing file just to tidy it — extract only what
   your own change needs; leave general untidiness for a deliberate pass.
+- **Comment discipline**: code comments should be one-liners (or nothing)
+  stating current behavior/invariants — the kind of thing that's true
+  regardless of how it got that way. Drop issue-number/decision-history
+  narration (why this shape was chosen, what was considered and
+  rejected, which ticket asked for it); that belongs in git/PR history
+  and `docs/systems-overview.md`, not in the code. If a comment only
+  makes sense to someone who's read the GitHub issue, it belongs in the
+  issue/docs, not next to the code.
 - `GameState` is a bulletin board (shared data + signals), not a place for
   gameplay logic — see the doc comment at the top of `game_state.gd`.
 - Placeholder art in `world_gen.gd` is intentionally disposable — don't
@@ -83,3 +91,9 @@ Default label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`,
 
 Single-context layout: root `CONTEXT.md` + `docs/adr/`. See
 `docs/agents/domain.md`.
+
+### Implementing tickets
+
+What to read before starting (trimmed — not the full docs), and how to
+verify your own work before claiming it's done. See
+`docs/agents/implementing-tickets.md`.
