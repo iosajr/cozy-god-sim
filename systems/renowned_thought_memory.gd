@@ -1,19 +1,18 @@
 class_name RenownedThoughtMemory
 extends RefCounted
 ## Curated store of past {situation signature -> response} pairs for
-## Renowned Folk interactions (issue #46/#50) -- lets a close-enough
-## repeat situation (see systems/renowned_situation_signature.gd) reuse a
-## previously-approved response instead of always asking the model again.
+## Renowned Folk interactions -- lets a close-enough repeat situation
+## (see systems/renowned_situation_signature.gd) reuse a previously-
+## approved response instead of always asking the model again.
 ##
 ## Nothing here calls the model itself -- find()/remember() are plain,
-## directly-testable operations; a later ticket (#52) is what actually
-## wires a live click-to-interact flow through this.
+## directly-testable operations; a live click-to-interact flow wires
+## through this elsewhere.
 ##
 ## remember() is an explicit curation step, never automatic -- callers
 ## decide when a response is worth keeping. Saved entries persist to
 ## DEFAULT_PATH under res://, a deliberate dev-time choice (not user://)
-## so they're easy to hand-inspect/edit; see issue #46's Implementation
-## Decisions.
+## so they're easy to hand-inspect/edit.
 
 const DEFAULT_PATH := "res://data/renowned_thought_memory.tres"
 
