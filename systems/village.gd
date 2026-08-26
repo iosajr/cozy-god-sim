@@ -3,8 +3,8 @@ extends TaskProvider
 ## A collection of Villagers plus their Known Territory, Houses, and Farms.
 ## Plain data/logic, no scene tree (Seam 1). Delegates thought/wish,
 ## needs, task, and farm behavior to systems/village_thoughts.gd,
-## village_needs.gd, village_tasks.gd, village_farms.gd (periodic
-## watering), village_farm_seeding.gd (Seed claim state),
+## village_needs.gd, village_tasks.gd, village_farms.gd (weather-driven
+## watering, issue #59), village_farm_seeding.gd (Seed claim state),
 ## village_farm_watering.gd (Water claim + fetch-leg state),
 ## village_farm_labor.gd (Collect/Deliver claim+carry state),
 ## village_resource_recovery.gd (Recover claim+carry state, issue #37),
@@ -43,6 +43,18 @@ const FAMILY_FARMING_BIAS_CHANCE: float = 0.25
 ## flat baseline a non-biased Family's members still get). Tunable, not
 ## defended.
 const FARMER_CHANCE_WITH_FAMILY_BIAS: float = 0.85
+
+## How many of the very first populate() call's Villagers start already
+## Renowned (issue #56, spec'd in #54's "Seeding" section) -- so a
+## Renowned Folk member is always immediately available to interact with,
+## rather than every starter needing to climb Faith->Renown from zero.
+## Only applies to the Village's starting population (see populate()'s
+## is_starting_population check below) -- a later populate() call, e.g.
+## _spawn_newborn()'s populate(1), never forces this. Fixed/tunable, not
+## randomized: the first STARTER_RENOWNED_COUNT Villagers in creation
+## order are chosen, so this stays deterministic without consuming any
+## extra RNG draws (existing seeded-populate() tests are unaffected).
+const STARTER_RENOWNED_COUNT: int = 2
 
 ## Minimal, mechanical placeholder pool (issue #43) -- plain first names,
 ## not worldbuilding/naming lore.
@@ -103,18 +115,11 @@ var sleep_check_interval_max: float:
 	get: return _needs.sleep_check_interval_max
 	set(value): _needs.sleep_check_interval_max = value
 
-var farm_check_interval_min: float:
-	get: return _farm_periodic_watering.farm_check_interval_min
-	set(value): _farm_periodic_watering.farm_check_interval_min = value
-var farm_check_interval_max: float:
-	get: return _farm_periodic_watering.farm_check_interval_max
-	set(value): _farm_periodic_watering.farm_check_interval_max = value
-var rain_chance: float:
-	get: return _farm_periodic_watering.rain_chance
-	set(value): _farm_periodic_watering.rain_chance = value
-var rain_water_amount: float:
-	get: return _farm_periodic_watering.rain_water_amount
-	set(value): _farm_periodic_watering.rain_water_amount = value
+## Dose-per-second applied while it's raining/storming at a Farm's
+## position, forwarded to VillageFarms (issue #59).
+var rain_water_rate: float:
+	get: return _farm_periodic_watering.rain_water_rate
+	set(value): _farm_periodic_watering.rain_water_rate = value
 
 ## Harvested-per-Collect-Task amount, forwarded to VillageFarmLabor.
 var carry_capacity: int:
@@ -176,13 +181,14 @@ func _init(seed_value: int = -1) -> void:
 	_tasks = VillageTasks.new(
 		_rng, _needs, _farm_labor, _farm_seeding, _farm_watering, _resource_recovery
 	)
-	_farm_periodic_watering = VillageFarms.new(_rng)
+	_farm_periodic_watering = VillageFarms.new()
 	_pairing = VillagePairing.new()
 	var starting_tags: Array[String] = ["village"]
 	known_locations.append(Location.new(STARTING_LOCATION_NAME, starting_tags))
 
 
 func populate(count: int) -> void:
+	var is_starting_population := villagers.is_empty()
 	var new_villagers: Array[Villager] = []
 	for i in count:
 		var villager := Villager.new(
@@ -201,6 +207,20 @@ func populate(count: int) -> void:
 			FARMER_CHANCE_WITH_FAMILY_BIAS if villager.family.has_farming_bias else FARMER_CHANCE
 		)
 		villager.is_farmer = _rng.randf() < farmer_chance
+	if is_starting_population:
+		_seed_renowned_starters(new_villagers)
+
+
+## Forces the first STARTER_RENOWNED_COUNT of the starting population's
+## Villagers (in creation order) to already be Renowned -- see
+## STARTER_RENOWNED_COUNT's own comment. Routes through
+## Folk.gain_favored() (rather than setting is_renowned directly) so
+## Renown's documented Faith prerequisite stays honored: has_faith also
+## ends up true, per gain_favored()'s own crossing logic.
+func _seed_renowned_starters(new_villagers: Array[Villager]) -> void:
+	var renowned_count: int = mini(STARTER_RENOWNED_COUNT, new_villagers.size())
+	for i in renowned_count:
+		new_villagers[i].gain_favored(Folk.DEFAULT_RENOWN_THRESHOLD)
 
 
 ## Groups this populate() call's freshly-created Villagers into Families
@@ -265,8 +285,12 @@ func advance_sleep_checks(delta: float) -> void:
 	_needs.advance_sleep_checks(villagers, delta)
 
 
-func advance_farms(delta: float) -> void:
-	_farm_periodic_watering.advance_farms(farms, delta)
+## `absolute_time` (default 0.0, e.g. `GameState.absolute_game_time`) is
+## the point in game time the weather check is made at (issue #59) --
+## same optional-default pattern as advance_task_assignment()'s
+## observed_at, for callers/tests that don't have/care about one.
+func advance_farms(delta: float, absolute_time: float = 0.0) -> void:
+	_farm_periodic_watering.advance_farms(farms, delta, absolute_time)
 
 
 ## Call once per frame/tick; Village itself has no _process. Detection

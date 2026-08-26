@@ -11,7 +11,11 @@ now there mostly aren't any yet.
 
 - `autoload/game_state.gd`: a `time_of_day`/`day_speed` clock, a flat
   `resources` dict (`food`, `wood`), and `village: Village` (a real
-  Village, replacing the old `population: int` headcount).
+  Village, replacing the old `population: int` headcount). Also tracks
+  `absolute_game_time` alongside `time_of_day` (issue #55) — same
+  hours-per-second growth, but never wraps at 24.0, so a later system
+  (issue #57's weather query) has a strictly-increasing time axis to key
+  off instead of a repeating 0.0-24.0 value.
 - `systems/village.gd` / `systems/villager.gd`: real Villager entities
   with a Faith bool (stored, not gating anything yet — no Presence
   exists to gate) and a cycling Thought, shown via
@@ -153,6 +157,67 @@ The gap between that and everything below is most of the project.
   nature" or a deliberate act by the associated God — the distinction only
   matters for the Gods'/Player's own bookkeeping, never surfaced as a
   difference in-world.
+
+## Weather (part of #54, not in CONTEXT.md yet)
+
+- **Base query — Done (issue #57)**: `systems/weather_query.gd`'s
+  `WeatherQuery.category_at(position, absolute_time)` is a pure, stateless
+  static query — clear/overcast/rain/storm from a seeded `FastNoiseLite`
+  sampled over world position and issue #55's `absolute_game_time` axis.
+  No per-tick simulation and no running state: the same (position, time)
+  pair always answers the same way, including one nothing has actively
+  simulated before, and varies along both the position and the
+  ever-growing absolute-time axis (not just a repeating daily cycle). This
+  is the "weather system" the Farm Labor section above deferred rain's
+  durational-watering question to — that question is still open, just no
+  longer blocked on this existing.
+- **Farm watering hook — Done (issue #59)**: `systems/village_farms.gd`
+  now answers that durational-watering question — it replaced its old
+  RNG-based periodic "it rained" stand-in outright. Each tick,
+  `Village.advance_farms(delta, absolute_time)` checks
+  `WeatherQuery.category_at(farm.position, absolute_time)` for every Farm
+  and, when the category is rain or storm, calls `Farm.water()`
+  (unchanged — still agnostic about why) with a dose scaled by `delta`
+  via a tunable `rain_water_rate`, so watering accumulates continuously
+  for however long it keeps raining at that Farm's position rather than
+  an instant top-up. The decision itself
+  (`VillageFarms.should_water_from_weather(category, farm)`) is a pure
+  static function of the query's category output plus the Farm's own
+  stage — unit-testable with no scene tree, same as the query it calls
+  into. No Water Task is needed for this path; the manual Water Task
+  (`village_farm_watering.gd`) is untouched and still available
+  independently.
+- **General divine-exposure memory — Done (issue #60)**: a
+  `systems/divine_exposure.gd` (`DivineExposure`: `kind`/`detail`/
+  `absolute_time`) plus a `divine_exposures: Array[DivineExposure]` field
+  on `systems/folk.gd`'s shared `Folk` base — any Folk (Villager, Sheep,
+  or a future plant Folk) can log/read "apparent divine" events it
+  witnessed, starting with a god-forced `WeatherOverride` (#58) happening
+  nearby. `FolkSpawnerSupport.maybe_log_divine_exposure()` gates logging
+  on a camera_rig-distance Presence-proximity check (a placeholder for
+  "Presence needs the Player's actual attention," not a deep new
+  Presence subsystem), and on `WeatherOverrides.active_override_at()` (a
+  new sibling to `category_at()` that returns the covering override
+  object, used to dedupe repeat frames of the same still-active override
+  into one log entry). Both `village_spawner.gd` and `sheep_spawner.gd`
+  call it, so this reuses the same shared spawner-support path both
+  Villagers and animal/plant Folk already go through. Deliberately its
+  own store — no shared storage or coupling with the Renowned-only
+  curated LLM-thought memory (#46/#50).
+- **Favored-gain from exposure, not proximity-timer — Done (issue #61)**:
+  `FolkSpawnerSupport.maybe_gain_favored()` — the old continuous
+  per-frame "camera is near" timer — is gone outright, not supplemented.
+  Favored now rises in a discrete step at the exact moment
+  `maybe_log_divine_exposure()` above actually logs a new entry (i.e.
+  `Folk.log_divine_exposure()` returns `true`, not a deduped repeat of
+  the same still-active source): it then calls the unchanged
+  `Folk.gain_favored()` with a flat `favored_gain_amount`, so the
+  existing Faith/Renown threshold-crossing math is untouched — only what
+  feeds it changed. `village_spawner.gd`/`sheep_spawner.gd`'s old
+  `favored_gain_rate` (a per-second rate, scaled by `delta`) is renamed
+  `favored_gain_per_exposure` (a flat per-event amount) to match. Mere
+  proximity with nothing logged — no active override, out of range, or a
+  repeat frame of an override already logged — grants no Favored at all.
 
 ## Survival (not in CONTEXT.md yet — still being sharpened)
 
@@ -890,6 +955,20 @@ Roadmap items below.
   toward a mythological form (horse → centaur, tree → dryad, etc.) — this
   implies each such species eventually needs a Renown-variant asset, which
   is a real content cost worth remembering when scoping species.
+  - **Starter Renowned seeding — Done (issue #56, part of #54)**:
+    `Village.populate()`'s very first call (i.e. `villagers` empty
+    beforehand — a later `populate()` call, like `_spawn_newborn()`'s
+    `populate(1)`, is unaffected) now forces the first
+    `Village.STARTER_RENOWNED_COUNT` Villagers in creation order through
+    `Folk.gain_favored(Folk.DEFAULT_RENOWN_THRESHOLD)`, so they land
+    `is_renowned == true` with `has_faith == true` alongside it (Renown's
+    Faith prerequisite, above) — a Renowned Folk member (and the #46/#52
+    Renowned-click LLM flow it unlocks) is available immediately rather
+    than waiting on Favored accrual from zero. Deterministic by
+    construction (first-N-by-creation-order, no extra RNG draw), not by
+    reseeding, so it doesn't disturb existing seeded-`populate()` tests.
+    The rest of the starting population is untouched: no forced Faith/
+    Favored beyond the chosen few.
 
 ## UI / presentation directions (not decided in detail — early sketch)
 

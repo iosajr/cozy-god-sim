@@ -42,7 +42,7 @@ func _process(delta: float) -> void:
 	if village != _last_synced_village:
 		FolkSpawnerSupport.sync_new_items(farms, village.farms)
 		_last_synced_village = village
-	village.advance_farms(delta)
+	village.advance_farms(delta, GameState.absolute_game_time)
 	for farm in farms:
 		_sync_stage_tint(farm)
 

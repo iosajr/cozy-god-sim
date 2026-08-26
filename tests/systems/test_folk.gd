@@ -156,3 +156,105 @@ func test_advance_does_not_affect_favored_or_faith() -> void:
 	assert_eq(folk.favored, 0.0)
 	assert_false(folk.has_faith)
 	assert_false(folk.is_renowned)
+
+
+## Divine-exposure memory (issue #60): a general, persisted log of
+## "apparent divine" events any Folk member witnessed -- starting with a
+## god-forced weather override (#58) happening nearby. Deliberately its
+## own array/API, distinct from (and never coupled to) the Renowned-only
+## curated LLM-thought memory (#46/#50) -- these tests exercise it in
+## isolation, no scene tree involved.
+
+
+func test_divine_exposures_starts_empty() -> void:
+	var folk := Folk.new("f1", true)
+
+	assert_eq(folk.divine_exposures.size(), 0)
+
+
+func test_log_divine_exposure_appends_an_entry() -> void:
+	var folk := Folk.new("f1", true)
+
+	folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 42.0)
+
+	assert_eq(folk.divine_exposures.size(), 1)
+	var entry: DivineExposure = folk.divine_exposures[0]
+	assert_eq(entry.kind, "weather_override")
+	assert_eq(entry.detail, WeatherQuery.CATEGORY_STORM)
+	assert_eq(entry.absolute_time, 42.0)
+
+
+func test_log_divine_exposure_accumulates_distinct_entries() -> void:
+	var folk := Folk.new("f1", true)
+
+	folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 42.0)
+	folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_RAIN, 90.0)
+
+	assert_eq(folk.divine_exposures.size(), 2)
+
+
+func test_log_divine_exposure_does_not_touch_favored_or_thoughts() -> void:
+	# No shared storage/coupling with the Renowned-only curated
+	# LLM-thought memory (#46/#50) or with Favored/Renown -- acceptance
+	# criterion from issue #60.
+	var folk := Folk.new("f1", false)
+
+	folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 1.0)
+
+	assert_eq(folk.favored, 0.0)
+	assert_false(folk.has_faith)
+	assert_false(folk.is_renowned)
+
+
+func test_log_divine_exposure_with_the_same_source_ref_logs_only_once() -> void:
+	# A caller re-checking every frame while the same underlying event
+	# (e.g. a WeatherOverride instance) stays active/witnessed shouldn't
+	# flood the log with duplicate entries -- dedupe by source identity.
+	var folk := Folk.new("f1", true)
+	var source_ref := RefCounted.new()
+
+	folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 1.0, source_ref)
+	folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 2.0, source_ref)
+	folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 3.0, source_ref)
+
+	assert_eq(folk.divine_exposures.size(), 1)
+
+
+func test_log_divine_exposure_with_different_source_refs_logs_each() -> void:
+	var folk := Folk.new("f1", true)
+	var first_source := RefCounted.new()
+	var second_source := RefCounted.new()
+
+	folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 1.0, first_source)
+	folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 2.0, second_source)
+
+	assert_eq(folk.divine_exposures.size(), 2)
+
+
+func test_log_divine_exposure_without_a_source_ref_never_dedupes() -> void:
+	var folk := Folk.new("f1", true)
+
+	folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 1.0)
+	folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 2.0)
+
+	assert_eq(folk.divine_exposures.size(), 2)
+
+
+func test_log_divine_exposure_returns_true_when_it_appends_an_entry() -> void:
+	# Issue #61's discrete Favored grant hooks off this return value -- a
+	# caller only gains Favored when an entry was actually logged.
+	var folk := Folk.new("f1", true)
+
+	var logged := folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 1.0)
+
+	assert_true(logged)
+
+
+func test_log_divine_exposure_returns_false_when_deduped_by_source_ref() -> void:
+	var folk := Folk.new("f1", true)
+	var source_ref := RefCounted.new()
+
+	folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 1.0, source_ref)
+	var logged_again := folk.log_divine_exposure("weather_override", WeatherQuery.CATEGORY_STORM, 2.0, source_ref)
+
+	assert_false(logged_again)

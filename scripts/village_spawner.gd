@@ -2,7 +2,9 @@ extends Node3D
 ## Spawns one Village's Villagers as placeholder 3D bodies + nameplates,
 ## drives their Thought/Wish rerolling, Favored/Renown, Survival, and Task
 ## execution each frame, and opens the dialogue box for a Renowned
-## Villager's click.
+## Villager's click. Favored rises in discrete steps tied to logged
+## divine-exposure entries (issue #61), not continuous per-frame
+## proximity.
 
 @export var villager_count: int = 6
 @export var ground_size: float = 200.0
@@ -13,7 +15,10 @@ extends Node3D
 ## Stands in for the Player's position.
 @export var camera_rig_path: NodePath = ^"../CameraRig"
 @export var favored_radius: float = 8.0
-@export var favored_gain_rate: float = 5.0
+## Discrete Favored grant per logged divine-exposure entry (issue #61) --
+## no longer a per-second rate, since Favored gain is no longer
+## continuous.
+@export var favored_gain_per_exposure: float = 5.0
 @export var dialogue_box_path: NodePath = ^"../DialogueBox"
 @export var villager_move_speed: float = 4.0
 
@@ -89,9 +94,9 @@ func _process(delta: float) -> void:
 			var click_body: StaticBody3D = _click_bodies.get(villager)
 			if click_body and not click_body.is_in_group(CameraRig.DIALOGUE_CLICK_GROUP):
 				click_body.add_to_group(CameraRig.DIALOGUE_CLICK_GROUP)
-		FolkSpawnerSupport.maybe_gain_favored(
-			villager, _bodies.get(villager), camera_rig, favored_radius, favored_gain_rate, delta,
-			Villager.DEFAULT_FAITH_THRESHOLD, Villager.DEFAULT_RENOWN_THRESHOLD
+		FolkSpawnerSupport.maybe_log_divine_exposure(
+			villager, _bodies.get(villager), camera_rig, favored_radius, GameState.absolute_game_time,
+			favored_gain_per_exposure, Villager.DEFAULT_FAITH_THRESHOLD, Villager.DEFAULT_RENOWN_THRESHOLD
 		)
 		_debug_infos[villager].sync(villager)
 
