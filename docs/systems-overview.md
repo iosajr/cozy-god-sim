@@ -171,9 +171,22 @@ The gap between that and everything below is most of the project.
   is the "weather system" the Farm Labor section above deferred rain's
   durational-watering question to — that question is still open, just no
   longer blocked on this existing.
-  - Nothing calls it yet — wiring a real Farm/Village consumer (e.g. rain
-    driving continuous watering rather than the instant top-up) is left to
-    later issues in #54, not scoped into #57.
+- **Farm watering hook — Done (issue #59)**: `systems/village_farms.gd`
+  now answers that durational-watering question — it replaced its old
+  RNG-based periodic "it rained" stand-in outright. Each tick,
+  `Village.advance_farms(delta, absolute_time)` checks
+  `WeatherQuery.category_at(farm.position, absolute_time)` for every Farm
+  and, when the category is rain or storm, calls `Farm.water()`
+  (unchanged — still agnostic about why) with a dose scaled by `delta`
+  via a tunable `rain_water_rate`, so watering accumulates continuously
+  for however long it keeps raining at that Farm's position rather than
+  an instant top-up. The decision itself
+  (`VillageFarms.should_water_from_weather(category, farm)`) is a pure
+  static function of the query's category output plus the Farm's own
+  stage — unit-testable with no scene tree, same as the query it calls
+  into. No Water Task is needed for this path; the manual Water Task
+  (`village_farm_watering.gd`) is untouched and still available
+  independently.
 
 ## Survival (not in CONTEXT.md yet — still being sharpened)
 
