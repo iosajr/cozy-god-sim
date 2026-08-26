@@ -11,7 +11,7 @@
 [ext_resource type="Script" path="res://scripts/house_spawner.gd" id="10_housespawner"]
 [ext_resource type="PackedScene" path="res://scenes/dialogue_box.tscn" id="9_dialoguebox"]
 [ext_resource type="Script" path="res://scripts/farm_spawner.gd" id="11_farmspawner"]
-[ext_resource type="PackedScene" path="res://scenes/weather_overlay.tscn" id="12_weatheroverlay"]
+[ext_resource type="PackedScene" path="res://scenes/weather_field.tscn" id="12_weatherfield"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
 size = Vector2(200, 200)
@@ -117,4 +117,4 @@ surface_material_override/0 = SubResource("StandardMaterial3D_presence")
 
 [node name="DialogueBox" parent="." instance=ExtResource("9_dialoguebox")]
 
-[node name="WeatherOverlay" parent="." instance=ExtResource("12_weatheroverlay")]
+[node name="WeatherField" parent="." instance=ExtResource("12_weatherfield")]
