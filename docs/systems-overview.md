@@ -187,6 +187,25 @@ The gap between that and everything below is most of the project.
   into. No Water Task is needed for this path; the manual Water Task
   (`village_farm_watering.gd`) is untouched and still available
   independently.
+- **General divine-exposure memory — Done (issue #60)**: a
+  `systems/divine_exposure.gd` (`DivineExposure`: `kind`/`detail`/
+  `absolute_time`) plus a `divine_exposures: Array[DivineExposure]` field
+  on `systems/folk.gd`'s shared `Folk` base — any Folk (Villager, Sheep,
+  or a future plant Folk) can log/read "apparent divine" events it
+  witnessed, starting with a god-forced `WeatherOverride` (#58) happening
+  nearby. `FolkSpawnerSupport.maybe_log_divine_exposure()` gates logging
+  on the same camera_rig-distance Presence-proximity check
+  `maybe_gain_favored()` already uses (a placeholder for "Presence needs
+  the Player's actual attention," not a deep new Presence subsystem), and
+  on `WeatherOverrides.active_override_at()` (a new sibling to
+  `category_at()` that returns the covering override object, used to
+  dedupe repeat frames of the same still-active override into one log
+  entry). Both `village_spawner.gd` and `sheep_spawner.gd` call it
+  alongside their existing `maybe_gain_favored()` call, so this reuses
+  the same shared spawner-support path both Villagers and animal/plant
+  Folk already go through. Deliberately its own store — no shared
+  storage or coupling with the Renowned-only curated LLM-thought memory
+  (#46/#50).
 
 ## Survival (not in CONTEXT.md yet — still being sharpened)
 

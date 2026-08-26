@@ -37,10 +37,20 @@ static func register(
 ## adjudicating overlapping overrides at the same place isn't a case this
 ## system needs to handle yet.
 static func category_at(position: Vector3, absolute_time: float) -> String:
+	var override := active_override_at(position, absolute_time)
+	return override.category if override != null else ""
+
+
+## Same lookup as category_at(), but returns the covering WeatherOverride
+## object itself (or null), so a caller can dedupe against the exact
+## override instance rather than just its category string -- e.g. issue
+## #60's divine-exposure logging, which should log once per override, not
+## once per frame it stays active.
+static func active_override_at(position: Vector3, absolute_time: float) -> WeatherOverride:
 	for override: WeatherOverride in _active:
 		if override.covers(position, absolute_time):
-			return override.category
-	return ""
+			return override
+	return null
 
 
 ## Drops every registered override. Primarily for test isolation, since
