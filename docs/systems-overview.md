@@ -158,6 +158,23 @@ The gap between that and everything below is most of the project.
   matters for the Gods'/Player's own bookkeeping, never surfaced as a
   difference in-world.
 
+## Weather (part of #54, not in CONTEXT.md yet)
+
+- **Base query — Done (issue #57)**: `systems/weather_query.gd`'s
+  `WeatherQuery.category_at(position, absolute_time)` is a pure, stateless
+  static query — clear/overcast/rain/storm from a seeded `FastNoiseLite`
+  sampled over world position and issue #55's `absolute_game_time` axis.
+  No per-tick simulation and no running state: the same (position, time)
+  pair always answers the same way, including one nothing has actively
+  simulated before, and varies along both the position and the
+  ever-growing absolute-time axis (not just a repeating daily cycle). This
+  is the "weather system" the Farm Labor section above deferred rain's
+  durational-watering question to — that question is still open, just no
+  longer blocked on this existing.
+  - Nothing calls it yet — wiring a real Farm/Village consumer (e.g. rain
+    driving continuous watering rather than the instant top-up) is left to
+    later issues in #54, not scoped into #57.
+
 ## Survival (not in CONTEXT.md yet — still being sharpened)
 
 - **Shelter**: the actual baseline survival need — could be satisfied by
