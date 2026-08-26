@@ -12,13 +12,13 @@ extends GutTest
 ## inputs known to land in each category.
 
 const CLEAR_POSITION := Vector3.ZERO
-const CLEAR_TIME: float = 686.0
+const CLEAR_TIME: float = 27.5
 const OVERCAST_POSITION := Vector3.ZERO
-const OVERCAST_TIME: float = 8.0
+const OVERCAST_TIME: float = 0.0
 const RAIN_POSITION := Vector3.ZERO
-const RAIN_TIME: float = 386.0
-const STORM_POSITION := Vector3(2460.0, 0.0, 0.0)
-const STORM_TIME: float = 1990.0
+const RAIN_TIME: float = 15.5
+const STORM_POSITION := Vector3.ZERO
+const STORM_TIME: float = 188.75
 
 ## A position that answers clear at RAIN_TIME specifically (distinct from
 ## CLEAR_POSITION/CLEAR_TIME above), so a test can hold time fixed and

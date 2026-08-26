@@ -28,7 +28,7 @@ const NOISE_SEED: int = 578912
 ## a walk across a Village and a handful of game-hours each visibly shift
 ## the result -- tuned by feel, not derived from any real-world unit.
 const POSITION_FREQUENCY: float = 0.015
-const TIME_FREQUENCY: float = 0.08
+const TIME_FREQUENCY: float = 2.0
 
 ## Category boundaries over FastNoiseLite's roughly [-1, 1] output.
 const OVERCAST_THRESHOLD: float = -0.15
