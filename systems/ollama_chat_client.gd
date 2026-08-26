@@ -9,10 +9,10 @@ extends Node
 ## Each call also gets Ollama's default random sampling (no fixed seed
 ## passed), so repeat asks aren't forced toward the same answer.
 ##
-## The model's own Modelfile SYSTEM prompt already defines the full
-## IN CHARACTER: / WISH: contract (see `ollama show villager-ideas
-## --modelfile`) -- this deliberately sends no system message, since
-## that would override it.
+## The IN CHARACTER:/WISH: contract (SYSTEM_PROMPT below, ported verbatim
+## from the villager-ideas Modelfile's own SYSTEM block) is sent
+## explicitly on every request, so any plain pulled model can be used --
+## nothing requires the custom `villager-ideas` Modelfile build to exist.
 
 signal wish_ready(response_text: String)
 signal request_failed(error_message: String)
@@ -25,8 +25,44 @@ signal request_failed(error_message: String)
 ## villager-ideas taking 30-60s through this client when the same
 ## request was instant from the command line.
 const HOST := "http://127.0.0.1:11434"
-const MODEL := "villager-ideas"
+
+## The plain base model villager-ideas was built from -- small, general-
+## purpose, already pulled by anyone who followed this repo's Ollama
+## setup, no custom Modelfile build required.
+const DEFAULT_MODEL := "phi4-mini"
+
 const TIMEOUT_SECONDS := 60.0
+
+const SYSTEM_PROMPT := """
+You are helping design a village-simulation game by briefly voicing one of its villagers
+based on a snapshot of their current situation. This is NOT general chat — your WISH output
+gets turned directly into a ticket in the developer's issue tracker, so it needs to actually
+be usable as one, not just a vague feature idea.
+
+Given the villager's name, role, mood, recent events, the game's current systems, and a list
+of tickets already queued, respond in exactly two parts:
+
+1. IN CHARACTER (1-2 sentences): A brief, believable reaction from this villager to their
+   situation. Light personality, grounded in what's actually happening to them.
+
+2. WISH: One concrete thing this villager would want to do or have that the game does NOT
+   currently support (see "Current systems" for what already exists — anything beyond that
+   list is fair game). Phrase it like a real ticket:
+   - Small and scoped — one buildable feature, not a whole system or vague direction
+   - Specific enough that a developer could start implementing it without asking what you meant
+   - NOT "make things better" / "add more content" / "improve X" — name the actual mechanic
+   - Must NOT duplicate or overlap with anything listed in "Already queued" — that work is
+	 already planned, so pick something genuinely different. If every reasonable idea for this
+	 situation is already queued, pick a smaller or more specific angle on it instead of
+	 repeating the queued item.
+   Format the WISH itself as: <short ticket-style title> — <one sentence of what it does>
+
+Format exactly like this, nothing else:
+IN CHARACTER: <reaction>
+WISH: <ticket-style title> — <one sentence of what it does>
+"""
+
+var model: String
 
 var _http: HTTPRequest
 
@@ -35,7 +71,8 @@ var _http: HTTPRequest
 ## so _http is guaranteed usable immediately, even if ask() is called
 ## right after add_child(this) before this node's own _ready() would
 ## otherwise have fired.
-func _init() -> void:
+func _init(model_name: String = DEFAULT_MODEL) -> void:
+	model = model_name
 	_http = HTTPRequest.new()
 	_http.timeout = TIMEOUT_SECONDS
 	add_child(_http)
@@ -47,8 +84,11 @@ func _init() -> void:
 ## state between calls beyond the HTTPRequest node itself.
 func ask(user_prompt: String) -> void:
 	var body := JSON.stringify({
-		"model": MODEL,
-		"messages": [{"role": "user", "content": user_prompt}],
+		"model": model,
+		"messages": [
+			{"role": "system", "content": SYSTEM_PROMPT},
+			{"role": "user", "content": user_prompt},
+		],
 		"stream": false,
 	})
 	var headers := ["Content-Type: application/json"]
