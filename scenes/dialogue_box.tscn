@@ -46,6 +46,19 @@ size_flags_vertical = 3
 autowrap_mode = 3
 text = ""
 
+[node name="ApprovalBar" type="HBoxContainer" parent="Panel/HBox/VBox"]
+layout_mode = 2
+visible = false
+theme_override_constants/separation = 8
+
+[node name="RememberButton" type="Button" parent="Panel/HBox/VBox/ApprovalBar"]
+layout_mode = 2
+text = "Remember this"
+
+[node name="DismissButton" type="Button" parent="Panel/HBox/VBox/ApprovalBar"]
+layout_mode = 2
+text = "Not now"
+
 [node name="CloseButton" type="Button" parent="Panel"]
 layout_mode = 1
 anchor_left = 1.0
@@ -57,3 +70,5 @@ offset_bottom = 28.0
 text = "×"
 
 [connection signal="pressed" from="Panel/CloseButton" to="." method="close"]
+[connection signal="pressed" from="Panel/HBox/VBox/ApprovalBar/RememberButton" to="." method="_on_remember_pressed"]
+[connection signal="pressed" from="Panel/HBox/VBox/ApprovalBar/DismissButton" to="." method="_on_dismiss_pressed"]

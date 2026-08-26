@@ -934,6 +934,13 @@ Roadmap items below.
   which supersedes ADR-0003's mechanic. Pantheon itself is untouched and
   still used for God dialogue/flavor; only the Wish-domain-linking
   caller is gone.
+- **Renowned-click interaction — Done**: clicking a Renowned Folk member
+  (`scripts/renowned_interaction.gd`) shows a "thinking" state, checks
+  `RenownedThoughtMemory` for a close-enough past situation first (no
+  model call on a hit), and otherwise asks the model via
+  `OllamaChatClient` with `VillageEventLog`'s recent-history context
+  included. A fresh response is shown with an explicit remember/dismiss
+  choice before anything is persisted for reuse.
 - **Petition**: per `CONTEXT.md`, specifically a *Player* action —
   drawing a God's attention to a Wish. Deliberately not what the planned
   next slice builds: Player-input design is being deferred, so that

@@ -34,3 +34,43 @@ func test_close_clears_speaker_name_and_lines() -> void:
 
 	assert_eq(box.speaker_name, "")
 	assert_eq(box.lines, ([] as Array[String]))
+
+
+func test_show_thinking_sets_speaker_and_awaiting_flag() -> void:
+	var box: DialogueBox = autofree(DialogueBox.new())
+
+	box.show_thinking("A Renowned Villager")
+
+	assert_eq(box.speaker_name, "A Renowned Villager")
+	assert_true(box.is_awaiting_response)
+	assert_false(box.is_pending_approval)
+
+
+func test_show_dialogue_clears_awaiting_and_pending_approval() -> void:
+	var box: DialogueBox = autofree(DialogueBox.new())
+	box.show_thinking("A Renowned Villager")
+
+	box.show_dialogue("A Renowned Villager", ["The bread smells almost ready."])
+
+	assert_false(box.is_awaiting_response)
+	assert_false(box.is_pending_approval)
+
+
+func test_show_pending_approval_sets_lines_and_pending_flag() -> void:
+	var box: DialogueBox = autofree(DialogueBox.new())
+
+	box.show_pending_approval("A Renowned Villager", ["A fresh reaction.", "A fresh wish."])
+
+	assert_eq(box.lines, ["A fresh reaction.", "A fresh wish."])
+	assert_true(box.is_pending_approval)
+	assert_false(box.is_awaiting_response)
+
+
+func test_close_clears_awaiting_and_pending_approval_too() -> void:
+	var box: DialogueBox = autofree(DialogueBox.new())
+	box.show_pending_approval("A Renowned Villager", ["A fresh reaction."])
+
+	box.close()
+
+	assert_false(box.is_pending_approval)
+	assert_false(box.is_awaiting_response)

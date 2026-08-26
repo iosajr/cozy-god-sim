@@ -1,10 +1,9 @@
 extends Node3D
 ## Spawns one Village's Villagers as placeholder 3D bodies + nameplates,
 ## drives their Favored/Renown, Survival, and Task execution each frame,
-## and opens the dialogue box for a Renowned Villager's click. Favored
+## and routes a Renowned Villager's click to RenownedInteraction. Favored
 ## rises in discrete steps tied to logged divine-exposure entries (issue
-## #61), not continuous per-frame proximity. Thought/Wish are not
-## populated by anything here.
+## #61), not continuous per-frame proximity.
 
 @export var villager_count: int = 6
 @export var ground_size: float = 200.0
@@ -18,10 +17,8 @@ extends Node3D
 ## continuous.
 @export var favored_gain_per_exposure: float = 5.0
 @export var dialogue_box_path: NodePath = ^"../DialogueBox"
+@export var renowned_interaction_path: NodePath = ^"../RenownedInteraction"
 @export var villager_move_speed: float = 4.0
-
-## No real per-Villager name exists yet.
-const RENOWNED_VILLAGER_SPEAKER_NAME := "A Renowned Villager"
 
 ## Placeholder water-source position (issue #38), fixed relative to the
 ## Village's own site_position — same "single fixed point" tier, just a
@@ -205,15 +202,7 @@ func _on_dialogue_target_clicked(body: Node3D) -> void:
 	var villager: Villager = _villagers_by_click_body.get(body)
 	if villager == null or not villager.is_renowned:
 		return
-	var dialogue_box: DialogueBox = get_node_or_null(dialogue_box_path)
-	if dialogue_box == null:
+	var interaction: RenownedInteraction = get_node_or_null(renowned_interaction_path)
+	if interaction == null:
 		return
-	dialogue_box.show_dialogue(RENOWNED_VILLAGER_SPEAKER_NAME, _dialogue_lines_for(villager))
-
-
-## Reuses existing data only — no invented dialogue writing.
-func _dialogue_lines_for(villager: Villager) -> Array[String]:
-	var lines: Array[String] = [villager.current_thought]
-	if villager.current_wish != "":
-		lines.append(villager.current_wish)
-	return lines
+	interaction.interact_with(villager)
