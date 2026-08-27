@@ -13,19 +13,17 @@ been folded in here.
 |---|---|
 | In-game day length | **8 real minutes — 6 day, 2 night.** Seasons may vary the split later; fixed for now. |
 | What the Player does | Advance the simulation and watch; dialogue with Gods and Renowned Folk. Nothing else, deliberately. A borrow/invoke-a-God's-power system is planned and undesigned. |
-| World scale ambition | A continent of several cities, thousands of Folk. Only Villages near the Player are ever really simulated (see below). |
+| World scale ambition | Zoom out and see a **living continent** — buildings, people, trees and weather all moving naturally at distance. Nothing stalls until the Player gets close. |
+| Minimum functioning scope | **1000 entities**, running heavily reduced logic until observed closely. |
+| Full-logic budget | **~100 Notables** — leaders, village speakers, Renowned/Favored. Everyone else runs reduced. |
+| Progress while away | **Required.** World events, wars, God interactions, politics and farm cycles must actually have happened. Recent task history is observable. |
+| LLM latency | **Irrelevant.** Snapshots are taken and fed during downtime; nothing waits on it. |
 
-Still unanswered, and each blocks something specific:
+Still unanswered:
 
-- **Target *simultaneously visible* Folk count.** Sets the Observed
-  tier's per-frame budget. "Thousands" is the world total; this is a
-  different and much smaller number. Blocks: mesh/nameplate budgeting.
-- **Does the Player ever need to see what happened somewhere while they
-  were away?** Lower stakes under the cheap scale option below, but if
-  yes, unsimulated Villages have to produce *narratable events*, not
-  just numbers. Blocks: whether dormant Villages can generate Memories.
-- **Local model latency/throughput.** Blocks: the debug sampling policy
-  in Part B.
+- Nothing currently blocking. The three open questions from the earlier
+  review (visible-entity target, progress-while-away, model latency)
+  are all answered above.
 
 ## The core split: simulation vs. presentation
 
@@ -86,23 +84,85 @@ Every Village sits in exactly one, checked cheaply:
    Does not tick; `last_advanced_time` sits stale until something
    touches it.
 
-### Only nearby Villages are ever real
+**Notables are exempt from all of this** — they tick wherever they are,
+whatever tier their Village is in. The tiers govern the ordinary
+population and the Village's own aggregate state, not the hundred
+entities the world's story actually runs through.
 
-**Decision: take the cheap option.** Villages within N of the Player are
-really simulated, with real Folk. Everything beyond that is a name, a
-position, and a population number that moves by a simple rule — not a
-second, coarser simulation of the same World.
+## Three classes of thing, not three tiers of one thing
 
-The rejected alternative was running genuine aggregate math for dormant
-Villages and reconciling it against detailed Folk records on
-materialization. That is two simulations that must agree, they will
-drift, and the drift is a permanent maintenance burden. Given the Player
-is only ever looking at one place, it is very likely indistinguishable
-from the cheap version, and the cheap version can be deepened later.
+The requirements above — a continent that visibly moves at zoom, 1000
+functioning entities, real progress while away, but only ~100 things
+needing full logic — do **not** describe one system at three levels of
+detail. They describe three genuinely different problems that were
+previously conflated, and separating them is what makes all of it
+affordable:
 
-**This is a deliberate deferral, not a claim that thousands of Folk are
-unnecessary.** The disciplines below are what keep the deeper version
-buildable without committing to it now.
+### 1. Notables — full logic, everywhere, always (~100)
+
+Leaders, village speakers, Renowned and Favored Folk. These carry real
+individual state: Personality, Memory, relationships, Tasks. **They are
+simulated wherever they are, observed or not** — they are what wars,
+politics and God interactions actually happen *between*, and those have
+to keep happening while the Player is elsewhere.
+
+A hundred entities ticking continuously is a rounding error. That budget
+is precisely what buys a world that keeps moving, and it should be spent
+without hesitation.
+
+### 2. Population — real records, reduced logic (1000+)
+
+Everyone else. Real, persistent records, but they only run individual
+logic while their Village is Observed. Otherwise the **Village advances
+them as aggregate math** — births, deaths, food produced and consumed,
+mood, notable-event rolls — and individuals are materialized on demand
+when the Player arrives.
+
+This is the aggregate-plus-detailed split the earlier review warned
+about, and its warning stands: two models that must agree will drift,
+permanently. **The Notable carve-out is what makes it survivable.** The
+drift only matters for entities somebody remembers between visits, and
+every one of those is a Notable, which is never aggregated. An ordinary
+Folk member's exact turnip count being fuzzy across a visit is
+invisible, because nothing in the game or the Player's head is tracking
+it. Keep the aggregate model deliberately crude and treat the detailed
+sim as authoritative whenever both exist — never try to reconcile them
+exactly.
+
+### 3. Scenery and crowd visuals — presentation only, no simulation
+
+The continent looking alive at zoom is a **rendering** problem, not a
+simulation one. Distant figures, trees moving, weather sweeping across —
+none of that needs a simulated entity behind it. Instanced/GPU-driven
+drawing (MultiMesh and equivalents) carries tens of thousands of moving
+things at a cost that has nothing to do with the simulation's entity
+count.
+
+This is the piece that most directly answers "nothing stalls until you
+get close", and it is almost entirely decoupled from everything else in
+this document. It can be built and judged on its own.
+
+## World events are what "progressed while you were away" means
+
+Not individually simulated history — a per-Village and per-region
+append-only log of coarse, narratable events: a harvest failed, a war
+was declared, a God intervened, a leader died, a Notable rose. Generated
+by the aggregate advancement and by the Notables' own simulation.
+
+This one structure serves four separate requirements at once, which is
+why it's worth building early:
+
+- It **is** the "things progressed while you were away" feature — the
+  Player reads what happened, and does not need per-individual history
+  to feel it.
+- It's what unsimulated Villages produce instead of nothing, so the
+  world has a past everywhere rather than only where the Player stood.
+- **Recent task history** hangs off the same mechanism: a small bounded
+  ring buffer of a Folk member's last N completed tasks, timestamped.
+  Cheap, capped, and observable.
+- It is exactly the structured, timestamped, human-readable record the
+  LLM debug pipeline wants to read — the thing originally asked for as
+  "per-NPC history the model can check".
 
 ### Fast-forward, not replay
 
@@ -137,11 +197,13 @@ fast-forwards everything from zero and produces nonsense.
 1. **State is `@export`ed-Resource-visible by construction**, not exposed
    through a bespoke debug node. (`folk_debug_info.gd` is the example
    not to repeat.)
-2. **Any visual or perceptible system is verified by real-render
-   screenshot**, not headless GUT alone, before being called done.
-   Proven out on the terrain prototypes — the only loop that ever
-   actually killed bad work here — and never generalized to weather,
-   dialogue or the Folk Console.
+2. **Visual and perceptible work is signed off by the user looking at
+   it, not self-certified.** Headless GUT proves logic, never feel. When
+   a change touches anything visible, stop at the point where it can be
+   looked at, say plainly what to look for and how to get there, and
+   hand it over — don't render, screenshot and grade it yourself. Bad
+   feel gets caught in one glance at the real thing, and burning tokens
+   on a self-run screenshot loop catches it later and worse.
 3. **The LLM is a helper and logger, not a gameplay dependency.**
    Structured, timestamped, human-readable per-Folk history is what it
    reads; nothing in gameplay ever blocks on it responding, and the game
@@ -239,7 +301,9 @@ food stock negative, no tasks completed in N days), which are often more
 informative per token than individual Folk.
 
 Run out-of-band: on a snapshot, async, never blocking a frame, never
-touching live state.
+touching live state. **Latency does not matter** — snapshots are taken
+and queued, and the model is fed whenever there is downtime. Nothing
+ever waits on it, so a slow local model costs nothing but freshness.
 
 ### Reports
 
@@ -339,14 +403,23 @@ separate, not-yet-designed creative/roleplay path.
 3. **Weather visual fix** — isolated, cheap, and the most visible
    symptom.
 4. **Core architecture** — simulation/presentation split, generalized
-   observed-only spawn system, `Task` base class with real subclasses.
-5. **Rebuild the entity/labour layer on top of it** — Folk/Villager/
-   Sheep/Family, House and construction, Farm's labour Tasks,
-   Pairing/Reproduction.
-6. **Memory and Personality**, to the requirements above.
-7. **Invariant layer, then the LLM debug pipeline on top of it.**
+   observed-only spawn system, `Task` base class with real subclasses,
+   and the Notable/Population distinction baked in from the start rather
+   than retrofitted.
+5. **Distant crowd and scenery rendering** — the instanced/GPU layer
+   that makes the continent look alive at zoom. Almost entirely
+   decoupled from the rest of this list; can be built and judged on its
+   own any time after the feel slice, and is the most visible single
+   win available.
+6. **Rebuild the entity/labour layer** — Folk/Villager/Sheep/Family,
+   House and construction, Farm's labour Tasks, Pairing/Reproduction.
+7. **World event log + recent task history** — the thing that makes
+   "progressed while you were away" real, and the record the LLM later
+   reads.
+8. **Memory and Personality**, to the requirements above.
+9. **Invariant layer, then the LLM debug pipeline on top of it.**
    Nameplate visual pass alongside.
-8. **Strip the discard list** — any time after step 4, blocks nothing.
+10. **Strip the discard list** — any time after step 4, blocks nothing.
 
 ## Still open
 

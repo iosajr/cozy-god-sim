@@ -97,6 +97,13 @@ art is the identity, and the "familiar" beat is thematic only.
 
 ## Attention and standing
 
+**Notable** *(provisional)*: A Folk member who matters to the World's
+story — a leader, a village speaker, or anyone Renowned or Favored.
+Around a hundred exist at a time. Notables carry full individual logic
+wherever they are, simulated whether or not the Player is looking; the
+ordinary population runs on much less. This is the umbrella term, and
+Renown and Favor are two of the ways into it.
+
 **Favored**: A Folk member a God is deliberately paying attention to,
 for good or ill. Points toward active world tension — kings waging wars,
 unlikely events — rather than lingering attention. *Name still open.*

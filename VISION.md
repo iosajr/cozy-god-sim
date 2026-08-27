@@ -66,13 +66,18 @@ that split later; fixed for now.
 
 ## Scale
 
-The eventual goal is a continent of several cities, each with a real
-population — thousands of Folk, not dozens. The Player moves across it
-freely and near-instantly, and is only ever looking at one place.
+Zoom out and the continent is **alive** — buildings, people, trees and
+weather all moving naturally at distance. Nothing sits frozen waiting
+for the Player to come close. The minimum functioning scope is a
+thousand entities, several cities' worth.
 
-That last fact is what makes it affordable, and the current decision
-leans on it deliberately: **only the Villages near the Player are ever
-really simulated**; the rest of the continent is a name, a position, and
-a population that moves by a simple rule. See `docs/rebuild-plan.md` for
-the architecture, and for the disciplines that keep the deeper version
-buildable later without committing to it now.
+And it keeps moving while the Player is elsewhere. Wars, politics, God
+interactions, farm cycles, a leader dying — these happen in places
+nobody is watching, and the Player can come back and find out what
+happened.
+
+Not everything needs the same depth to make that true. Around a hundred
+**Notables** — leaders, village speakers, the Renowned and the Favored —
+carry full individual lives wherever they are. Everyone else runs on
+much less until you're close enough for it to matter. See
+`docs/rebuild-plan.md` for how.

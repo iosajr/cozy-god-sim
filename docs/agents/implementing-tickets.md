@@ -100,6 +100,18 @@ pre-edit content under the new name. After staging, sanity-check with
 `git status --short`/`git diff HEAD --stat` rather than trusting a zero
 exit code alone.
 
+## Visual work is signed off by the user, not self-certified
+
+GUT proves logic. It never proves feel, and feel is what has actually
+gone wrong in this project. **Do not render, screenshot and grade your
+own visual work.** When a change touches anything visible — terrain,
+weather, nameplates, spawning, UI, camera — stop at the point where it
+can be looked at, say plainly what to look for and how to get there,
+and hand it to the user.
+
+They will look at it. That catches bad feel in one glance, far earlier
+and for a tiny fraction of the tokens a self-run screenshot loop costs.
+
 ## What "done" means here
 
 For a background/cloud agent: implementation + real tests written +
