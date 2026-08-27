@@ -1,5 +1,7 @@
 # Known Territory can carry perishable resource entries, and can grow from local events
 
+> **Superseded (2026-08-28).** Known Territory is now a plain array of `{resource, location, timestamp}` entries, non-perishable. See `CONTEXT.md` and `docs/rebuild-plan.md`.
+
 `CONTEXT.md` originally stated Known Territory was "explicitly not tied to
 resources — these are points of interest/information, not a
 resource-production list," and grew only through an expedition's outcome,

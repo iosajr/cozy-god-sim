@@ -1,5 +1,7 @@
 # Faith is not a global stockpile
 
+> **Superseded (2026-08-28).** Faith is cut entirely as a system — Gods existing is common knowledge, not a per-Folk belief. The conclusion below (no global faith stockpile) still holds; the per-Folk trait it argued for no longer exists. See `CONTEXT.md`.
+
 `GameState.resources` shipped with a `"faith"` key (a spendable, global
 worship-meter, Black & White style) before `CONTEXT.md` existed. The
 glossary later defined **Faith** as something else entirely: a per-Folk

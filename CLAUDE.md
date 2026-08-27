@@ -16,13 +16,32 @@ A cozy 3D god-sim / simulation game built in Godot 4 (GDScript).
 
 ## Layout
 
+Convention, not an exhaustive file list — a new file follows the pattern
+below rather than getting individually enumerated here as it's added.
+
 - `scenes/` — `.tscn` scene files. `main.tscn` is the entry point.
-- `scripts/` — GDScript attached to scene nodes.
-- `autoload/` — singletons registered in `project.godot` under `[autoload]`.
-  `GameState` is the only one so far; keep autoloads few and boring.
-- `systems/` — home for standalone simulation systems as they're extracted
-  out of scene scripts (economy, needs, weather, etc.). Holds `village.gd`/
-  `villager.gd` and `god.gd`/`pantheon.gd` so far.
+- `scripts/` — GDScript attached to scene nodes: camera/input glue, world
+  generation, and a single generalized observed-only spawn/despawn system
+  (see `docs/rebuild-plan.md`) — not one script per entity type.
+- `autoload/` — singletons registered in `project.godot` under
+  `[autoload]`. `GameState` is the only one so far; keep autoloads few and
+  boring.
+- `systems/` — standalone simulation systems: plain data/logic, no scene
+  tree involvement ever. Structured by concern as it grows, not left flat:
+  - `systems/entities/` — one file per acting-being type: a shared base
+    class plus its subclasses (exact naming pending the Folk/Villager
+    rename pass — see `VISION.md`'s open items), and non-Folk entities
+    like `god.gd`/`family.gd`. Each entity type owns its own file here,
+    not scattered loose across `systems/`.
+  - `systems/tasks/` — the `Task` base class plus one file per concrete
+    kind (seed/water/collect/deliver/recover/reproduce/idle/...). Add a
+    new file per Task kind as it's introduced; don't enumerate them here.
+  - `systems/weather/` — weather query/visual/override logic as its own
+    cluster.
+  - Anything else standalone and not yet big enough to need its own
+    subfolder stays directly in `systems/` — give a concern its own
+    subfolder once it grows past one or two files, same instinct as the
+    Module hygiene rule below.
 - `assets/{models,textures,audio}/` — real art/audio assets go here as they
   replace the placeholder primitives in `scripts/world_gen.gd`.
 - `ui/` — UI scenes/scripts. First resident: `folk_console.tscn`, a
@@ -30,8 +49,14 @@ A cozy 3D god-sim / simulation game built in Godot 4 (GDScript).
   `ui/folk_console.md`) — instanced hidden into `scenes/main.tscn`,
   toggled with F2; not part of the player-facing game.
 - `tests/` — GUT tests (`extends GutTest`, `test_*.gd`), mirroring the
-  layout of what they test (e.g. `tests/systems/test_village.gd`).
+  layout of what they test (e.g. `tests/systems/entities/test_folk.gd`).
 - `addons/gut/` — vendored GUT addon; see the Stack exception above.
+
+**This is the target shape, not what's on disk today.** The actual
+reorganization (entity/task folders, the generalized spawner replacing
+today's per-type spawner scripts) is Phase 2 of `docs/rebuild-plan.md`,
+not yet done — expect the current flat `systems/`/`scripts/` layout in
+the real file tree until that lands.
 
 ## Conventions
 
@@ -60,6 +85,11 @@ A cozy 3D god-sim / simulation game built in Godot 4 (GDScript).
   gameplay logic — see the doc comment at the top of `game_state.gd`.
 - Placeholder art in `world_gen.gd` is intentionally disposable — don't
   build real gameplay logic on top of the exact primitive shapes.
+- **Don't invent lore, tone, or user intent.** Domain docs (`VISION.md`,
+  `CONTEXT.md`) must reflect only what the user has actually stated —
+  hedge or mark explicitly open what's genuinely undecided rather than
+  backfilling something plausible-sounding to fill a gap. This has cost
+  an entire deleted interview session before.
 
 ## Skills
 
@@ -70,7 +100,11 @@ update them). Notable ones for this project:
 - `tdd`, `code-review`, `diagnosing-bugs` — day-to-day engineering loop
 - `domain-modeling`, `codebase-design` — useful as the simulation systems
   in `systems/` take shape
-- `to-spec`, `to-tickets`, `implement` — turning ideas into tracked work
+- `to-spec`, `to-tickets`, `implement` — turning ideas into tracked work.
+  Order: grill-with-docs (if new domain ground surfaces) → `to-spec` →
+  `to-tickets` → `implement`. Always run `to-tickets` to slice a spec into
+  vertical tracer-bullet tickets before publishing — don't hand-draft
+  ticket bodies straight to `gh issue create`.
 
 Run the `setup-matt-pocock-skills` skill once to configure this repo
 (issue tracker, triage labels, doc preferences).
@@ -89,8 +123,11 @@ Default label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`,
 
 ### Domain docs
 
-Single-context layout: root `CONTEXT.md` + `docs/adr/`. See
-`docs/agents/domain.md`.
+`VISION.md` (the actual pitch/feel/core idea — read this first) +
+`CONTEXT.md` (pure glossary only, no pitch or implementation content) +
+`docs/adr/` (numbered decisions) + `docs/rebuild-plan.md` (current
+architecture-in-progress reference, until superseded by per-system
+`docs/design/<system>.md` files). See `docs/agents/domain.md`.
 
 ### Implementing tickets
 

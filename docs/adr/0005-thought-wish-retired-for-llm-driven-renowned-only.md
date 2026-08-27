@@ -1,5 +1,7 @@
 # Thought/Wish is retired as a timer-driven, Pantheon-linked mechanic
 
+> **Superseded (2026-08-28).** Wish is removed entirely. Thought is kept as a loose, event- and memory-driven line available to Folk generally, not restricted to Renowned. The villager-ideas pipeline this ADR described is discarded. See `CONTEXT.md` and `docs/rebuild-plan.md`.
+
 Supersedes ADR-0003's mechanic (not merely extends it): the canned,
 timer-driven Thought/Wish reroll and its Domain-linked-to-a-God
 resolution are removed outright, not gated to Renowned Folk. Thought/Wish

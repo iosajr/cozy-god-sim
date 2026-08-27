@@ -29,9 +29,43 @@ This applies to implementation work specifically. Domain-modeling/spec-
 writing (`/to-spec`, `/domain-modeling` sessions) still genuinely needs
 the full docs — don't trim those.
 
-## Verifying your own work
+## Direct work vs. background agents
 
-Run the real test suite before claiming anything is done —
+Default to implementing a ticket batch directly, in the live session,
+when the user is present and asks to begin now — not by spawning
+background `Agent`-tool subagents. Reserve background/cloud agents for
+batches the user explicitly wants running unattended or overnight. Each
+backgrounded agent carries real fixed overhead (its own environment
+bootstrap, its own self-verification, plus the orchestrating session's
+mandatory independent re-verification on top) that isn't worth paying
+when the user is right there and the work could just be done directly.
+If unsure which the user wants, ask rather than default to spawning
+agents.
+
+## Don't try to run Godot yourself
+
+If you're a background `Agent`-tool worktree or a cloud routine: write
+real GUT tests for whatever you build (`extends GutTest`, `test_*.gd`,
+mirroring `tests/`'s existing layout) — but **do not try to bootstrap or
+run Godot/GUT yourself**. Implement, write the tests, commit, and stop
+there. Leave actually running the suite to the user or the live
+interactive session.
+
+**Why**: this project already has a standing rule that nothing merges
+without the human/interactive session independently re-running the full
+suite from a clean checkout regardless — an agent-side attempt at the
+same setup is redundant, not extra safety, and bootstrapping a working
+headless Godot environment from scratch is genuinely fiddly (a bad
+bootstrap has silently hung for over an hour before — see below). Cloud
+sandboxes in particular have also repeatedly failed to find a working
+Godot at all, or found a stray old one and used it instead of what the
+repo actually targets — don't hunt for or install a Godot binary; if one
+isn't already set up in your environment, that's expected, not a problem
+to solve.
+
+## Verifying the work (user or interactive session only)
+
+Run the real test suite before calling anything actually done —
 `godot --headless -s addons/gut/gut_cmdln.gd` (config in
 `.gutconfig.json`). On a **freshly-created worktree** with no `.godot/`
 cache yet, bootstrap it first:
@@ -55,11 +89,25 @@ the locally-used Godot binary differs from whichever version last
 touched those files in the repo — that's not a real change and must not
 be committed.
 
+Two more real footguns, both of which caused an actual broken/stale push
+to `main` here: (1) `git add <path1> <path2> ...` silently aborts the
+**entire** command with no partial staging if any one listed path was
+already staged for deletion via `git rm` — stage `git rm` and `git add`
+paths in separate commands, never mixed in one multi-path `git add`.
+(2) `git mv` only stages the rename — if you edit that file's content
+afterward, `git add` it again before committing, or the commit ships the
+pre-edit content under the new name. After staging, sanity-check with
+`git status --short`/`git diff HEAD --stat` rather than trusting a zero
+exit code alone.
+
 ## What "done" means here
 
-This project never trusts an agent's self-report, including this one's.
-Whoever merges your branch will independently re-run the full suite from
-a clean checkout and read the real diff before it lands anywhere shared.
-That's not a signal you did something wrong — it's the standing process
-for every merge in this repo, so don't skip your own verification step
-on the assumption someone downstream will catch it instead.
+For a background/cloud agent: implementation + real tests written +
+committed, nothing more — you are not expected to have run them (see
+above), and this project never merges on a self-report anyway. For the
+user or interactive session merging the branch: independently re-run the
+full suite from a clean checkout and read the real diff before it lands
+anywhere shared. That's the standing verification step for every merge in
+this repo — it's not optional just because an agent says its own tests
+pass, and for a background/cloud agent it hasn't actually run them at
+all.

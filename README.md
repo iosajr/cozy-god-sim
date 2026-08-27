@@ -26,7 +26,7 @@ A starter project for a cozy 3D god-sim / simulation game, built with
 
 ## Getting started
 
-1. Open this folder in [Godot 4.3+](https://godotengine.org/download).
+1. Open this folder in [Godot 4.7+](https://godotengine.org/download).
    It should import automatically and `scenes/main.tscn` is set as the
    main scene.
 2. Press F5 (or the Play button) to run. You should see a grassy field
