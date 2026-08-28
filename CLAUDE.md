@@ -62,6 +62,7 @@ never writes to it.
 - `docs/to-decide.md` — open questions waiting on the user. Raise them
   regularly, and delete anything that stops being worth deciding.
 - `docs/research/` — findings from outside sources.
+- `docs/prompts/` — self-contained prompts for handing a scoped job to a model.
 - `VISION.md`, `CONTEXT.md` — the pitch, and the glossary.
 
 ## Issue tracker
