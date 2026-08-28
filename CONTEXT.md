@@ -1,8 +1,8 @@
 # Cozy God Sim — Glossary
 
 Pure vocabulary reference: what each domain term means, nothing else. See
-`VISION.md` for the game's actual pitch/feel, `docs/rebuild-plan.md` for
-the architecture, and `docs/adr/` for why a term settled the way it did.
+`VISION.md` for the game's pitch and feel, and `docs/systems/` for how
+each system works.
 
 Terms marked *(provisional)* are in active use but the name is not
 settled. Terms marked *(designed, not built)* have a definition and no
@@ -40,8 +40,7 @@ it, and new systems should be written against Folk rather than Villager
 where there's a choice.
 
 **Village** *(provisional)*: A settlement of Folk, and the unit of
-simulation detail — Folk inherit their Village's activity tier rather
-than being tiered individually (see `docs/rebuild-plan.md`).
+simulation detail.
 
 **Villager** *(provisional)*: A human Folk member inhabiting a Village.
 
@@ -79,8 +78,7 @@ linger or become permanent; the rest fall below a floor and are dropped.
 Memories spread person-to-person through actual interaction, not
 omnisciently. A memory's live weight is what feeds Personality — that's
 the link between the two systems. Replaces `divine_exposure.gd`.
-**OPEN**: the propagation mechanism itself (see `docs/rebuild-plan.md`
-for the hard constraints it has to satisfy).
+**OPEN**: the propagation mechanism itself.
 
 **Thought**: An ambient, occasional interior line from a Folk member —
 an insight into what they've been doing and what's happened to them.

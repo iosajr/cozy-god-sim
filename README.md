@@ -45,7 +45,7 @@ Some natural next things to build, roughly in order:
 - Click-to-place buildings on the ground (the `GroundBody` StaticBody3D is
   already there to raycast against).
 - Wish/Petition/Nudge and Faith actually gating Presence-sensing — see
-  `CONTEXT.md` and `docs/systems-overview.md`.
+  `CONTEXT.md` and `docs/systems/`.
 - Basic UI (`ui/`) for resources and time of day.
 
 ## License

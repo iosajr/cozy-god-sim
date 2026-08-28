@@ -79,5 +79,4 @@ happened.
 Not everything needs the same depth to make that true. Around a hundred
 **Notables** — leaders, village speakers, the Renowned and the Favored —
 carry full individual lives wherever they are. Everyone else runs on
-much less until you're close enough for it to matter. See
-`docs/rebuild-plan.md` for how.
+much less until you're close enough for it to matter.

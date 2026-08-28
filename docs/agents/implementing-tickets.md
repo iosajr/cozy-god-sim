@@ -6,7 +6,7 @@ building it for real.
 
 ## What to read first
 
-Do **not** read `CONTEXT.md` and `docs/systems-overview.md` in full
+Do **not** read `CONTEXT.md` and `docs/systems/` in full
 before starting — that's redundant with a well-written ticket and burns
 real budget for no benefit (confirmed cost: a 2026-08-23 overnight batch
 where every stage independently read all three docs, ~1,237 lines, from
@@ -15,7 +15,7 @@ self-contained). Instead:
 
 1. `CLAUDE.md` in full — short, stable repo conventions, always worth it.
 2. The GitHub issue in full (`gh issue view <n>`) — that's the real spec.
-3. A targeted grep of `docs/systems-overview.md` for the issue's own
+3. A targeted grep of `docs/systems/` for the issue's own
    number or feature name (most tickets already have a matching section
    from when they were spec'd) — read just that section, for doc-update
    placement, not the whole file.

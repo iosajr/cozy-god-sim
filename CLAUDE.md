@@ -1,140 +1,71 @@
 # Cozy God Sim
 
-A cozy 3D god-sim / simulation game built in Godot 4 (GDScript).
+A cozy 3D god-sim built in Godot 4 (GDScript). The player is not a god —
+they watch a world of gods, folk, animals and plants living their own
+lives, and have a quiet effect at the margins.
+
+## Rules
+
+**Anything not covered here, ask. Silence is not permission.**
+
+1. Ask before touching anything outside the files you were asked to
+   change — commits, moving or deleting files, publishing, installing.
+2. Never verify visual or runtime behaviour yourself. No screenshots, no
+   test runs, not even to reproduce a reported bug. Stop at a lookable
+   point, say what to look for, hand it over.
+3. Say what you think before building it. If the ask looks wrong or
+   under-specified, say so and propose something better.
+4. Comments are one-liners stating what is true now, or nothing. No
+   history, no issue numbers, no pointers to other files.
+5. Documents follow the same rule. One document per system, nothing tries
+   to describe the whole game, and superseded content is deleted rather
+   than marked.
+6. Don't invent lore, tone, or intent. Mark it open and ask.
 
 ## Stack
 
-- Godot 4.7+, Forward+ renderer
-- GDScript (typed where practical)
-- Keep dependencies minimal until there's a real need. No test framework
-  currently vendored — GUT was removed 2026-08-28; it never caught the
-  runtime/visual bugs that actually came up and added its own version
-  friction. Verification approach for the rebuild is undecided, not
-  assumed to be "add GUT back."
+- Godot 4.7+, Forward+ renderer. Typed GDScript.
+- No test framework, deliberately. Don't add one without being asked.
+- Keep dependencies minimal.
 
 ## Layout
 
-Convention, not an exhaustive file list — a new file follows the pattern
-below rather than getting individually enumerated here as it's added.
+Folders mirror the systems one-to-one. If you can't name which system a
+file belongs to, that's the problem — not where to put it.
 
-- `scenes/` — `.tscn` scene files. `main.tscn` is the entry point.
-- `scripts/` — GDScript attached to scene nodes: camera/input glue, world
-  generation, and a single generalized observed-only spawn/despawn system
-  (see `docs/rebuild-plan.md`) — not one script per entity type.
-- `autoload/` — singletons registered in `project.godot` under
-  `[autoload]`. `GameState` is the only one so far; keep autoloads few and
-  boring.
-- `systems/` — standalone simulation systems: plain data/logic, no scene
-  tree involvement ever. Structured by concern as it grows, not left flat:
-  - `systems/entities/` — one file per acting-being type: a shared base
-    class plus its subclasses (exact naming pending the Folk/Villager
-    rename pass — see `VISION.md`'s open items), and non-Folk entities
-    like `god.gd`/`family.gd`. Each entity type owns its own file here,
-    not scattered loose across `systems/`.
-  - `systems/tasks/` — the `Task` base class plus one file per concrete
-    kind (seed/water/collect/deliver/recover/reproduce/idle/...). Add a
-    new file per Task kind as it's introduced; don't enumerate them here.
-  - `systems/weather/` — weather query/visual/override logic as its own
-    cluster.
-  - Anything else standalone and not yet big enough to need its own
-    subfolder stays directly in `systems/` — give a concern its own
-    subfolder once it grows past one or two files, same instinct as the
-    Module hygiene rule below.
-- `assets/{models,textures,audio}/` — real art/audio assets go here as they
-  replace the placeholder primitives in `scripts/world_gen.gd`.
-- `ui/` — UI scenes/scripts. First resident: `folk_console.tscn`, a
-  developer console for the local-LLM idea pipeline (see
-  `ui/folk_console.md`) — instanced hidden into `scenes/main.tscn`,
-  toggled with F2; not part of the player-facing game.
-- `tests/` — GUT tests (`extends GutTest`, `test_*.gd`), mirroring the
-  layout of what they test (e.g. `tests/systems/entities/test_folk.gd`).
-- `addons/gut/` — vendored GUT addon; see the Stack exception above.
+```
+systems/        simulation only: plain data, no scene tree, runs headless
+  clock/        absolute game time, seasons, speed
+  world/        the store that owns every record
+  beings/       being, species resources, behaviours
+  memory/       memories and beliefs
+  settlement/   settlement, job manager
+  tasks/        task base class, one file per kind
+scripts/        scene glue: camera, view spawner, terrain provider
+ui/             inspector, debug views, invariant checks
+scenes/         .tscn files
+assets/         models, textures, audio
+docs/           see below
+legacy/         the old codebase. Salvage only. Nothing new goes here.
+```
 
-**This is the target shape, not what's on disk today.** The actual
-reorganization (entity/task folders, the generalized spawner replacing
-today's per-type spawner scripts) is Phase 2 of `docs/rebuild-plan.md`,
-not yet done — expect the current flat `systems/`/`scripts/` layout in
-the real file tree until that lands.
+Simulation never touches the scene tree. Presentation reads the world and
+never writes to it.
 
-## Conventions
+## Docs
 
-- Prefer typed GDScript (`var x: int`, `-> void`) for anything non-trivial.
-- Keep scene scripts thin; push reusable logic into `systems/` as it grows.
-- **Module hygiene**: don't let a single file become a grab-bag. When a
-  change doesn't fit cleanly into an existing file's concern, or that file
-  is already carrying too many distinct responsibilities for one person
-  to hold in their head, extract a new file under `systems/` (or
-  `scripts/` for scene-glue) with a matching test file under `tests/`,
-  rather than piling on. Match this repo's existing per-concern split
-  (e.g. `farm.gd` vs `village_farms.gd`) instead of reflexively growing
-  the biggest/most obvious file. This applies equally to interactive
-  work and AFK/cloud agent sessions. Don't go refactor someone else's
-  (or another agent's) existing file just to tidy it — extract only what
-  your own change needs; leave general untidiness for a deliberate pass.
-- **Comment discipline**: code comments should be one-liners (or nothing)
-  stating current behavior/invariants — the kind of thing that's true
-  regardless of how it got that way. Drop issue-number/decision-history
-  narration (why this shape was chosen, what was considered and
-  rejected, which ticket asked for it); that belongs in git/PR history
-  and `docs/systems-overview.md`, not in the code. If a comment only
-  makes sense to someone who's read the GitHub issue, it belongs in the
-  issue/docs, not next to the code. **No pointers to other files/docs
-  either** — no "see docs/X.md", no "house rule N", no "matches
-  systems-overview.md's Y section". A comment describes what's true
-  right here; if it needs another document to make sense, put it in that
-  document, not as a breadcrumb in the code. A multi-sentence paragraph
-  explaining a design's history is the same violation as a doc pointer —
-  both belong outside the file, not merely shortened.
-- `GameState` is a bulletin board (shared data + signals), not a place for
-  gameplay logic — see the doc comment at the top of `game_state.gd`.
-- Placeholder art in `world_gen.gd` is intentionally disposable — don't
-  build real gameplay logic on top of the exact primitive shapes.
-- **Don't invent lore, tone, or user intent.** Domain docs (`VISION.md`,
-  `CONTEXT.md`) must reflect only what the user has actually stated —
-  hedge or mark explicitly open what's genuinely undecided rather than
-  backfilling something plausible-sounding to fill a gap. This has cost
-  an entire deleted interview session before.
+- `docs/systems-overview.html` — the design. Eight systems, what each
+  owns, what it deliberately doesn't. Published as an artifact from this
+  file; edit it here and republish.
+- `docs/systems/` — one file per system, holding its decided details and
+  its open questions.
+- `docs/to-decide.md` — open questions waiting on the user. Raise them
+  regularly, and delete anything that stops being worth deciding.
+- `docs/research/` — findings from outside sources.
+- `VISION.md`, `CONTEXT.md` — the pitch, and the glossary.
 
-## Skills
+## Issue tracker
 
-This repo has Matt Pocock's engineering/productivity skills vendored under
-`.claude/skills/` (see `.claude/skills/SOURCE.md` for provenance and how to
-update them). Notable ones for this project:
-
-- `tdd`, `code-review`, `diagnosing-bugs` — day-to-day engineering loop
-- `domain-modeling`, `codebase-design` — useful as the simulation systems
-  in `systems/` take shape
-- `to-spec`, `to-tickets`, `implement` — turning ideas into tracked work.
-  Order: grill-with-docs (if new domain ground surfaces) → `to-spec` →
-  `to-tickets` → `implement`. Always run `to-tickets` to slice a spec into
-  vertical tracer-bullet tickets before publishing — don't hand-draft
-  ticket bodies straight to `gh issue create`.
-
-Run the `setup-matt-pocock-skills` skill once to configure this repo
-(issue tracker, triage labels, doc preferences).
-
-## Agent skills
-
-### Issue tracker
-
-Issues live in GitHub Issues (`iosajr/cozy-god-sim`), via the `gh` CLI. See
-`docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Default label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`,
-`ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-`VISION.md` (the actual pitch/feel/core idea — read this first) +
-`CONTEXT.md` (pure glossary only, no pitch or implementation content) +
-`docs/adr/` (numbered decisions) + `docs/rebuild-plan.md` (current
-architecture-in-progress reference, until superseded by per-system
-`docs/design/<system>.md` files). See `docs/agents/domain.md`.
-
-### Implementing tickets
-
-What to read before starting (trimmed — not the full docs), and how to
-verify your own work before claiming it's done. See
-`docs/agents/implementing-tickets.md`.
+GitHub Issues (`iosajr/cozy-god-sim`) via the `gh` CLI. Triage labels:
+`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`,
+`wontfix`.

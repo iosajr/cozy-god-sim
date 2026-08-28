@@ -1,0 +1,778 @@
+<title>Rebuilding Cozy God Sim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --paper:      #E9EDEF;
+    --surface:    #FFFFFF;
+    --surface-2:  #F3F6F7;
+    --ink:        #1E2A33;
+    --ink-soft:   #47585F;
+    --muted:      #6E7F89;
+    --rule:       #D2DADE;
+    --rule-soft:  #E1E7EA;
+    --moss:       #46734A;
+    --moss-soft:  #E4EDE2;
+    --clay:       #A2653F;
+    --clay-soft:  #F2E7DE;
+
+    --display: "Fraunces", Georgia, "Times New Roman", serif;
+    --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #141B20;
+      --surface:    #1C252B;
+      --surface-2:  #212C33;
+      --ink:        #DEE6EA;
+      --ink-soft:   #B3C1C8;
+      --muted:      #8598A2;
+      --rule:       #2E3B43;
+      --rule-soft:  #26323A;
+      --moss:       #8CB681;
+      --moss-soft:  #22301F;
+      --clay:       #D09A70;
+      --clay-soft:  #322419;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #141B20;
+    --surface:    #1C252B;
+    --surface-2:  #212C33;
+    --ink:        #DEE6EA;
+    --ink-soft:   #B3C1C8;
+    --muted:      #8598A2;
+    --rule:       #2E3B43;
+    --rule-soft:  #26323A;
+    --moss:       #8CB681;
+    --moss-soft:  #22301F;
+    --clay:       #D09A70;
+    --clay-soft:  #322419;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: clamp(2rem, 6vw, 4.5rem) clamp(1.1rem, 4vw, 2.5rem) 6rem;
+  }
+
+  .col { max-width: 41rem; }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    padding-bottom: 2.2rem;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 3rem;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--moss);
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(2.3rem, 6vw, 3.5rem);
+    line-height: 1.04;
+    letter-spacing: -0.015em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    font-size: 1.1rem;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 34rem;
+    margin: 0;
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.4rem;
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+    padding-top: 0.4rem;
+  }
+
+  /* ---------- sections ---------- */
+
+  section { margin-bottom: 3.6rem; }
+
+  h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(1.45rem, 3.2vw, 1.85rem);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin: 0 0 1rem;
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-family: var(--body);
+    font-weight: 600;
+    font-size: 1.02rem;
+    margin: 0;
+    letter-spacing: -0.005em;
+  }
+
+  p { margin: 0 0 1rem; }
+  p:last-child { margin-bottom: 0; }
+
+  a { color: var(--moss); }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: var(--surface-2);
+    border: 1px solid var(--rule-soft);
+    border-radius: 3px;
+    padding: 0.08em 0.34em;
+    white-space: nowrap;
+  }
+
+  .lede {
+    font-size: 1.05rem;
+    color: var(--ink-soft);
+  }
+
+  /* ---------- asks grid ---------- */
+
+  .asks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .ask {
+    background: var(--surface);
+    padding: 1rem 1.1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .ask-said {
+    font-family: var(--display);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .ask-where {
+    font-size: 0.87rem;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  .ask-tag {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--moss);
+    margin-top: auto;
+    padding-top: 0.4rem;
+  }
+
+  .ask-tag.later { color: var(--clay); }
+
+  /* ---------- the decision panel ---------- */
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: clamp(1.2rem, 3vw, 2rem);
+  }
+
+  .diagram-scroll {
+    overflow-x: auto;
+    margin: 1.6rem 0 0.4rem;
+  }
+
+  .diagram-scroll svg { display: block; min-width: 30rem; width: 100%; height: auto; }
+
+  .caption {
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-top: 0.9rem;
+  }
+
+  /* ---------- system spine ---------- */
+
+  .spine { display: flex; flex-direction: column; }
+
+  .sys {
+    display: grid;
+    grid-template-columns: 3.6rem 1fr;
+    gap: 0 1.3rem;
+    padding-bottom: 2.4rem;
+  }
+
+  .sys:last-child { padding-bottom: 0; }
+
+  .rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .rail-num {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--moss);
+    background: var(--moss-soft);
+    border-radius: 999px;
+    width: 2.1rem;
+    height: 2.1rem;
+    display: grid;
+    place-items: center;
+    letter-spacing: 0.02em;
+    flex: none;
+  }
+
+  .rail-line {
+    width: 1px;
+    flex: 1;
+    background: var(--rule);
+    min-height: 1rem;
+  }
+
+  .sys:last-child .rail-line { display: none; }
+
+  .sys-body { padding-top: 0.18rem; }
+
+  .sys-job {
+    color: var(--ink-soft);
+    margin: 0.3rem 0 0.9rem;
+    font-size: 0.97rem;
+  }
+
+  .sys-body ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .sys-body li {
+    position: relative;
+    padding-left: 1.05rem;
+    font-size: 0.94rem;
+    line-height: 1.55;
+  }
+
+  .sys-body li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.62em;
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--moss);
+  }
+
+  .bound {
+    margin-top: 1rem;
+    padding: 0.6rem 0.85rem;
+    background: var(--surface-2);
+    border-left: 2px solid var(--rule);
+    border-radius: 0 3px 3px 0;
+    font-size: 0.87rem;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  .bound b {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 0.15rem;
+  }
+
+  /* ---------- rules ---------- */
+
+  .rules {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  }
+
+  .rule-card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 1.1rem 1.2rem 1.2rem;
+  }
+
+  .rule-card h3 { margin-bottom: 0.45rem; }
+  .rule-card p { font-size: 0.92rem; color: var(--ink-soft); }
+
+  .rule-card code { background: var(--paper); }
+
+  /* ---------- deferred ---------- */
+
+  .later-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .later-item {
+    background: var(--surface);
+    padding: 1rem 1.2rem;
+    display: grid;
+    grid-template-columns: minmax(9rem, 14rem) 1fr;
+    gap: 0.3rem 1.5rem;
+    align-items: baseline;
+  }
+
+  @media (max-width: 34rem) {
+    .later-item { grid-template-columns: 1fr; }
+  }
+
+  .later-name {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--clay);
+  }
+
+  .later-why {
+    font-size: 0.91rem;
+    color: var(--ink-soft);
+    line-height: 1.55;
+  }
+
+  /* ---------- build order ---------- */
+
+  ol.order {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  ol.order li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 1.6rem 1fr;
+    gap: 0.9rem;
+    align-items: baseline;
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  ol.order li::before {
+    content: counter(step);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .note {
+    font-size: 0.87rem;
+    color: var(--muted);
+    border-top: 1px solid var(--rule);
+    padding-top: 1.2rem;
+    margin-top: 3rem;
+    line-height: 1.6;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    a { transition: opacity 0.15s ease; }
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--moss);
+    outline-offset: 2px;
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">System overview</div>
+    <h1>Rebuilding Cozy God Sim</h1>
+    <p class="standfirst">Seven systems, in the order they hold each other up. What each one owns, what it deliberately doesn't, and what's being left for later on purpose.</p>
+    <div class="meta">
+      <span>Godot 4 · GDScript</span>
+      <span>Rebuilt from an empty tree</span>
+      <span>Flat ground, one settlement</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>What you asked for, and where it lives</h2>
+      <p class="lede">Every one of these is a system below, not a feature bolted on afterwards.</p>
+    </div>
+
+    <div class="asks">
+      <div class="ask">
+        <div class="ask-said">Cleanly viewable and debuggable</div>
+        <div class="ask-where">Simulation state lives in one store, so inspecting the game is reading one structure rather than hunting the scene tree.</div>
+        <div class="ask-tag">World · Checks</div>
+      </div>
+      <div class="ask">
+        <div class="ask-said">Memories with timestamps</div>
+        <div class="ask-where">Every memory stamped with game time, strength computed from age rather than ticked down.</div>
+        <div class="ask-tag">Memory</div>
+      </div>
+      <div class="ask">
+        <div class="ask-said">A real time system</div>
+        <div class="ask-where">One absolute game clock everything stamps against, carrying seasons and a calendar. Day, night, season and year are read off it, never stored beside it.</div>
+        <div class="ask-tag">Clock</div>
+      </div>
+      <div class="ask">
+        <div class="ask-said">Species sharing logic, not rewrites</div>
+        <div class="ask-where">A species is an authored resource, not a subclass. Adding a goat is filling in fields, not writing a class.</div>
+        <div class="ask-tag">Beings &amp; Species</div>
+      </div>
+      <div class="ask">
+        <div class="ask-said">Classes used as intended</div>
+        <div class="ask-where">Subclass only for a real difference in kind. Different numbers are data; different capability is a class.</div>
+        <div class="ask-tag">Beings · Tasks</div>
+      </div>
+      <div class="ask">
+        <div class="ask-said">Black &amp; White camera and villager logic</div>
+        <div class="ask-where">Drag the world, zoom to a point. Villagers act on their strongest desire, choosing a target from what they personally know — the structure the original used.</div>
+        <div class="ask-tag">Memory · Tasks · View</div>
+      </div>
+      <div class="ask">
+        <div class="ask-said">Flat ground now, Pokémon terrain later</div>
+        <div class="ask-where">Terrain sits behind one interface from day one. Flat is an implementation of it, not an assumption baked through the game.</div>
+        <div class="ask-tag later">View · deferred</div>
+      </div>
+      <div class="ask">
+        <div class="ask-said">Massive scale, eventually</div>
+        <div class="ask-where">Nothing built for it yet. What's adopted now is the shape that lets it drop in: advance by elapsed time, never by counting frames.</div>
+        <div class="ask-tag later">Deferred</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>The one decision everything else follows from</h2>
+      <p>Simulation state is plain data owned by a single store. The scene tree is a <em>view</em> of that data, generated for whatever's on screen and thrown away when it isn't.</p>
+      <p>This is one decision answering two problems at once. Debuggability, because there's a single place where the truth lives — state stops being scattered across thirty spawned bodies you have to go find. And scale, because a node costs the engine something every frame just by existing, while a record costs nothing until someone reads it.</p>
+    </div>
+
+    <div class="panel">
+      <div class="diagram-scroll">
+        <svg viewBox="0 0 720 260" role="img" aria-label="Simulation records on the left, scene nodes generated on the right for whatever is on screen">
+          <defs>
+            <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--moss)"/>
+            </marker>
+            <marker id="arw-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted)"/>
+            </marker>
+          </defs>
+
+          <text x="16" y="24" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1.4" fill="var(--muted)">SIMULATION — ALWAYS</text>
+          <rect x="16" y="38" width="250" height="196" rx="5" fill="var(--surface-2)" stroke="var(--rule)"/>
+
+          <g font-family="IBM Plex Mono, monospace" font-size="11.5" fill="var(--ink-soft)">
+            <rect x="34" y="56" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
+            <text x="46" y="73">being 12 · villager · (40, 18)</text>
+            <rect x="34" y="88" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
+            <text x="46" y="105">being 13 · villager · (44, 21)</text>
+            <rect x="34" y="120" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
+            <text x="46" y="137">being 14 · sheep · (390, 77)</text>
+            <rect x="34" y="152" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
+            <text x="46" y="169">farm 3 · growing · (52, 30)</text>
+            <rect x="34" y="184" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
+            <text x="46" y="201">house 1 · built · (36, 12)</text>
+          </g>
+
+          <text x="454" y="24" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1.4" fill="var(--muted)">SCENE TREE — ONLY WHAT'S SEEN</text>
+          <rect x="454" y="38" width="250" height="196" rx="5" fill="var(--surface-2)" stroke="var(--rule)" stroke-dasharray="4 3"/>
+
+          <g font-family="IBM Plex Mono, monospace" font-size="11.5" fill="var(--ink-soft)">
+            <rect x="472" y="56" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
+            <text x="484" y="73">Node3D → being 12</text>
+            <rect x="472" y="88" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
+            <text x="484" y="105">Node3D → being 13</text>
+            <rect x="472" y="152" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
+            <text x="484" y="169">Node3D → farm 3</text>
+            <rect x="472" y="184" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
+            <text x="484" y="201">Node3D → house 1</text>
+          </g>
+
+          <text x="579" y="137" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--muted)">(sheep is off screen — no node)</text>
+
+          <line x1="278" y1="112" x2="442" y2="112" stroke="var(--moss)" stroke-width="1.5" marker-end="url(#arw)"/>
+          <text x="360" y="104" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="11.5" fill="var(--moss)">spawned on view</text>
+
+          <line x1="442" y1="150" x2="278" y2="150" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arw-b)"/>
+          <text x="360" y="168" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="11.5" fill="var(--muted)">holds an id, never state</text>
+        </svg>
+      </div>
+      <p class="caption">A node is a puppet. It knows which record it's showing and nothing else — no simulation state is ever stored on it, so destroying one loses nothing.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>The systems</h2>
+      <p class="lede">Numbered by dependency: each one can be built with only the ones above it existing. Every system gets its own document when it gets built — this page stays a map.</p>
+    </div>
+
+    <div class="spine">
+
+      <article class="sys">
+        <div class="rail"><div class="rail-num">01</div><div class="rail-line"></div></div>
+        <div class="sys-body">
+          <h3>Clock</h3>
+          <p class="sys-job">One absolute game time, and the rate it runs at.</p>
+          <ul>
+            <li>A single number that only ever goes up: in-game seconds since the world began. Everything that happens is stamped with it.</li>
+            <li>Time of day, day number, season and year are all <em>read off</em> that number, never stored next to it. Nothing can disagree with itself.</li>
+            <li>Seasons are first-class: crops, weather and behaviour vary by them, rather than having a calendar retrofitted once farming needs one.</li>
+            <li>Speed is one multiplier. Paused, normal and fast are the same code path, not three.</li>
+            <li>Systems are handed elapsed seconds and advance by them. Nothing counts frames.</li>
+          </ul>
+          <div class="bound"><b>Not its job</b>It doesn't know what a day means to a villager. It reports the time; anything that cares about the time asks.</div>
+        </div>
+      </article>
+
+      <article class="sys">
+        <div class="rail"><div class="rail-num">02</div><div class="rail-line"></div></div>
+        <div class="sys-body">
+          <h3>World</h3>
+          <p class="sys-job">Owns every simulated record. The one place to look.</p>
+          <ul>
+            <li>Plain data — beings, settlements, buildings, tasks, events. No scene-tree types anywhere inside it.</li>
+            <li>Stable ids. Anything that refers to a being holds its id, never the object, so nothing breaks when a being is removed.</li>
+            <li>One tick entry point. The world advances its systems in a known order; nothing advances itself from its own frame callback.</li>
+            <li>It runs headless. If the world needs a window open to be correct, something's in the wrong place.</li>
+          </ul>
+          <div class="bound"><b>Not its job</b>No rendering, no input, no camera. It doesn't know it's being watched.</div>
+        </div>
+      </article>
+
+      <article class="sys">
+        <div class="rail"><div class="rail-num">03</div><div class="rail-line"></div></div>
+        <div class="sys-body">
+          <h3>Beings &amp; Species</h3>
+          <p class="sys-job">Every living thing, sharing one shape.</p>
+          <ul>
+            <li><strong>A species is an authored resource, not a subclass.</strong> Lifespan, speed, diet, gestation, size, what it looks like, and which behaviours it's allowed. Adding a goat is filling in fields in the editor.</li>
+            <li>One <code>Being</code> class underneath all of them: id, position, species, born at, personality, memories, current task.</li>
+            <li>Subclass only for a genuine difference in kind — something that builds versus something that can't, something rooted versus something that walks. Never for different numbers.</li>
+            <li>Behaviours are a small named set a species is granted. A sheep gets graze, wander, flee. A villager gets work, eat, sleep, socialise, build. The behaviour code is shared; the grant list is per species.</li>
+            <li>Nothing stores age. It stores when it was born, and age is the clock minus that.</li>
+          </ul>
+          <div class="bound"><b>Not its job</b>A species describes capability and constants. It holds no logic — the behaviours do, and they're shared across everything granted them.</div>
+        </div>
+      </article>
+
+      <article class="sys">
+        <div class="rail"><div class="rail-num">04</div><div class="rail-line"></div></div>
+        <div class="sys-body">
+          <h3>Memory &amp; Beliefs</h3>
+          <p class="sys-job">Everything a being knows, and when it learned it.</p>
+          <ul>
+            <li>One structure, two uses. A <strong>memory</strong> is something that happened to it; a <strong>belief</strong> is something it knows about a place or an object. Both are a timestamped record of what this being knows, so both live here.</li>
+            <li>A memory is what happened, when, how much it mattered, and who else was there. A belief is what was seen, where, and when it was last seen.</li>
+            <li>Beliefs are what a being acts on. Nothing ever asks the world for the nearest food — it goes to the field it knows about, which may be gone. Cheaper than a spatial search, and wrong in ways that read as character rather than as bugs.</li>
+            <li>Strength is computed from age when read, never ticked down. A being nobody watched for a year reads exactly the same as one watched the whole time.</li>
+            <li>Capped per being — keep the strongest handful, drop the rest. Uncapped memory is the thing that quietly eats the game later.</li>
+            <li>Spreads only when beings actually meet. An event pushes to whoever was there; nothing ever scans everyone against everyone.</li>
+            <li>Personality is a fixed base plus the pull of whichever memories are currently strong, computed the same way.</li>
+            <li>The list doubles as the being's readable history — the debuggability you asked for and the memories you asked for are the same feature seen from two sides.</li>
+          </ul>
+          <div class="bound"><b>Not its job</b>It records what a being knows. It doesn't choose what the being does — desires read it, it doesn't drive.</div>
+        </div>
+      </article>
+
+      <article class="sys">
+        <div class="rail"><div class="rail-num">05</div><div class="rail-line"></div></div>
+        <div class="sys-body">
+          <h3>Settlement &amp; Jobs</h3>
+          <p class="sys-job">The village as a real thing, and the coordinator that hands out work.</p>
+          <ul>
+            <li>A <strong>Settlement</strong> owns its members, its stores of food and material, and its buildings. Its shortages are what create available work.</li>
+            <li>The <strong>job manager is its own module</strong>, not part of the settlement. It holds the universal jobs every being does regardless of where it lives — eat, sleep — and takes village-specific information as input.</li>
+            <li>Beings still hold their own references. A villager knows its own home; a house knows its own occupants. The settlement isn't the only thing that knows where anything is.</li>
+            <li>Coordination lives here precisely so beings don't negotiate with each other. Anything needing two beings to agree goes through the settlement rather than between them.</li>
+          </ul>
+          <div class="bound"><b>Not its job</b>The settlement publishes what's needed. It never decides who does it — beings choose for themselves.</div>
+        </div>
+      </article>
+
+      <article class="sys">
+        <div class="rail"><div class="rail-num">06</div><div class="rail-line"></div></div>
+        <div class="sys-body">
+          <h3>Tasks &amp; Desires</h3>
+          <p class="sys-job">What a being decides to do, and doing it.</p>
+          <ul>
+            <li>A task is a whole job — sleep, eat, harvest that field — never a single action. Sleep is find shelter, go there, rest. Eat is get food, go home, eat.</li>
+            <li><strong>Steps are shared between tasks.</strong> "Go to a place" and "wait a while" are written once and reused by everything that needs them, rather than each task reimplementing its own travel.</li>
+            <li>Desires rise and fall: hunger, tiredness, wanting offspring, wanting shelter, wanting materials. The strongest, weighted by personality, chooses what happens next.</li>
+            <li><strong>A being picks its target from what it knows, not from the world.</strong> It walks to the field it has a belief about — which may not be the nearest one, and may not still be there.</li>
+            <li><code>Task</code> is a real base class with one subclass per kind. Claim it, run it, finish or abandon it. No parallel bookkeeping files reimplementing the same shape per job type.</li>
+            <li>Legibility is a requirement, not a bonus. Watching one villager for thirty seconds should tell you what it wants and why.</li>
+          </ul>
+          <div class="bound"><b>Not its job</b>Tasks move and change beings. They draw nothing.</div>
+        </div>
+      </article>
+
+      <article class="sys">
+        <div class="rail"><div class="rail-num">07</div><div class="rail-line"></div></div>
+        <div class="sys-body">
+          <h3>View, Camera &amp; Terrain</h3>
+          <p class="sys-job">Turning records into something on screen.</p>
+          <ul>
+            <li>One spawner for everything. It asks what's near the camera and creates or destroys visuals for those records. A sheep becomes visible exactly the way a villager does, because its species says what it looks like.</li>
+            <li>Camera is drag-the-world, zoom toward a point, rotate around focus — hands on the landscape rather than keys on a vehicle.</li>
+            <li><strong>Terrain sits behind one interface</strong>: height at a point, and whether it can be walked. Flat is an implementation of that interface, not an assumption.</li>
+            <li>Pluggable only works if nothing assumes flat. Movement and placement ask the terrain for a height starting now, while the answer is always zero — that's what makes the swap real later instead of aspirational.</li>
+          </ul>
+          <div class="bound"><b>Not its job</b>This layer reads the world. It never writes to it.</div>
+        </div>
+      </article>
+
+      <article class="sys">
+        <div class="rail"><div class="rail-num">08</div><div class="rail-line"></div></div>
+        <div class="sys-body">
+          <h3>Checks</h3>
+          <p class="sys-job">Catching the game contradicting itself, while it runs.</p>
+          <ul>
+            <li>Named checks over the world: a task claimed by nobody, memories over the cap, a being off the map, starving but idle. Run on a cadence, report what fires.</li>
+            <li>They run against the live game, which is where the real bugs were — not against a mock in a separate process.</li>
+            <li>One inspector panel over the store: pick anything, see every field, its memories with timestamps, its current task and what it just finished.</li>
+            <li>Every bug found by hand becomes a check, so the same one can't come back quietly.</li>
+          </ul>
+          <div class="bound"><b>Not its job</b>Checks observe and report. They never repair, and never change what the game does.</div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Two habits that pay for everything later</h2>
+      <p>Neither costs anything now. Both are painful to retrofit, and between them they're what keeps the door open to real scale without designing for it today.</p>
+    </div>
+    <div class="rules">
+      <div class="rule-card">
+        <h3>Advance by elapsed time, never by frame</h3>
+        <p>Anything that accumulates is written as <code>advance(state, elapsed)</code> from its first line. Written this way, catching something up after an hour untouched is one call. Written as "do a bit each frame", it can never be caught up at all without rewriting it.</p>
+      </div>
+      <div class="rule-card">
+        <h3>Never store what the clock can tell you</h3>
+        <p>Age, memory strength, how long since something last ate — store the timestamp, compute the answer on read. Nothing to tick, nothing to go stale, and something nobody has looked at for a year is automatically correct.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Deferred on purpose</h2>
+      <p>Not forgotten, and not designed around either. Each of these has one thing keeping its door open, and nothing more spent on it than that.</p>
+    </div>
+    <div class="later-list">
+      <div class="later-item">
+        <div class="later-name">Pokémon-styled terrain</div>
+        <div class="later-why">The interface exists from day one and flat sits behind it. When you approve a real terrain, it swaps in and nothing else in the game notices.</div>
+      </div>
+      <div class="later-item">
+        <div class="later-name">Massive scale</div>
+        <div class="later-why">With one settlement, machinery for simulating distant places is dead code. The two habits above are the whole preparation, and they're free.</div>
+      </div>
+      <div class="later-item">
+        <div class="later-name">Gods acting on the world</div>
+        <div class="later-why">Needs a world worth acting on first. Beings, tasks and memory have to be running before an intervention means anything.</div>
+      </div>
+      <div class="later-item">
+        <div class="later-name">The LLM helper</div>
+        <div class="later-why">Reads memories and events, writes nothing, blocks nothing. The game must run identically with it switched off, so it can be added whenever.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>How the documents work now</h2>
+      <p>Same discipline as the code.</p>
+      <ul style="margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:0.5rem;">
+        <li>One document per system, written when that system is built. No document tries to describe the whole game.</li>
+        <li>Documents say what is true now. No history, no superseded versions, no pointers to other files.</li>
+        <li>One list of things awaiting your decision, raised regularly. Anything that doesn't get decided gets deleted rather than left sitting.</li>
+        <li>Few rules, stated plainly, and anything not covered gets asked about rather than assumed.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Build order</h2>
+      <p class="lede">Straight down the dependency chain, with the first lookable thing as early as it can honestly come.</p>
+      <ol class="order">
+        <li><strong>Clock and World.</strong> Nothing else can be written honestly without them, and they're small.</li>
+        <li><strong>Beings, species, the view spawner and the camera.</strong> The first thing worth looking at: flat ground, a handful of villagers and sheep standing on it.</li>
+        <li><strong>Beliefs, then settlement and jobs.</strong> Beings know about places; the village has shortages and publishes work.</li>
+        <li><strong>Tasks and desires.</strong> The first thing worth <em>watching</em> — villagers wanting things and going to get them.</li>
+        <li><strong>Memories.</strong> The same structure as beliefs, now carrying events rather than places, and feeding personality.</li>
+        <li><strong>Checks and the inspector</strong>, growing from step one onward rather than waiting for a phase of their own.</li>
+      </ol>
+    </div>
+  </section>
+
+  <p class="note col"><strong>Black &amp; White</strong> here means the 2001 Lionhead game, the reference for camera feel and villager behaviour — separate from Pokémon as the reference for terrain styling. The belief-and-desire structure and the village-as-coordinator both come from how that game actually worked, not from guesswork. Everything else on this page comes from what you've said directly.</p>
+
+</div>
