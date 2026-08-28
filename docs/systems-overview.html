@@ -622,12 +622,12 @@
       <article class="sys">
         <div class="rail"><div class="rail-num">04</div><div class="rail-line"></div></div>
         <div class="sys-body">
-          <h3>Memory &amp; Beliefs</h3>
+          <h3>Memory</h3>
           <p class="sys-job">Everything a being knows, and when it learned it.</p>
           <ul>
-            <li>One structure, two uses. A <strong>memory</strong> is something that happened to it; a <strong>belief</strong> is something it knows about a place or an object. Both are a timestamped record of what this being knows, so both live here.</li>
-            <li>A memory is what happened, when, how much it mattered, and who else was there. A belief is what was seen, where, and when it was last seen.</li>
-            <li>Beliefs are what a being acts on. Nothing ever asks the world for the nearest food — it goes to the field it knows about, which may be gone. Cheaper than a spatial search, and wrong in ways that read as character rather than as bugs.</li>
+            <li><strong>One class covers everything a being knows</strong> — something that happened to it, and somewhere it knows about. The shape is the same either way: what, where, when, how much it mattered, who else was there.</li>
+            <li>Kinds are flags on that class, not separate types. Witnessing something divine is a memory with a flag set, sharing everything else.</li>
+            <li>Memories are what a being acts on. Nothing ever asks the world for the nearest food — it goes to the place it remembers, which may be gone. Cheaper than a spatial search, and wrong in ways that read as character rather than as bugs.</li>
             <li>Strength is computed from age when read, never ticked down. A being nobody watched for a year reads exactly the same as one watched the whole time.</li>
             <li>Capped per being — keep the strongest handful, drop the rest. Uncapped memory is the thing that quietly eats the game later.</li>
             <li>Spreads only when beings actually meet. An event pushes to whoever was there; nothing ever scans everyone against everyone.</li>
@@ -645,6 +645,7 @@
           <p class="sys-job">The village as a real thing, and the coordinator that hands out work.</p>
           <ul>
             <li>A <strong>Settlement</strong> owns its members, its stores of food and material, and its buildings. Its shortages are what create available work.</li>
+            <li>Anything with a semi-fixed location and a community is one — a village, a warren, a grove. A single class, with each species naming its own.</li>
             <li>The <strong>job manager is its own module</strong>, not part of the settlement. It holds the universal jobs every being does regardless of where it lives — eat, sleep — and takes village-specific information as input.</li>
             <li>Beings still hold their own references. A villager knows its own home; a house knows its own occupants. The settlement isn't the only thing that knows where anything is.</li>
             <li>Coordination lives here precisely so beings don't negotiate with each other. Anything needing two beings to agree goes through the settlement rather than between them.</li>
@@ -661,8 +662,9 @@
           <ul>
             <li>A task is a whole job — sleep, eat, harvest that field — never a single action. Sleep is find shelter, go there, rest. Eat is get food, go home, eat.</li>
             <li><strong>Steps are shared between tasks.</strong> "Go to a place" and "wait a while" are written once and reused by everything that needs them, rather than each task reimplementing its own travel.</li>
-            <li>Desires rise and fall: hunger, tiredness, wanting offspring, wanting shelter, wanting materials. The strongest, weighted by personality, chooses what happens next.</li>
-            <li><strong>A being picks its target from what it knows, not from the world.</strong> It walks to the field it has a belief about — which may not be the nearest one, and may not still be there.</li>
+            <li><strong>Needs are derived, never ticked.</strong> A being stores when it last ate and last slept; hunger and tiredness are computed from how long ago that was. Nothing depletes, nothing needs a periodic check, and a being untouched for an hour is correct the moment anyone reads it.</li>
+            <li>The strongest need, weighted by that being's own interests, chooses what happens next — so the same job scores differently depending on who is asking.</li>
+            <li><strong>A being picks its target from what it remembers, not from the world.</strong> It walks to the field it knows of — which may not be the nearest, and may not still be there.</li>
             <li><code>Task</code> is a real base class with one subclass per kind. Claim it, run it, finish or abandon it. No parallel bookkeeping files reimplementing the same shape per job type.</li>
             <li>Legibility is a requirement, not a bonus. Watching one villager for thirty seconds should tell you what it wants and why.</li>
           </ul>
@@ -693,7 +695,8 @@
           <ul>
             <li>Named checks over the world: a task claimed by nobody, memories over the cap, a being off the map, starving but idle. Run on a cadence, report what fires.</li>
             <li>They run against the live game, which is where the real bugs were — not against a mock in a separate process.</li>
-            <li>One inspector panel over the store: pick anything, see every field, its memories with timestamps, its current task and what it just finished.</li>
+            <li>One inspector panel over the store, styled like Godot's own so it reads as familiar. It lists whatever is currently in view, and opening a row shows every field, the memories with timestamps, the current task and what was just finished.</li>
+            <li><strong>Because it reads the store, it works for records with nothing spawned.</strong> Something off-screen can still be inspected — being drawn is never a prerequisite for being readable.</li>
             <li>Every bug found by hand becomes a check, so the same one can't come back quietly.</li>
           </ul>
           <div class="bound"><b>Not its job</b>Checks observe and report. They never repair, and never change what the game does.</div>
@@ -765,14 +768,14 @@
       <ol class="order">
         <li><strong>Clock and World.</strong> Nothing else can be written honestly without them, and they're small.</li>
         <li><strong>Beings, species, the view spawner and the camera.</strong> The first thing worth looking at: flat ground, a handful of villagers and sheep standing on it.</li>
-        <li><strong>Beliefs, then settlement and jobs.</strong> Beings know about places; the village has shortages and publishes work.</li>
+        <li><strong>Memory, then settlement and jobs.</strong> Beings know about places; the settlement has shortages and publishes work.</li>
         <li><strong>Tasks and desires.</strong> The first thing worth <em>watching</em> — villagers wanting things and going to get them.</li>
-        <li><strong>Memories.</strong> The same structure as beliefs, now carrying events rather than places, and feeding personality.</li>
+        <li><strong>Personality and event memories.</strong> The same structure, now carrying what happened as well as where things are.</li>
         <li><strong>Checks and the inspector</strong>, growing from step one onward rather than waiting for a phase of their own.</li>
       </ol>
     </div>
   </section>
 
-  <p class="note col"><strong>Black &amp; White</strong> here means the 2001 Lionhead game, the reference for camera feel and villager behaviour — separate from Pokémon as the reference for terrain styling. The belief-and-desire structure and the village-as-coordinator both come from how that game actually worked, not from guesswork. Everything else on this page comes from what you've said directly.</p>
+  <p class="note col"><strong>Black &amp; White</strong> here means the 2001 Lionhead game, the reference for camera feel and villager behaviour — separate from Pokémon as the reference for terrain styling. The memory-and-desire structure and the village-as-coordinator both come from how that game actually worked, not from guesswork. Everything else on this page comes from what you've said directly.</p>
 
 </div>

@@ -38,7 +38,7 @@ systems/        simulation only: plain data, no scene tree, runs headless
   clock/        absolute game time, seasons, speed
   world/        the store that owns every record
   beings/       being, species resources, behaviours
-  memory/       memories and beliefs
+  memory/       memories, events and places alike
   settlement/   settlement, job manager
   tasks/        task base class, one file per kind
 scripts/        scene glue: camera, view spawner, terrain provider
