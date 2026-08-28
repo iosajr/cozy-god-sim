@@ -198,12 +198,14 @@ fast-forwards everything from zero and produces nonsense.
    through a bespoke debug node. (`folk_debug_info.gd` is the example
    not to repeat.)
 2. **Visual and perceptible work is signed off by the user looking at
-   it, not self-certified.** Headless GUT proves logic, never feel. When
-   a change touches anything visible, stop at the point where it can be
-   looked at, say plainly what to look for and how to get there, and
-   hand it over — don't render, screenshot and grade it yourself. Bad
-   feel gets caught in one glance at the real thing, and burning tokens
-   on a self-run screenshot loop catches it later and worse.
+   it, not self-certified.** Automated tests, where they exist, prove
+   logic, never feel. When a change touches anything visible, stop at
+   the point where it can be looked at, say plainly what to look for and
+   how to get there, and hand it over — don't render, screenshot, or
+   re-run the game yourself to grade it or to re-check a bug the user
+   already reported. Bad feel gets caught in one glance at the real
+   thing; a self-run verification loop catches it later, worse, and
+   costs tokens for nothing.
 3. **The LLM is a helper and logger, not a gameplay dependency.**
    Structured, timestamped, human-readable per-Folk history is what it
    reads; nothing in gameplay ever blocks on it responding, and the game

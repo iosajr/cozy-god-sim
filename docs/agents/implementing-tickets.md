@@ -42,44 +42,25 @@ when the user is right there and the work could just be done directly.
 If unsure which the user wants, ask rather than default to spawning
 agents.
 
-## Don't try to run Godot yourself
+## No test framework currently vendored
 
-If you're a background `Agent`-tool worktree or a cloud routine: write
-real GUT tests for whatever you build (`extends GutTest`, `test_*.gd`,
-mirroring `tests/`'s existing layout) — but **do not try to bootstrap or
-run Godot/GUT yourself**. Implement, write the tests, commit, and stop
-there. Leave actually running the suite to the user or the live
-interactive session.
+GUT was removed 2026-08-28 — it never caught the runtime/visual bugs
+that actually came up in practice, and added its own version friction
+(only one specific Godot install on the maintainer's machine could run
+it at all). **Don't reach for GUT, and don't vendor a replacement test
+framework on your own initiative** — the verification approach for the
+rebuild is an open decision, not something to default back to silently.
+If a ticket needs tests and none of this guidance covers how, ask rather
+than assume.
 
-**Why**: this project already has a standing rule that nothing merges
-without the human/interactive session independently re-running the full
-suite from a clean checkout regardless — an agent-side attempt at the
-same setup is redundant, not extra safety, and bootstrapping a working
-headless Godot environment from scratch is genuinely fiddly (a bad
-bootstrap has silently hung for over an hour before — see below). Cloud
-sandboxes in particular have also repeatedly failed to find a working
-Godot at all, or found a stray old one and used it instead of what the
-repo actually targets — don't hunt for or install a Godot binary; if one
-isn't already set up in your environment, that's expected, not a problem
-to solve.
-
-## Verifying the work (user or interactive session only)
-
-Run the real test suite before calling anything actually done —
-`godot --headless -s addons/gut/gut_cmdln.gd` (config in
-`.gutconfig.json`). On a **freshly-created worktree** with no `.godot/`
-cache yet, bootstrap it first:
-
-```
-godot --headless --editor --quit-after 60
-```
-
-**Not** bare `--editor --quit` — that aborts the async import/class-scan
-thread before it finishes and silently leaves the cache incomplete,
-which then causes either immediate parse errors on the next GUT run, or
-(observed for real, cost over an hour before being caught) a hang with
-zero output. Run the bootstrap twice if GUT reports new unimported
-images after the first pass.
+If a headless Godot bootstrap is ever needed again for some other reason
+(a freshly-created worktree with no `.godot/` cache yet), use
+`godot --headless --editor --quit-after 60`, not bare `--editor --quit`
+— the bare form aborts the async import/class-scan thread before it
+finishes and silently leaves the cache incomplete, which then causes
+parse errors or (observed for real, cost over an hour before being
+caught) a hang with zero output. Run it twice if new unimported assets
+get reported after the first pass.
 
 Before committing, run `git status`/`git diff --stat` and review the
 file list — commit only what your change actually touches. **Never
@@ -102,24 +83,26 @@ exit code alone.
 
 ## Visual work is signed off by the user, not self-certified
 
-GUT proves logic. It never proves feel, and feel is what has actually
-gone wrong in this project. **Do not render, screenshot and grade your
-own visual work.** When a change touches anything visible — terrain,
-weather, nameplates, spawning, UI, camera — stop at the point where it
-can be looked at, say plainly what to look for and how to get there,
-and hand it to the user.
+Automated tests, if this project has any at a given point, prove logic.
+They never prove feel, and feel is what has actually gone wrong here
+repeatedly — including runtime/visual bugs that passed every test anyway.
+**Do not render, screenshot, or re-run the game yourself to grade your
+own work or to re-check something the user already reported.** When a
+change touches anything visible — terrain, weather, nameplates, spawning,
+UI, camera — stop at the point where it can be looked at, say plainly
+what to look for and how to get there, and hand it to the user. When the
+user reports a bug, ask what they saw rather than trying to reproduce it
+yourself first.
 
 They will look at it. That catches bad feel in one glance, far earlier
 and for a tiny fraction of the tokens a self-run screenshot loop costs.
 
 ## What "done" means here
 
-For a background/cloud agent: implementation + real tests written +
-committed, nothing more — you are not expected to have run them (see
-above), and this project never merges on a self-report anyway. For the
-user or interactive session merging the branch: independently re-run the
-full suite from a clean checkout and read the real diff before it lands
-anywhere shared. That's the standing verification step for every merge in
-this repo — it's not optional just because an agent says its own tests
-pass, and for a background/cloud agent it hasn't actually run them at
-all.
+For a background/cloud agent: implementation committed, nothing more —
+this project never merges on a self-report. For the user or interactive
+session merging the branch: independently re-verify (whatever that means
+at the time — a test suite if one exists, a real diff read regardless)
+before it lands anywhere shared. That's the standing verification step
+for every merge in this repo, not optional just because an agent reports
+success.

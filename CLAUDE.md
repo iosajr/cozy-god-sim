@@ -6,13 +6,11 @@ A cozy 3D god-sim / simulation game built in Godot 4 (GDScript).
 
 - Godot 4.7+, Forward+ renderer
 - GDScript (typed where practical)
-- Keep dependencies minimal until there's a real need. One exception so
-  far: [GUT](https://github.com/bitwes/Gut) (Godot Unit Test), vendored
-  under `addons/gut/` — the project's test framework, added because
-  `systems/village.gd`/`systems/villager.gd` and
-  `scripts/villager_nameplate.gd` aren't testable without one (issue #2).
-  Run it with `godot --headless -s addons/gut/gut_cmdln.gd`
-  (`.gutconfig.json` points it at `res://tests`).
+- Keep dependencies minimal until there's a real need. No test framework
+  currently vendored — GUT was removed 2026-08-28; it never caught the
+  runtime/visual bugs that actually came up and added its own version
+  friction. Verification approach for the rebuild is undecided, not
+  assumed to be "add GUT back."
 
 ## Layout
 
@@ -80,7 +78,13 @@ the real file tree until that lands.
   rejected, which ticket asked for it); that belongs in git/PR history
   and `docs/systems-overview.md`, not in the code. If a comment only
   makes sense to someone who's read the GitHub issue, it belongs in the
-  issue/docs, not next to the code.
+  issue/docs, not next to the code. **No pointers to other files/docs
+  either** — no "see docs/X.md", no "house rule N", no "matches
+  systems-overview.md's Y section". A comment describes what's true
+  right here; if it needs another document to make sense, put it in that
+  document, not as a breadcrumb in the code. A multi-sentence paragraph
+  explaining a design's history is the same violation as a doc pointer —
+  both belong outside the file, not merely shortened.
 - `GameState` is a bulletin board (shared data + signals), not a place for
   gameplay logic — see the doc comment at the top of `game_state.gd`.
 - Placeholder art in `world_gen.gd` is intentionally disposable — don't

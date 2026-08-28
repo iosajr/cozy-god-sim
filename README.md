@@ -17,8 +17,6 @@ A starter project for a cozy 3D god-sim / simulation game, built with
     each), spawned with a floating thought-bubble nameplate over each one —
     `systems/village.gd`, `systems/villager.gd`, `scripts/village_spawner.gd`,
     `scripts/villager_nameplate.gd`
-- [GUT](https://github.com/bitwes/Gut) (Godot Unit Test), vendored under
-  `addons/gut/`, as the project's test framework — see `tests/`.
 - `ui/` and `assets/{models,textures,audio}/` folders ready to fill in as
   the game grows.
 - [Matt Pocock's engineering & productivity skills](https://github.com/mattpocock/skills)
@@ -36,18 +34,6 @@ A starter project for a cozy 3D god-sim / simulation game, built with
    skill once to configure it for this project (issue tracker, triage
    labels, doc preferences). See `.claude/skills/SOURCE.md` for details on
    the vendored skills and how to update them.
-
-## Running tests
-
-Tests use [GUT](https://github.com/bitwes/Gut), vendored under
-`addons/gut/`. With the Godot editor binary on your `PATH`:
-
-```sh
-godot --headless -s addons/gut/gut_cmdln.gd
-```
-
-`.gutconfig.json` points GUT at `res://tests` (including subdirectories)
-and exits with a non-zero code on failure, so this is CI-friendly as-is.
 
 ## Next steps
 
