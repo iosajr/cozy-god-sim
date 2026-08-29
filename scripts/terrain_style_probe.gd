@@ -28,6 +28,17 @@ func _ready() -> void:
 	_build_water_plane()
 	_build_trees()
 	_build_lighting_and_environment()
+	_build_camera()
+
+
+func _build_camera() -> void:
+	var world_size: float = grid_cells * cell_size
+	var camera: Camera3D = Camera3D.new()
+	camera.name = "Camera3D"
+	camera.fov = 50.0
+	camera.position = Vector3(world_size * 0.5, 35.0, world_size + 60.0)
+	camera.rotation_degrees = Vector3(-32.0, 0.0, 0.0)
+	add_child(camera)
 
 
 func _build_lighting_and_environment() -> void:
