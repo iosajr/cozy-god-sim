@@ -25,6 +25,19 @@ func _ready() -> void:
 	_levels = _build_level_grid()
 	_build_cliff_multimesh()
 	_build_grass_multimeshes()
+	_build_water_plane()
+
+
+func _build_water_plane() -> void:
+	var mesh: PlaneMesh = PlaneMesh.new()
+	var world_size: float = grid_cells * cell_size
+	mesh.size = Vector2(world_size, world_size)
+	var instance: MeshInstance3D = MeshInstance3D.new()
+	instance.name = "WaterPlane"
+	instance.mesh = mesh
+	instance.material_override = _water_material
+	instance.position = Vector3(world_size * 0.5, water_level_y, world_size * 0.5)
+	add_child(instance)
 
 
 func _make_flat_material(albedo: Color) -> StandardMaterial3D:
