@@ -12,10 +12,11 @@ through the remote tree.
 
 - **Styled like the Inspector**, so it reads as familiar rather than as a
   second thing to learn.
-- Opens on a key. Lists everything currently in view — the same query the
-  view spawner already runs to decide what to draw, so it costs nothing
-  extra.
-- Pick a row, or click a being in the world, to open it.
+- Opens on a key. Lists what is actually on screen, asked of the view
+  spawner, with a toggle to widen it to everything the store holds.
+- Grouped by settlement, and a row left collapsed stays collapsed when the
+  list rebuilds.
+- Pick a row, or click an entity in the world, to open it.
 - Shows the whole record: who it is, age, how hungry and how tired,
   current task and where it is walking, its memories with timestamps, what
   it last finished.
@@ -25,12 +26,12 @@ through the remote tree.
 - Scrolls vertically. **Never stretches off screen horizontally** — long
   values wrap or scroll inside their own row.
 - Interactive throughout: rows expand, references are followable, so
-  opening a being and stepping to its home or its settlement is one click.
+  opening an entity and stepping to its home or its settlement is one click.
 
 ## Invariant checks
 
 - Named checks over the world: a task claimed by nobody, memories over the
-  cap, a being off the map, starving but idle.
+  cap, an entity off the map, starving but idle.
 - Run on a cadence and report what fires. They run against the live game,
   which is where the real bugs were.
 - Every bug found by hand becomes a check, so the same one cannot come
