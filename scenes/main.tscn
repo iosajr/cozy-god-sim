@@ -1,58 +1,117 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://ckymgyef2nuks"]
 
-[ext_resource type="Script" path="res://scripts/sim_host.gd" id="1"]
-[ext_resource type="Script" path="res://ui/inspector_panel.gd" id="2"]
+[ext_resource type="Script" uid="uid://bo7swtsmwhls0" path="res://scripts/sim_host.gd" id="1_host"]
+[ext_resource type="Script" uid="uid://ywkygcw157p4" path="res://scripts/camera_rig.gd" id="2_rig"]
+[ext_resource type="Script" uid="uid://cwkd1k33bliig" path="res://scripts/view_spawner.gd" id="3_spawner"]
+[ext_resource type="Script" uid="uid://d0ajt7g8hi8ay" path="res://ui/inspector_panel.gd" id="4_inspector"]
 
-[node name="Main" type="Node"]
-script = ExtResource("1")
+[sub_resource type="StandardMaterial3D" id="Material_ground"]
+albedo_color = Color(0.42, 0.55, 0.34, 1)
 
-[node name="InspectorPanel" type="PanelContainer" parent="."]
-layout_mode = 3
+[sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
+size = Vector2(400, 400)
+
+[sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_day"]
+
+[sub_resource type="Sky" id="Sky_day"]
+sky_material = SubResource("SkyMaterial_day")
+
+[sub_resource type="Environment" id="Environment_day"]
+background_mode = 2
+sky = SubResource("Sky_day")
+ambient_light_source = 3
+ambient_light_energy = 1.1
+
+[node name="Main" type="Node" unique_id=1251866238]
+script = ExtResource("1_host")
+
+[node name="Ground" type="MeshInstance3D" parent="." unique_id=395042145]
+material_override = SubResource("Material_ground")
+mesh = SubResource("PlaneMesh_ground")
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=343494307]
+transform = Transform3D(0.81915, 0, 0.57358, 0.43938, 0.64279, -0.6275, -0.36869, 0.76604, 0.52654, 0, 0, 0)
+light_energy = 0.9
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1719010151]
+environment = SubResource("Environment_day")
+
+[node name="CameraRig" type="Node3D" parent="." unique_id=1351724044]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 6)
+script = ExtResource("2_rig")
+min_zoom = 8.0
+max_zoom = 150.0
+
+[node name="Pivot" type="Node3D" parent="CameraRig" unique_id=141337031]
+transform = Transform3D(1, 0, 0, 0, 0.829038, -0.559193, 0, 0.559193, 0.829038, 0, 0, 0)
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig/Pivot" unique_id=1802971529]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 56)
+current = true
+fov = 50.0
+
+[node name="ViewSpawner" type="Node3D" parent="." unique_id=1284759978]
+script = ExtResource("3_spawner")
+
+[node name="InspectorPanel" type="PanelContainer" parent="." unique_id=1540597719]
 anchors_preset = 9
 anchor_bottom = 1.0
 offset_right = 460.0
 grow_vertical = 2
-script = ExtResource("2")
+script = ExtResource("4_inspector")
 
-[node name="Margin" type="MarginContainer" parent="InspectorPanel"]
+[node name="Margin" type="MarginContainer" parent="InspectorPanel" unique_id=1637106752]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="Rows" type="VBoxContainer" parent="InspectorPanel/Margin"]
+[node name="Rows" type="VBoxContainer" parent="InspectorPanel/Margin" unique_id=691081929]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="Title" type="Label" parent="InspectorPanel/Margin/Rows"]
+[node name="Title" type="Label" parent="InspectorPanel/Margin/Rows" unique_id=502655314]
 layout_mode = 2
 text = "Inspector"
 
-[node name="ClockLine" type="Label" parent="InspectorPanel/Margin/Rows"]
+[node name="ClockLine" type="Label" parent="InspectorPanel/Margin/Rows" unique_id=1355592560]
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="ElapsedLine" type="Label" parent="InspectorPanel/Margin/Rows"]
+[node name="SeasonLine" type="Label" parent="InspectorPanel/Margin/Rows" unique_id=312030219]
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="SpeedLine" type="Label" parent="InspectorPanel/Margin/Rows"]
+[node name="SpeedLine" type="Label" parent="InspectorPanel/Margin/Rows" unique_id=1438466030]
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="HintLine" type="Label" parent="InspectorPanel/Margin/Rows"]
+[node name="HintLine" type="Label" parent="InspectorPanel/Margin/Rows" unique_id=418166811]
 layout_mode = 2
+text = "[1] pause   [2] normal   [3] fast   [F3] hide
+double-click a row to fly to it"
 autowrap_mode = 3
-text = "[1] pause   [2] normal   [3] fast   [F3] hide"
 
-[node name="Separator" type="HSeparator" parent="InspectorPanel/Margin/Rows"]
+[node name="Sep1" type="HSeparator" parent="InspectorPanel/Margin/Rows" unique_id=1340788976]
 layout_mode = 2
 
-[node name="RecordsLine" type="Label" parent="InspectorPanel/Margin/Rows"]
+[node name="Scope" type="CheckButton" parent="InspectorPanel/Margin/Rows" unique_id=1589707609]
 layout_mode = 2
-text = "Records: 0"
+button_pressed = true
+text = "On screen only"
 
-[node name="Records" type="Tree" parent="InspectorPanel/Margin/Rows"]
+[node name="CountLine" type="Label" parent="InspectorPanel/Margin/Rows" unique_id=1919307439]
+layout_mode = 2
+
+[node name="Records" type="Tree" parent="InspectorPanel/Margin/Rows" unique_id=1670616519]
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="Sep2" type="HSeparator" parent="InspectorPanel/Margin/Rows" unique_id=48563121]
+layout_mode = 2
+
+[node name="Detail" type="Tree" parent="InspectorPanel/Margin/Rows" unique_id=2071055356]
+custom_minimum_size = Vector2(0, 170)
+layout_mode = 2

@@ -8,6 +8,9 @@ never writes to it.
 - One spawner for everything. It asks what is near the camera and creates
   or destroys visuals for those records. Every species becomes visible the
   same way, because its species says what it looks like.
+- The spawner is capped by count, not by distance: nearest first, and only
+  a few built in any one frame so a jump cannot hitch. The radius is a
+  first cut, not the limit.
 - Camera is drag-the-world, zoom toward a point, rotate around focus.
 - Terrain sits behind one interface: height at a point, and whether it can
   be walked. Flat is an implementation of that interface.
@@ -26,14 +29,14 @@ never writes to it.
 ## Dialogue
 
 - A character model alongside a text box, in the style of Hades. One
-  reusable component for both gods and renowned beings.
-- Gods are imagined as more grandiose than renowned beings, though that
+  reusable component for both gods and renowned entities.
+- Gods are imagined as more grandiose than renowned entities, though that
   distinction is not settled.
 
 ## Presence
 
 A cosmetic light tracking where the cursor meets the ground. Purely
-thematic, no mechanic. Some beings may notice it and briefly look before
+thematic, no mechanic. Some entities may notice it and briefly look before
 returning to what they were doing.
 
 ## Terrain, later
@@ -43,4 +46,4 @@ above once approved.
 
 ## Open
 
-- Whether gods and renowned beings need visually distinct treatments.
+- Whether gods and renowned entities need visually distinct treatments.

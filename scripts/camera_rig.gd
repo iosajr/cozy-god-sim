@@ -60,6 +60,11 @@ func _ready() -> void:
 		_set_pitch(_pivot.rotation.x)
 
 
+## Moves the point the camera orbits and looks at.
+func focus_on(point: Vector3) -> void:
+	global_position = point
+
+
 func _find_camera(node: Node) -> Camera3D:
 	for child in node.get_children():
 		if child is Camera3D:
