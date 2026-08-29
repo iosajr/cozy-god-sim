@@ -5,7 +5,7 @@ decision actually made; anything genuinely undecided is marked **OPEN**
 rather than filled in with something plausible-sounding.*
 
 A cozy, slow-paced idle game about a World where humans, animals, plants,
-and mythological beings all live and matter — every one of them, not
+and mythological entities all live and matter — every one of them, not
 just the Player's own household.
 
 ## The Gods act on the World

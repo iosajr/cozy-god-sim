@@ -1,6 +1,6 @@
 # Tasks & Desires
 
-What a being decides to do, and doing it.
+What an entity decides to do, and doing it.
 
 ## Decided
 
@@ -8,16 +8,16 @@ What a being decides to do, and doing it.
   action. Sleep is find shelter, go there, rest.
 - Steps are shared between tasks. Going somewhere and waiting a while are
   written once and reused, rather than each task carrying its own travel.
-- Travel is part of every task, including at the settlement. A being must
+- Travel is part of every task, including at the settlement. An entity must
   physically reach food to eat it, however close the food is.
-- A being picks its target from what it remembers, not from a search of
+- An entity picks its target from what it remembers, not from a search of
   the world.
 
 ## Needs are derived, not ticked
 
-A being stores when it last ate and when it last slept. Hunger and
+An entity stores when it last ate and when it last slept. Hunger and
 tiredness are computed from how long ago that was. Nothing depletes, and
-nothing needs a periodic check — a being untouched for an hour is
+nothing needs a periodic check — an entity untouched for an hour is
 correct the moment anyone reads it.
 
 - Hunger runs fine, hungry, starving. Tiredness runs fine, tired,
@@ -27,14 +27,14 @@ correct the moment anyone reads it.
   work is, and a real meal at home. Hunger decides that it is time; the
   hour of day decides which one it is.
 - Sleep is six hours for humans, and its length is a species constant.
-  It fires at nightfall and **looks ahead**: a being works back from the
+  It fires at nightfall and **looks ahead**: an entity works back from the
   target sleep time, subtracts the walk home, and leaves early enough to
   be asleep by nightfall rather than only then setting off.
 - Being at the settlement with food in the store is the easy case.
   Being away having brought provisions is the second. Being away without
   them means foraging or hunting for real, with real risk.
 - Failing a need currently costs nothing. That is temporary: the point at
-  which it starts to hurt is also the point where a being that starved
+  which it starts to hurt is also the point where an entity that starved
   while idle becomes a real question to ask about.
 
 ## Priority is a number, and it is personal
@@ -45,11 +45,11 @@ correct the moment anyone reads it.
   number, not stored fields. A rule asks whether a score clears the
   must-do threshold; it never reads a band.
   - Must-do is genuinely life-threatening: about to die of hunger or
-    exhaustion, or another being in mortal danger this one could help.
+    exhaustion, or another entity in mortal danger this one could help.
   - Important is scheduled needs and work that matters but is not an
     emergency.
   - Passtime is optional filler — gathering, harvesting, exploring.
-- **The score is per being.** Interest weights it: the same job scores
+- **The score is per entity.** Interest weights it: the same job scores
   differently depending on who is asking, driven by traits and needs
   rather than by an assigned profession.
 - A task's band moves with context. Gathering food climbs out of passtime
@@ -57,12 +57,12 @@ correct the moment anyone reads it.
 
 ## Asking, not assigning
 
-- A being asks for work at real decision points: its task finished, it was
-  interrupted, or its own tick fired. Nothing re-scores every being every
-  tick, so cost tracks how many beings need a decision, not how many
+- An entity asks for work at real decision points: its task finished, it was
+  interrupted, or its own tick fired. Nothing re-scores every entity every
+  tick, so cost tracks how many entities need a decision, not how many
   exist.
 - No task queue. A pending need is not stored in a list. The current task
-  finishes, the being asks again, and the need — which never went away —
+  finishes, the entity asks again, and the need — which never went away —
   surfaces then.
 - A low store does not pull anyone off what they are doing. It raises the
   priority of food work, so gathering is more likely to win next time
@@ -72,7 +72,7 @@ correct the moment anyone reads it.
 
 A heuristic, deliberately not a precise algorithm. A task close to
 finishing, or one where stopping halfway causes a bad outcome, is
-generally allowed to finish — a being nearly done bringing the sheep back
+generally allowed to finish — an entity nearly done bringing the sheep back
 should not drop them to make bedtime. Genuine must-do emergencies
 interrupt regardless.
 

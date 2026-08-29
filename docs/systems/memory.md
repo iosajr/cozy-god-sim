@@ -1,10 +1,10 @@
 # Memory
 
-Everything a being knows, and when it learned it.
+Everything an entity knows, and when it learned it.
 
 ## One class, not two
 
-A memory covers everything a being knows: something that happened to it,
+A memory covers everything an entity knows: something that happened to it,
 and somewhere it knows about. The shape is the same either way — what,
 where, when, how much it mattered, who else was there — so there is one
 class, not a separate notion of belief.
@@ -14,16 +14,16 @@ memory with its divine flag set, sharing everything else.
 
 ## Decided
 
-- Beings act on their memories. Nothing asks the world for the nearest
-  food; a being goes to the place it remembers, which may be gone.
-- Strength is computed from age on read, never ticked down. A being
+- Entities act on their memories. Nothing asks the world for the nearest
+  food; an entity goes to the place it remembers, which may be gone.
+- Strength is computed from age on read, never ticked down. An entity
   nobody watched for a year reads the same as one watched throughout.
-- Capped per being: keep the strongest handful, drop the rest.
-- Spreads only when beings actually meet. An event pushes to whoever was
+- Capped per entity: keep the strongest handful, drop the rest.
+- Spreads only when entities actually meet. An event pushes to whoever was
   present; nothing scans everyone against everyone.
 - Personality is a fixed base plus the pull of currently-strong memories,
   computed the same way.
-- The list doubles as the being's readable history.
+- The list doubles as the entity's readable history.
 
 ## Places
 
@@ -38,9 +38,9 @@ memory with its divine flag set, sharing everything else.
 
 ## Expeditions
 
-How a settlement obtains place memories it could not get locally. A being
+How a settlement obtains place memories it could not get locally. An entity
 leaves, and either returns having learned something or does not.
 
 ## Open
 
-- What a being failing to return conveys.
+- What an entity failing to return conveys.

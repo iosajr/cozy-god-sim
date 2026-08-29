@@ -65,7 +65,7 @@ narrative in intent.
 ## Being and remembering
 
 **Personality**: A small fixed numeric trait vector (kindness,
-aggression, greed, boldness, ~0–1 each) carried by every acting being —
+aggression, greed, boldness, ~0–1 each) carried by every acting entity —
 Gods and Folk alike. Has real mechanical effect on behaviour: a bold
 Folk member fights, a fearful one flees. Not tags. Stored as an
 immutable base; current Personality is derived as base plus the
@@ -110,7 +110,7 @@ unlikely events — rather than lingering attention. *Name still open.*
 Its main mechanical role is unlocking Player interaction (dialogue).
 For animal or plant Folk the mark is transformation toward something
 more humanoid (a horse toward centaur, a tree toward dryad) — the origin
-of the World's mythical beings. *Name still open.*
+of the World's mythical entities. *Name still open.*
 
 ## Removed
 

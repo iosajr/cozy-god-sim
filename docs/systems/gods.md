@@ -8,9 +8,9 @@ when it gets built.
 - Gods act for their own reasons, self-interested as often as cosmic, and
   react to what the world already does more than they author it.
 - How openly a god acts depends on its personality. Some are boisterous.
-- Gods existing is common knowledge in the world. It is not a per-being
+- Gods existing is common knowledge in the world. It is not a per-entity
   belief, and there is no faith stat.
-- **A god can never force a being's will.** Gods cause direct physical and
+- **A god can never force an entity's will.** Gods cause direct physical and
   environmental effects — wreck a harvest, seed chaos — but cannot compel
   anyone to act for them. This rules out mind-control and starting a war
   by decree alike.

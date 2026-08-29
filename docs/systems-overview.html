@@ -477,12 +477,12 @@
       <div class="ask">
         <div class="ask-said">Species sharing logic, not rewrites</div>
         <div class="ask-where">A species is an authored resource, not a subclass. Adding a goat is filling in fields, not writing a class.</div>
-        <div class="ask-tag">Beings &amp; Species</div>
+        <div class="ask-tag">Entities &amp; Species</div>
       </div>
       <div class="ask">
         <div class="ask-said">Classes used as intended</div>
         <div class="ask-where">Subclass only for a real difference in kind. Different numbers are data; different capability is a class.</div>
-        <div class="ask-tag">Beings · Tasks</div>
+        <div class="ask-tag">Entities · Tasks</div>
       </div>
       <div class="ask">
         <div class="ask-said">Black &amp; White camera and villager logic</div>
@@ -526,11 +526,11 @@
 
           <g font-family="IBM Plex Mono, monospace" font-size="11.5" fill="var(--ink-soft)">
             <rect x="34" y="56" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
-            <text x="46" y="73">being 12 · villager · (40, 18)</text>
+            <text x="46" y="73"&gt;entity 12 · villager · (40, 18)</text>
             <rect x="34" y="88" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
-            <text x="46" y="105">being 13 · villager · (44, 21)</text>
+            <text x="46" y="105"&gt;entity 13 · villager · (44, 21)</text>
             <rect x="34" y="120" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
-            <text x="46" y="137">being 14 · sheep · (390, 77)</text>
+            <text x="46" y="137"&gt;entity 14 · sheep · (390, 77)</text>
             <rect x="34" y="152" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
             <text x="46" y="169">farm 3 · growing · (52, 30)</text>
             <rect x="34" y="184" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
@@ -542,9 +542,9 @@
 
           <g font-family="IBM Plex Mono, monospace" font-size="11.5" fill="var(--ink-soft)">
             <rect x="472" y="56" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
-            <text x="484" y="73">Node3D → being 12</text>
+            <text x="484" y="73">Node3D → entity 12</text>
             <rect x="472" y="88" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
-            <text x="484" y="105">Node3D → being 13</text>
+            <text x="484" y="105">Node3D → entity 13</text>
             <rect x="472" y="152" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
             <text x="484" y="169">Node3D → farm 3</text>
             <rect x="472" y="184" width="214" height="26" rx="3" fill="var(--surface)" stroke="var(--rule-soft)"/>
@@ -594,8 +594,8 @@
           <h3>World</h3>
           <p class="sys-job">Owns every simulated record. The one place to look.</p>
           <ul>
-            <li>Plain data — beings, settlements, buildings, tasks, events. No scene-tree types anywhere inside it.</li>
-            <li>Stable ids. Anything that refers to a being holds its id, never the object, so nothing breaks when a being is removed.</li>
+            <li>Plain data — entities, settlements, buildings, tasks, events. No scene-tree types anywhere inside it.</li>
+            <li>Stable ids. Anything that refers to an entity holds its id, never the object, so nothing breaks when an entity is removed.</li>
             <li>One tick entry point. The world advances its systems in a known order; nothing advances itself from its own frame callback.</li>
             <li>It runs headless. If the world needs a window open to be correct, something's in the wrong place.</li>
           </ul>
@@ -606,11 +606,11 @@
       <article class="sys">
         <div class="rail"><div class="rail-num">03</div><div class="rail-line"></div></div>
         <div class="sys-body">
-          <h3>Beings &amp; Species</h3>
+          <h3>Entities &amp; Species</h3>
           <p class="sys-job">Every living thing, sharing one shape.</p>
           <ul>
             <li><strong>A species is an authored resource, not a subclass.</strong> Lifespan, speed, diet, gestation, size, what it looks like, and which behaviours it's allowed. Adding a goat is filling in fields in the editor.</li>
-            <li>One <code>Being</code> class underneath all of them: id, position, species, born at, personality, memories, current task.</li>
+            <li>One <code>Entity</code> class underneath all of them: id, position, species, born at, personality, memories, current task.</li>
             <li>Subclass only for a genuine difference in kind — something that builds versus something that can't, something rooted versus something that walks. Never for different numbers.</li>
             <li>Behaviours are a small named set a species is granted. A sheep gets graze, wander, flee. A villager gets work, eat, sleep, socialise, build. The behaviour code is shared; the grant list is per species.</li>
             <li>Nothing stores age. It stores when it was born, and age is the clock minus that.</li>
@@ -623,18 +623,18 @@
         <div class="rail"><div class="rail-num">04</div><div class="rail-line"></div></div>
         <div class="sys-body">
           <h3>Memory</h3>
-          <p class="sys-job">Everything a being knows, and when it learned it.</p>
+          <p class="sys-job">Everything an entity knows, and when it learned it.</p>
           <ul>
-            <li><strong>One class covers everything a being knows</strong> — something that happened to it, and somewhere it knows about. The shape is the same either way: what, where, when, how much it mattered, who else was there.</li>
+            <li><strong>One class covers everything an entity knows</strong> — something that happened to it, and somewhere it knows about. The shape is the same either way: what, where, when, how much it mattered, who else was there.</li>
             <li>Kinds are flags on that class, not separate types. Witnessing something divine is a memory with a flag set, sharing everything else.</li>
-            <li>Memories are what a being acts on. Nothing ever asks the world for the nearest food — it goes to the place it remembers, which may be gone. Cheaper than a spatial search, and wrong in ways that read as character rather than as bugs.</li>
-            <li>Strength is computed from age when read, never ticked down. A being nobody watched for a year reads exactly the same as one watched the whole time.</li>
-            <li>Capped per being — keep the strongest handful, drop the rest. Uncapped memory is the thing that quietly eats the game later.</li>
-            <li>Spreads only when beings actually meet. An event pushes to whoever was there; nothing ever scans everyone against everyone.</li>
+            <li>Memories are what an entity acts on. Nothing ever asks the world for the nearest food — it goes to the place it remembers, which may be gone. Cheaper than a spatial search, and wrong in ways that read as character rather than as bugs.</li>
+            <li>Strength is computed from age when read, never ticked down. An entity nobody watched for a year reads exactly the same as one watched the whole time.</li>
+            <li>Capped per entity — keep the strongest handful, drop the rest. Uncapped memory is the thing that quietly eats the game later.</li>
+            <li>Spreads only when entities actually meet. An event pushes to whoever was there; nothing ever scans everyone against everyone.</li>
             <li>Personality is a fixed base plus the pull of whichever memories are currently strong, computed the same way.</li>
-            <li>The list doubles as the being's readable history — the debuggability you asked for and the memories you asked for are the same feature seen from two sides.</li>
+            <li>The list doubles as the entity's readable history — the debuggability you asked for and the memories you asked for are the same feature seen from two sides.</li>
           </ul>
-          <div class="bound"><b>Not its job</b>It records what a being knows. It doesn't choose what the being does — desires read it, it doesn't drive.</div>
+          <div class="bound"><b>Not its job</b>It records what an entity knows. It doesn't choose what the entity does — desires read it, it doesn't drive.</div>
         </div>
       </article>
 
@@ -646,11 +646,11 @@
           <ul>
             <li>A <strong>Settlement</strong> owns its members, its stores of food and material, and its buildings. Its shortages are what create available work.</li>
             <li>Anything with a semi-fixed location and a community is one — a village, a warren, a grove. A single class, with each species naming its own.</li>
-            <li>The <strong>job manager is its own module</strong>, not part of the settlement. It holds the universal jobs every being does regardless of where it lives — eat, sleep — and takes village-specific information as input.</li>
-            <li>Beings still hold their own references. A villager knows its own home; a house knows its own occupants. The settlement isn't the only thing that knows where anything is.</li>
-            <li>Coordination lives here precisely so beings don't negotiate with each other. Anything needing two beings to agree goes through the settlement rather than between them.</li>
+            <li>The <strong>job manager is its own module</strong>, not part of the settlement. It holds the universal jobs every entity does regardless of where it lives — eat, sleep — and takes village-specific information as input.</li>
+            <li>Entities still hold their own references. A villager knows its own home; a house knows its own occupants. The settlement isn't the only thing that knows where anything is.</li>
+            <li>Coordination lives here precisely so entities don't negotiate with each other. Anything needing two entities to agree goes through the settlement rather than between them.</li>
           </ul>
-          <div class="bound"><b>Not its job</b>The settlement publishes what's needed. It never decides who does it — beings choose for themselves.</div>
+          <div class="bound"><b>Not its job</b>The settlement publishes what's needed. It never decides who does it — entities choose for themselves.</div>
         </div>
       </article>
 
@@ -658,17 +658,17 @@
         <div class="rail"><div class="rail-num">06</div><div class="rail-line"></div></div>
         <div class="sys-body">
           <h3>Tasks &amp; Desires</h3>
-          <p class="sys-job">What a being decides to do, and doing it.</p>
+          <p class="sys-job">What an entity decides to do, and doing it.</p>
           <ul>
             <li>A task is a whole job — sleep, eat, harvest that field — never a single action. Sleep is find shelter, go there, rest. Eat is get food, go home, eat.</li>
             <li><strong>Steps are shared between tasks.</strong> "Go to a place" and "wait a while" are written once and reused by everything that needs them, rather than each task reimplementing its own travel.</li>
-            <li><strong>Needs are derived, never ticked.</strong> A being stores when it last ate and last slept; hunger and tiredness are computed from how long ago that was. Nothing depletes, nothing needs a periodic check, and a being untouched for an hour is correct the moment anyone reads it.</li>
-            <li>The strongest need, weighted by that being's own interests, chooses what happens next — so the same job scores differently depending on who is asking.</li>
-            <li><strong>A being picks its target from what it remembers, not from the world.</strong> It walks to the field it knows of — which may not be the nearest, and may not still be there.</li>
+            <li><strong>Needs are derived, never ticked.</strong> An entity stores when it last ate and last slept; hunger and tiredness are computed from how long ago that was. Nothing depletes, nothing needs a periodic check, and an entity untouched for an hour is correct the moment anyone reads it.</li>
+            <li>The strongest need, weighted by that entity's own interests, chooses what happens next — so the same job scores differently depending on who is asking.</li>
+            <li><strong>An entity picks its target from what it remembers, not from the world.</strong> It walks to the field it knows of — which may not be the nearest, and may not still be there.</li>
             <li><code>Task</code> is a real base class with one subclass per kind. Claim it, run it, finish or abandon it. No parallel bookkeeping files reimplementing the same shape per job type.</li>
             <li>Legibility is a requirement, not a bonus. Watching one villager for thirty seconds should tell you what it wants and why.</li>
           </ul>
-          <div class="bound"><b>Not its job</b>Tasks move and change beings. They draw nothing.</div>
+          <div class="bound"><b>Not its job</b>Tasks move and change entities. They draw nothing.</div>
         </div>
       </article>
 
@@ -693,7 +693,7 @@
           <h3>Checks</h3>
           <p class="sys-job">Catching the game contradicting itself, while it runs.</p>
           <ul>
-            <li>Named checks over the world: a task claimed by nobody, memories over the cap, a being off the map, starving but idle. Run on a cadence, report what fires.</li>
+            <li>Named checks over the world: a task claimed by nobody, memories over the cap, an entity off the map, starving but idle. Run on a cadence, report what fires.</li>
             <li>They run against the live game, which is where the real bugs were — not against a mock in a separate process.</li>
             <li>One inspector panel over the store, styled like Godot's own so it reads as familiar. It lists whatever is currently in view, and opening a row shows every field, the memories with timestamps, the current task and what was just finished.</li>
             <li><strong>Because it reads the store, it works for records with nothing spawned.</strong> Something off-screen can still be inspected — being drawn is never a prerequisite for being readable.</li>
@@ -739,7 +739,7 @@
       </div>
       <div class="later-item">
         <div class="later-name">Gods acting on the world</div>
-        <div class="later-why">Needs a world worth acting on first. Beings, tasks and memory have to be running before an intervention means anything.</div>
+        <div class="later-why">Needs a world worth acting on first. Entities, tasks and memory have to be running before an intervention means anything.</div>
       </div>
       <div class="later-item">
         <div class="later-name">The LLM helper</div>
@@ -767,8 +767,8 @@
       <p class="lede">Straight down the dependency chain, with the first lookable thing as early as it can honestly come.</p>
       <ol class="order">
         <li><strong>Clock and World.</strong> Nothing else can be written honestly without them, and they're small.</li>
-        <li><strong>Beings, species, the view spawner and the camera.</strong> The first thing worth looking at: flat ground, a handful of villagers and sheep standing on it.</li>
-        <li><strong>Memory, then settlement and jobs.</strong> Beings know about places; the settlement has shortages and publishes work.</li>
+        <li><strong>Entities, species, the view spawner and the camera.</strong> The first thing worth looking at: flat ground, a handful of villagers and sheep standing on it.</li>
+        <li><strong>Memory, then settlement and jobs.</strong> Entities know about places; the settlement has shortages and publishes work.</li>
         <li><strong>Tasks and desires.</strong> The first thing worth <em>watching</em> — villagers wanting things and going to get them.</li>
         <li><strong>Personality and event memories.</strong> The same structure, now carrying what happened as well as where things are.</li>
         <li><strong>Checks and the inspector</strong>, growing from step one onward rather than waiting for a phase of their own.</li>
