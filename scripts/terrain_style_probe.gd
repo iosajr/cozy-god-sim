@@ -27,6 +27,40 @@ func _ready() -> void:
 	_build_grass_multimeshes()
 	_build_water_plane()
 	_build_trees()
+	_build_lighting_and_environment()
+
+
+func _build_lighting_and_environment() -> void:
+	var sun: DirectionalLight3D = DirectionalLight3D.new()
+	sun.name = "Sun"
+	sun.light_energy = 0.8
+	sun.shadow_enabled = true
+	sun.directional_shadow_max_distance = 120.0
+	sun.rotation_degrees = Vector3(-50.0, -35.0, 0.0)
+	add_child(sun)
+
+	var sky_material: ProceduralSkyMaterial = ProceduralSkyMaterial.new()
+	sky_material.sky_top_color = Color(0.18, 0.50, 0.83)
+	sky_material.sky_horizon_color = Color(0.75, 0.88, 0.96)
+	sky_material.ground_horizon_color = Color(0.75, 0.88, 0.96)
+	var sky: Sky = Sky.new()
+	sky.sky_material = sky_material
+
+	var environment: Environment = Environment.new()
+	environment.background_mode = Environment.BG_SKY
+	environment.sky = sky
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	environment.ambient_light_energy = 1.1
+	environment.fog_enabled = true
+	environment.fog_light_color = Color(0.75, 0.88, 0.96)
+	environment.fog_density = 0.0018
+	environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	environment.glow_enabled = false
+
+	var world_environment: WorldEnvironment = WorldEnvironment.new()
+	world_environment.name = "WorldEnvironment"
+	world_environment.environment = environment
+	add_child(world_environment)
 
 
 func _build_trees() -> void:
