@@ -6,6 +6,9 @@ extends RefCounted
 ## Game time, advanced by this world and read by everything else.
 var clock: Clock = Clock.new()
 
+## The ground every position is answered against.
+var terrain: Terrain = FlatTerrain.new()
+
 var _records: Dictionary[int, Record] = {}
 var _systems: Array[WorldSystem] = []
 var _next_id: int = 1
@@ -52,7 +55,7 @@ func add_system(system: WorldSystem) -> void:
 
 
 ## The one entry point. Advances the clock by the real seconds that
-## passed, then every system by the in-game seconds that produced.
+## passed, then every system by the in-game minutes that produced.
 func tick(real_delta: float) -> void:
 	var elapsed: float = clock.advance(real_delta)
 	for system: WorldSystem in _systems:
