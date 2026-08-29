@@ -4,6 +4,6 @@ extends RefCounted
 ## and in what order; none of them advance themselves.
 
 
-## Advances by the in-game seconds that just passed.
+## Advances by the in-game minutes that just passed.
 func advance(_elapsed: float) -> void:
 	pass
