@@ -12,11 +12,40 @@ extends Node3D
 
 var _levels: PackedInt32Array = PackedInt32Array()
 
+var _grass_base_material: StandardMaterial3D
+var _grass_variant_material: StandardMaterial3D
+var _cliff_material: StandardMaterial3D
+var _water_material: StandardMaterial3D
+var _trunk_material: StandardMaterial3D
+var _canopy_material: StandardMaterial3D
+
 
 func _ready() -> void:
+	_build_materials()
 	_levels = _build_level_grid()
 	_build_cliff_multimesh()
 	_build_grass_multimeshes()
+
+
+func _make_flat_material(albedo: Color) -> StandardMaterial3D:
+	var material: StandardMaterial3D = StandardMaterial3D.new()
+	material.albedo_color = albedo
+	material.metallic = 0.0
+	material.roughness = 1.0
+	material.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	return material
+
+
+func _build_materials() -> void:
+	_grass_base_material = _make_flat_material(Color(0.44, 0.82, 0.51))
+	_grass_variant_material = _make_flat_material(Color(0.62, 0.89, 0.60))
+	_cliff_material = _make_flat_material(Color(0.72, 0.55, 0.25))
+	_water_material = _make_flat_material(Color(0.26, 0.40, 0.53, 0.85))
+	_water_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_trunk_material = _make_flat_material(Color(0.36, 0.24, 0.16))
+	_canopy_material = _make_flat_material(Color(0.20, 0.52, 0.31))
 
 
 func _cell_top_y(level: int) -> float:
@@ -46,6 +75,7 @@ func _build_cliff_multimesh() -> void:
 	var instance: MultiMeshInstance3D = MultiMeshInstance3D.new()
 	instance.name = "CliffMultiMesh"
 	instance.multimesh = multimesh
+	instance.material_override = _cliff_material
 	add_child(instance)
 
 
@@ -70,11 +100,11 @@ func _build_grass_multimeshes() -> void:
 				variant_xforms.append(xform)
 			else:
 				base_xforms.append(xform)
-	_add_grass_multimesh_instance("GrassMultiMeshBase", mesh, base_xforms)
-	_add_grass_multimesh_instance("GrassMultiMeshVariant", mesh, variant_xforms)
+	_add_grass_multimesh_instance("GrassMultiMeshBase", mesh, base_xforms, _grass_base_material)
+	_add_grass_multimesh_instance("GrassMultiMeshVariant", mesh, variant_xforms, _grass_variant_material)
 
 
-func _add_grass_multimesh_instance(node_name: String, mesh: BoxMesh, xforms: Array[Transform3D]) -> void:
+func _add_grass_multimesh_instance(node_name: String, mesh: BoxMesh, xforms: Array[Transform3D], material: StandardMaterial3D) -> void:
 	var multimesh: MultiMesh = MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = mesh
@@ -84,6 +114,7 @@ func _add_grass_multimesh_instance(node_name: String, mesh: BoxMesh, xforms: Arr
 	var instance: MultiMeshInstance3D = MultiMeshInstance3D.new()
 	instance.name = node_name
 	instance.multimesh = multimesh
+	instance.material_override = material
 	add_child(instance)
 
 
