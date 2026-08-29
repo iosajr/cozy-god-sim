@@ -31,124 +31,6 @@ func _ready() -> void:
 	_build_camera()
 
 
-func _build_camera() -> void:
-	var world_size: float = grid_cells * cell_size
-	var camera: Camera3D = Camera3D.new()
-	camera.name = "Camera3D"
-	camera.fov = 50.0
-	camera.position = Vector3(world_size * 0.5, 35.0, world_size + 60.0)
-	camera.rotation_degrees = Vector3(-32.0, 0.0, 0.0)
-	add_child(camera)
-
-
-func _build_lighting_and_environment() -> void:
-	var sun: DirectionalLight3D = DirectionalLight3D.new()
-	sun.name = "Sun"
-	sun.light_energy = 0.8
-	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 120.0
-	sun.rotation_degrees = Vector3(-50.0, -35.0, 0.0)
-	add_child(sun)
-
-	var sky_material: ProceduralSkyMaterial = ProceduralSkyMaterial.new()
-	sky_material.sky_top_color = Color(0.18, 0.50, 0.83)
-	sky_material.sky_horizon_color = Color(0.75, 0.88, 0.96)
-	sky_material.ground_horizon_color = Color(0.75, 0.88, 0.96)
-	var sky: Sky = Sky.new()
-	sky.sky_material = sky_material
-
-	var environment: Environment = Environment.new()
-	environment.background_mode = Environment.BG_SKY
-	environment.sky = sky
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	environment.ambient_light_energy = 1.1
-	environment.fog_enabled = true
-	environment.fog_light_color = Color(0.75, 0.88, 0.96)
-	environment.fog_density = 0.0018
-	environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
-	environment.glow_enabled = false
-
-	var world_environment: WorldEnvironment = WorldEnvironment.new()
-	world_environment.name = "WorldEnvironment"
-	world_environment.environment = environment
-	add_child(world_environment)
-
-
-func _build_trees() -> void:
-	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-	rng.seed = seed_value
-	var ground_points: Array[Vector3] = []
-	var max_attempts: int = tree_count * 50
-	var attempts: int = 0
-	while ground_points.size() < tree_count and attempts < max_attempts:
-		attempts += 1
-		var x: int = rng.randi() % grid_cells
-		var z: int = rng.randi() % grid_cells
-		var level: int = _levels[z * grid_cells + x]
-		var top_y: float = _cell_top_y(level)
-		if top_y < water_level_y:
-			continue
-		ground_points.append(Vector3(
-			(float(x) + 0.5) * cell_size,
-			top_y,
-			(float(z) + 0.5) * cell_size
-		))
-
-	var trunk_height: float = 1.8
-	var trunk_mesh: CylinderMesh = CylinderMesh.new()
-	trunk_mesh.top_radius = 0.22
-	trunk_mesh.bottom_radius = 0.28
-	trunk_mesh.height = trunk_height
-	trunk_mesh.radial_segments = 6
-
-	var canopy_mesh: SphereMesh = SphereMesh.new()
-	canopy_mesh.radius = 1.6
-	canopy_mesh.height = 2.8
-	canopy_mesh.radial_segments = 8
-	canopy_mesh.rings = 4
-
-	var trunk_multimesh: MultiMesh = MultiMesh.new()
-	trunk_multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	trunk_multimesh.mesh = trunk_mesh
-	trunk_multimesh.instance_count = ground_points.size()
-
-	var canopy_multimesh: MultiMesh = MultiMesh.new()
-	canopy_multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	canopy_multimesh.mesh = canopy_mesh
-	canopy_multimesh.instance_count = ground_points.size()
-
-	for i in range(ground_points.size()):
-		var ground_point: Vector3 = ground_points[i]
-		var trunk_xform: Transform3D = Transform3D(Basis(), ground_point + Vector3(0.0, trunk_height * 0.5, 0.0))
-		trunk_multimesh.set_instance_transform(i, trunk_xform)
-		var canopy_xform: Transform3D = Transform3D(Basis(), ground_point + Vector3(0.0, 2.4, 0.0))
-		canopy_multimesh.set_instance_transform(i, canopy_xform)
-
-	var trunk_instance: MultiMeshInstance3D = MultiMeshInstance3D.new()
-	trunk_instance.name = "TreeTrunkMultiMesh"
-	trunk_instance.multimesh = trunk_multimesh
-	trunk_instance.material_override = _trunk_material
-	add_child(trunk_instance)
-
-	var canopy_instance: MultiMeshInstance3D = MultiMeshInstance3D.new()
-	canopy_instance.name = "TreeCanopyMultiMesh"
-	canopy_instance.multimesh = canopy_multimesh
-	canopy_instance.material_override = _canopy_material
-	add_child(canopy_instance)
-
-
-func _build_water_plane() -> void:
-	var mesh: PlaneMesh = PlaneMesh.new()
-	var world_size: float = grid_cells * cell_size
-	mesh.size = Vector2(world_size, world_size)
-	var instance: MeshInstance3D = MeshInstance3D.new()
-	instance.name = "WaterPlane"
-	instance.mesh = mesh
-	instance.material_override = _water_material
-	instance.position = Vector3(world_size * 0.5, water_level_y, world_size * 0.5)
-	add_child(instance)
-
-
 func _make_flat_material(albedo: Color) -> StandardMaterial3D:
 	var material: StandardMaterial3D = StandardMaterial3D.new()
 	material.albedo_color = albedo
@@ -168,6 +50,28 @@ func _build_materials() -> void:
 	_water_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_trunk_material = _make_flat_material(Color(0.36, 0.24, 0.16))
 	_canopy_material = _make_flat_material(Color(0.20, 0.52, 0.31))
+
+
+func _build_level_grid() -> PackedInt32Array:
+	var noise: FastNoiseLite = FastNoiseLite.new()
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+	noise.frequency = 0.008
+	noise.seed = seed_value
+	var levels: PackedInt32Array = PackedInt32Array()
+	levels.resize(grid_cells * grid_cells)
+	for z in range(grid_cells):
+		for x in range(grid_cells):
+			var cell_x: float = (float(x) + 0.5) * cell_size
+			var cell_z: float = (float(z) + 0.5) * cell_size
+			var n: float = noise.get_noise_2d(cell_x, cell_z)
+			levels[z * grid_cells + x] = _quantize_level(n, terrace_levels)
+	return levels
+
+
+## Maps a noise sample in [-1, 1] to a terrace level in [0, terrace_levels - 1].
+static func _quantize_level(noise_value: float, levels: int) -> int:
+	var n01: float = (noise_value + 1.0) * 0.5
+	return clampi(int(n01 * levels), 0, levels - 1)
 
 
 func _cell_top_y(level: int) -> float:
@@ -240,23 +144,119 @@ func _add_grass_multimesh_instance(node_name: String, mesh: BoxMesh, xforms: Arr
 	add_child(instance)
 
 
-func _build_level_grid() -> PackedInt32Array:
-	var noise: FastNoiseLite = FastNoiseLite.new()
-	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
-	noise.frequency = 0.008
-	noise.seed = seed_value
-	var levels: PackedInt32Array = PackedInt32Array()
-	levels.resize(grid_cells * grid_cells)
-	for z in range(grid_cells):
-		for x in range(grid_cells):
-			var cell_x: float = (float(x) + 0.5) * cell_size
-			var cell_z: float = (float(z) + 0.5) * cell_size
-			var n: float = noise.get_noise_2d(cell_x, cell_z)
-			levels[z * grid_cells + x] = _quantize_level(n, terrace_levels)
-	return levels
+func _build_water_plane() -> void:
+	var mesh: PlaneMesh = PlaneMesh.new()
+	var world_size: float = grid_cells * cell_size
+	mesh.size = Vector2(world_size, world_size)
+	var instance: MeshInstance3D = MeshInstance3D.new()
+	instance.name = "WaterPlane"
+	instance.mesh = mesh
+	instance.material_override = _water_material
+	instance.position = Vector3(world_size * 0.5, water_level_y, world_size * 0.5)
+	add_child(instance)
 
 
-## Maps a noise sample in [-1, 1] to a terrace level in [0, terrace_levels - 1].
-static func _quantize_level(noise_value: float, levels: int) -> int:
-	var n01: float = (noise_value + 1.0) * 0.5
-	return clampi(int(n01 * levels), 0, levels - 1)
+func _build_trees() -> void:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var ground_points: Array[Vector3] = []
+	var max_attempts: int = tree_count * 50
+	var attempts: int = 0
+	while ground_points.size() < tree_count and attempts < max_attempts:
+		attempts += 1
+		var x: int = rng.randi() % grid_cells
+		var z: int = rng.randi() % grid_cells
+		var level: int = _levels[z * grid_cells + x]
+		var top_y: float = _cell_top_y(level)
+		if top_y < water_level_y:
+			continue
+		ground_points.append(Vector3(
+			(float(x) + 0.5) * cell_size,
+			top_y,
+			(float(z) + 0.5) * cell_size
+		))
+
+	var trunk_height: float = 1.8
+	var trunk_mesh: CylinderMesh = CylinderMesh.new()
+	trunk_mesh.top_radius = 0.22
+	trunk_mesh.bottom_radius = 0.28
+	trunk_mesh.height = trunk_height
+	trunk_mesh.radial_segments = 6
+
+	var canopy_mesh: SphereMesh = SphereMesh.new()
+	canopy_mesh.radius = 1.6
+	canopy_mesh.height = 2.8
+	canopy_mesh.radial_segments = 8
+	canopy_mesh.rings = 4
+
+	var trunk_multimesh: MultiMesh = MultiMesh.new()
+	trunk_multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	trunk_multimesh.mesh = trunk_mesh
+	trunk_multimesh.instance_count = ground_points.size()
+
+	var canopy_multimesh: MultiMesh = MultiMesh.new()
+	canopy_multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	canopy_multimesh.mesh = canopy_mesh
+	canopy_multimesh.instance_count = ground_points.size()
+
+	for i in range(ground_points.size()):
+		var ground_point: Vector3 = ground_points[i]
+		var trunk_xform: Transform3D = Transform3D(Basis(), ground_point + Vector3(0.0, trunk_height * 0.5, 0.0))
+		trunk_multimesh.set_instance_transform(i, trunk_xform)
+		var canopy_xform: Transform3D = Transform3D(Basis(), ground_point + Vector3(0.0, 2.4, 0.0))
+		canopy_multimesh.set_instance_transform(i, canopy_xform)
+
+	var trunk_instance: MultiMeshInstance3D = MultiMeshInstance3D.new()
+	trunk_instance.name = "TreeTrunkMultiMesh"
+	trunk_instance.multimesh = trunk_multimesh
+	trunk_instance.material_override = _trunk_material
+	add_child(trunk_instance)
+
+	var canopy_instance: MultiMeshInstance3D = MultiMeshInstance3D.new()
+	canopy_instance.name = "TreeCanopyMultiMesh"
+	canopy_instance.multimesh = canopy_multimesh
+	canopy_instance.material_override = _canopy_material
+	add_child(canopy_instance)
+
+
+func _build_lighting_and_environment() -> void:
+	var sun: DirectionalLight3D = DirectionalLight3D.new()
+	sun.name = "Sun"
+	sun.light_energy = 0.8
+	sun.shadow_enabled = true
+	sun.directional_shadow_max_distance = 120.0
+	sun.rotation_degrees = Vector3(-50.0, -35.0, 0.0)
+	add_child(sun)
+
+	var sky_material: ProceduralSkyMaterial = ProceduralSkyMaterial.new()
+	sky_material.sky_top_color = Color(0.18, 0.50, 0.83)
+	sky_material.sky_horizon_color = Color(0.75, 0.88, 0.96)
+	sky_material.ground_horizon_color = Color(0.75, 0.88, 0.96)
+	var sky: Sky = Sky.new()
+	sky.sky_material = sky_material
+
+	var environment: Environment = Environment.new()
+	environment.background_mode = Environment.BG_SKY
+	environment.sky = sky
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	environment.ambient_light_energy = 1.1
+	environment.fog_enabled = true
+	environment.fog_light_color = Color(0.75, 0.88, 0.96)
+	environment.fog_density = 0.0018
+	environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	environment.glow_enabled = false
+
+	var world_environment: WorldEnvironment = WorldEnvironment.new()
+	world_environment.name = "WorldEnvironment"
+	world_environment.environment = environment
+	add_child(world_environment)
+
+
+func _build_camera() -> void:
+	var world_size: float = grid_cells * cell_size
+	var camera: Camera3D = Camera3D.new()
+	camera.name = "Camera3D"
+	camera.fov = 50.0
+	camera.position = Vector3(world_size * 0.5, 35.0, world_size + 60.0)
+	camera.rotation_degrees = Vector3(-32.0, 0.0, 0.0)
+	add_child(camera)
