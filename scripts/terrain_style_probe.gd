@@ -7,7 +7,7 @@ extends Node3D
 @export var terrace_levels: int = 5
 @export var water_level_y: float = 0.35
 @export var tree_count: int = 1200
-@export var seed_value: int = 1
+@export var seed_value: int = 2
 
 
 var _levels: PackedInt32Array = PackedInt32Array()
@@ -252,11 +252,27 @@ func _build_lighting_and_environment() -> void:
 	add_child(world_environment)
 
 
+## Same CameraRig used by the live game (pan/zoom/rotate), not a fixed
+## vista shot, so the probe can be flown around while judging the look.
 func _build_camera() -> void:
 	var world_size: float = grid_cells * cell_size
+	var rig: CameraRig = CameraRig.new()
+	rig.name = "CameraRig"
+	rig.position = Vector3(world_size * 0.5, 0.0, world_size * 0.5)
+	rig.min_zoom = cell_size * 4.0
+	rig.max_zoom = world_size
+	rig.pan_speed = cell_size * 6.0
+
+	var pivot: Node3D = Node3D.new()
+	pivot.name = "Pivot"
+	pivot.rotation_degrees = Vector3(-32.0, 0.0, 0.0)
+	rig.add_child(pivot)
+
 	var camera: Camera3D = Camera3D.new()
 	camera.name = "Camera3D"
 	camera.fov = 50.0
-	camera.position = Vector3(world_size * 0.5, 35.0, world_size + 60.0)
-	camera.rotation_degrees = Vector3(-32.0, 0.0, 0.0)
-	add_child(camera)
+	camera.current = true
+	camera.position = Vector3(0.0, 0.0, world_size * 0.35)
+	pivot.add_child(camera)
+
+	add_child(rig)
