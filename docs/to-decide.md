@@ -13,7 +13,7 @@ open — "settlement" is the placeholder.
 
 Wood should come from trees that can run out and come back, rather than a
 starting number. That means trees regrow — either seeding themselves or
-being planted by beings, and being planted is the more interesting answer
+being planted by entities, and being planted is the more interesting answer
 because it is visible work. Tree folk belong to the same thread.
 
 ## Herding and ranching
@@ -30,31 +30,25 @@ pass. Not being built yet.
 ## What the first playable slice contains
 
 Flat ground, the camera, an inspector, and enough behaviour to be worth
-watching. Open: how many beings, whether a second species is in it, and
-how many kinds of work exist.
+watching. Humans and dryads are both in it, twelve and eight of them,
+standing in a Village and a Forest. Open: how many kinds of work exist.
 
 ## Laziness
 
-Whether beings given everything stop working, the way they did in Black &
+Whether entities given everything stop working, the way they did in Black &
 White. It adds character, and it also lets a settlement be broken in a way
 that is hard to read from the outside.
 
-## How long a season is
+## Dryads as a starting species and as a raised tree
 
-A day is 8 real minutes, which is settled. How many days a season runs
-for, and whether a year is four of them, is not. The clock uses 12 days a
-season and 4 seasons a year as placeholders, in one place at the top of
-`systems/clock/clock.gd`.
+A dryad is one of the two species the world starts with. It is also what
+the docs say a tree becomes when a god raises it. Whether those are the
+same thing, or share only a name, is undecided.
 
-## Where night sits in the day
+## What entities are called
 
-6 of the 8 real minutes are daylight, which is settled. The clock puts
-the remaining 2 either side of midnight, so daylight runs 03:00 to 21:00.
-Confirm or move it.
-
-## What an in-game second is
-
-The clock counts a 24-hour day as 86,400 in-game seconds, so at normal
-speed 180 of them pass per real second. It makes timestamps read as a
-wall clock. The alternative is counting real seconds and treating a day
-as 480 of them.
+Every entity now carries a name, and every species carries the pool it
+draws from. Both pools are empty, so the world currently reads "Human 3"
+and "Dryad 5". Filling them is a question of tone: whether humans get
+plain English names, something older, or something invented, and whether
+dryads take the names of nymphs from the myths.
