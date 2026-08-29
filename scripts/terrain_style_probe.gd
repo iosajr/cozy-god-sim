@@ -26,6 +26,70 @@ func _ready() -> void:
 	_build_cliff_multimesh()
 	_build_grass_multimeshes()
 	_build_water_plane()
+	_build_trees()
+
+
+func _build_trees() -> void:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var ground_points: Array[Vector3] = []
+	var max_attempts: int = tree_count * 50
+	var attempts: int = 0
+	while ground_points.size() < tree_count and attempts < max_attempts:
+		attempts += 1
+		var x: int = rng.randi() % grid_cells
+		var z: int = rng.randi() % grid_cells
+		var level: int = _levels[z * grid_cells + x]
+		var top_y: float = _cell_top_y(level)
+		if top_y < water_level_y:
+			continue
+		ground_points.append(Vector3(
+			(float(x) + 0.5) * cell_size,
+			top_y,
+			(float(z) + 0.5) * cell_size
+		))
+
+	var trunk_height: float = 1.8
+	var trunk_mesh: CylinderMesh = CylinderMesh.new()
+	trunk_mesh.top_radius = 0.22
+	trunk_mesh.bottom_radius = 0.28
+	trunk_mesh.height = trunk_height
+	trunk_mesh.radial_segments = 6
+
+	var canopy_mesh: SphereMesh = SphereMesh.new()
+	canopy_mesh.radius = 1.6
+	canopy_mesh.height = 2.8
+	canopy_mesh.radial_segments = 8
+	canopy_mesh.rings = 4
+
+	var trunk_multimesh: MultiMesh = MultiMesh.new()
+	trunk_multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	trunk_multimesh.mesh = trunk_mesh
+	trunk_multimesh.instance_count = ground_points.size()
+
+	var canopy_multimesh: MultiMesh = MultiMesh.new()
+	canopy_multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	canopy_multimesh.mesh = canopy_mesh
+	canopy_multimesh.instance_count = ground_points.size()
+
+	for i in range(ground_points.size()):
+		var ground_point: Vector3 = ground_points[i]
+		var trunk_xform: Transform3D = Transform3D(Basis(), ground_point + Vector3(0.0, trunk_height * 0.5, 0.0))
+		trunk_multimesh.set_instance_transform(i, trunk_xform)
+		var canopy_xform: Transform3D = Transform3D(Basis(), ground_point + Vector3(0.0, 2.4, 0.0))
+		canopy_multimesh.set_instance_transform(i, canopy_xform)
+
+	var trunk_instance: MultiMeshInstance3D = MultiMeshInstance3D.new()
+	trunk_instance.name = "TreeTrunkMultiMesh"
+	trunk_instance.multimesh = trunk_multimesh
+	trunk_instance.material_override = _trunk_material
+	add_child(trunk_instance)
+
+	var canopy_instance: MultiMeshInstance3D = MultiMeshInstance3D.new()
+	canopy_instance.name = "TreeCanopyMultiMesh"
+	canopy_instance.multimesh = canopy_multimesh
+	canopy_instance.material_override = _canopy_material
+	add_child(canopy_instance)
 
 
 func _build_water_plane() -> void:
