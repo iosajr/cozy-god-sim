@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://8mgkbipf7gp1"]
+
+[ext_resource type="Script" uid="uid://c4eh607cdmmhj" path="res://scripts/terrain_noise_probe.gd" id="1"]
+
+[node name="TerrainNoiseProbe" type="Node3D" unique_id=2116281911]
+script = ExtResource("1")
+combine_mode = 1
