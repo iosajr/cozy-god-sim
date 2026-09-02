@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://ckllqoxuhrrrb"]
+
+[ext_resource type="Script" uid="uid://bpe6npe2edb27" path="res://test/scripts/terrain_style_probe.gd" id="1"]
+
+[node name="TerrainStyleProbe" type="Node3D" unique_id=1240975396]
+script = ExtResource("1")

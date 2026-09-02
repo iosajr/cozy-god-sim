@@ -30,27 +30,36 @@ lives, and have a quiet effect at the margins.
 
 ## Layout
 
-Folders mirror the systems one-to-one. If you can't name which system a
-file belongs to, that's the problem — not where to put it.
+Every system has exactly one doc, `docs/systems/<name>.md`, and once it
+has code, one folder of the same name under `scripts/` holding everything
+that system owns. If you can't name which doc a file belongs under,
+that's the problem — not where to put it.
 
 ```
-systems/        simulation only: plain data, no scene tree, runs headless
-  clock/        absolute game time, seasons, speed
-  world/        the store that owns every record
-  beings/       being, species resources, behaviours
-  memory/       memories, events and places alike
-  settlement/   settlement, job manager
-  tasks/        task base class, one file per kind
-scripts/        scene glue: camera, view spawner, terrain provider
-ui/             inspector, debug views, invariant checks
+scripts/
+  sim_host.gd             wires every system's scene glue together —
+                          the one script allowed to know about all of them
+  clock/                  absolute game time, seasons, speed
+  world/                  the store that owns every record, and the
+                          terrain interface — headless, no scene tree
+  entities-and-species/   entity, species resources, behaviours
+  memory/                 memories, events and places alike
+  settlement-and-jobs/    settlement, job manager
+  view-camera-terrain/    camera, view spawner — reads the world,
+                          never writes to it
+  checks/                 inspector panel, debug views, invariant checks
 scenes/         .tscn files
+test/           prototype and probe code not decided to keep —
+                scenes/ and scripts/, same split as above
 assets/         models, textures, audio
 docs/           see below
 legacy/         the old codebase. Salvage only. Nothing new goes here.
 ```
 
-Simulation never touches the scene tree. Presentation reads the world and
-never writes to it.
+A system folder can hold both headless data and scene glue side by side —
+the split that matters is by system, not by folder. Within a system,
+headless code still never touches the scene tree, and code that reads the
+world never writes to it.
 
 ## Docs
 

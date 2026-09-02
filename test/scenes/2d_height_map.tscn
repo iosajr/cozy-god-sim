@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://do5wui4ggf8w0"]
+
+[ext_resource type="Script" uid="uid://bso08lq7d0ttr" path="res://test/scripts/height_map_probe.gd" id="1_qilot"]
+[ext_resource type="Shader" uid="uid://bujrm85k1hus5" path="res://docs/research/bark-texure.gdshader" id="2_dmdhf"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_umwpy"]
+render_priority = 0
+shader = ExtResource("2_dmdhf")
+shader_parameter/ridge_light = Color(0.2824, 0.2353, 0.1882, 1)
+shader_parameter/ridge_dark = Color(0.102, 0.0863, 0.0706, 1)
+shader_parameter/vertical_stretch = 0.12
+shader_parameter/wobble_amount = 0.06
+shader_parameter/crack_width = 0.05
+shader_parameter/crack_softness = 0.04
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_1cbbd"]
+material = SubResource("ShaderMaterial_umwpy")
+
+[node name="HeightMapProbe" type="Node" unique_id=2000708130]
+script = ExtResource("1_qilot")
+combine_mode = 1
+falloff_noise_scale = 200.0
+falloff_noise_amount = 0.7
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=692296806]
+mesh = SubResource("PlaneMesh_1cbbd")

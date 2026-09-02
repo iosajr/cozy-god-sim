@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://exow6pssslx0"]
+
+[ext_resource type="Script" uid="uid://dx2auxt2hs23b" path="res://test/scripts/terrain_smooth_probe.gd" id="1"]
+
+[node name="TerrainSmoothProbe" type="Node3D" unique_id=2077463781]
+script = ExtResource("1")
+height_curve_exponent = 10.0

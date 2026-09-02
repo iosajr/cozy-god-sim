@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,600;1,6..72,300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #efe9dc; }
+  a { color: #4d6f4f; text-decoration: underline; text-underline-offset: 2px; }
+  a:hover { color: #2f4a31; }
+  ::selection { background: #cfdac6; }
+</style>
+</helmet>
+
+<div style="background:#efe9dc;color:#1f2a26;font-family:Newsreader,Georgia,serif;padding:0 0 120px">
+  <div style="max-width:1140px;margin:0 auto;padding:0 48px">
+
+    <header style="padding:96px 0 56px;border-bottom:1px solid #d8d0bd">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#7d8a7c;margin-bottom:28px">Cozy God Sim · Terrain Bible v2 · written against iosajr/cozy-god-sim @ main</div>
+      <h1 style="font-size:76px;line-height:.98;font-weight:300;margin:0 0 28px;letter-spacing:-.02em;text-wrap:balance">One continent, stacked in terraces, and every ledge has a way up.</h1>
+      <p style="font-size:22px;line-height:1.5;font-weight:300;color:#4a564e;max-width:700px;margin:0;text-wrap:pretty">Art direction and asset production plan for the terrain layer. Pokémon BW terracing with softened corners, Don't Starve slab access, Ghibli canopy and field colour, alpine switchback mountains. Written to sit behind your existing <code style="font-family:'IBM Plex Mono',monospace;font-size:19px">Terrain</code> interface without touching anything above it.</p>
+    </header>
+
+    <section style="padding:64px 0;border-bottom:1px solid #d8d0bd">
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:56px;align-items:start">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7d8a7c;padding-top:10px">00 · Decisions</div>
+        <div>
+          <h2 style="font-size:36px;font-weight:400;margin:0 0 24px;letter-spacing:-.01em">Locked, from your answers</h2>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:#d8d0bd;border-radius:12px;overflow:hidden">
+            <div style="background:#e7dfcd;padding:20px 22px"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#8b968d;margin-bottom:6px">TIERS</div><div style="font-size:17px;font-weight:300;color:#3c473f">Unlimited stacking. 1.5 m riser, 4 m cell — your probe's numbers, kept.</div></div>
+            <div style="background:#e7dfcd;padding:20px 22px"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#8b968d;margin-bottom:6px">GENERATION</div><div style="font-size:17px;font-weight:300;color:#3c473f">Region-based: plateau regions first, then carve access, then mesh.</div></div>
+            <div style="background:#e7dfcd;padding:20px 22px"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#8b968d;margin-bottom:6px">LANDMASS</div><div style="font-size:17px;font-weight:300;color:#3c473f">One continent, deep bays and peninsulas. Coastline does the irregular work.</div></div>
+            <div style="background:#e7dfcd;padding:20px 22px"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#8b968d;margin-bottom:6px">BIOMES</div><div style="font-size:17px;font-weight:300;color:#3c473f">Hand-placed, noise-blended edges. Four for v1.</div></div>
+            <div style="background:#e7dfcd;padding:20px 22px"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#8b968d;margin-bottom:6px">ACCESS</div><div style="font-size:17px;font-weight:300;color:#3c473f">Slab steps in the wild, built stairs near settlements. Mountains route through gullies and passes.</div></div>
+            <div style="background:#e7dfcd;padding:20px 22px"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#8b968d;margin-bottom:6px">WATER</div><div style="font-size:17px;font-weight:300;color:#3c473f">Sea at tier 0, plus perched lakes that spill off the edge as falls.</div></div>
+            <div style="background:#e7dfcd;padding:20px 22px"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#8b968d;margin-bottom:6px">SUMMITS</div><div style="font-size:17px;font-weight:300;color:#3c473f">Jagged and unbuildable. Pure silhouette — you climb for the view, not the plot.</div></div>
+            <div style="background:#e7dfcd;padding:20px 22px"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#8b968d;margin-bottom:6px">ASSETS</div><div style="font-size:17px;font-weight:300;color:#3c473f">Hero props modelled in Blender, filler procedural in-engine.</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0;border-bottom:1px solid #d8d0bd">
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:56px;align-items:start">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7d8a7c;padding-top:10px">01 · Diagnosis</div>
+        <div>
+          <h2 style="font-size:36px;font-weight:400;margin:0 0 12px;letter-spacing:-.01em">Why the probe reads as confetti</h2>
+          <p style="font-size:18px;line-height:1.55;color:#54605a;font-weight:300;max-width:660px;margin:0 0 30px;text-wrap:pretty">Four specific things in <code style="font-family:'IBM Plex Mono',monospace;font-size:15px">scripts/terrain_style_probe.gd</code>. None of them is a taste problem — they're all missing stages.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:26px 40px">
+            <div style="border-top:2px solid #b0794a;padding-top:14px">
+              <div style="font-size:19px;font-weight:600;margin-bottom:8px">Quantise with no smoothing pass</div>
+              <div style="font-size:17px;line-height:1.55;color:#54605a;font-weight:300"><code style="font-family:'IBM Plex Mono',monospace;font-size:14px">_quantize_level</code> maps noise straight to one of five levels, per cell, and stops. Simplex at <code style="font-family:'IBM Plex Mono',monospace;font-size:14px">frequency = 0.008</code> over 4 m cells gives features about 30 cells wide — but the per-cell quantisation shatters them at every boundary. Every tier edge is a ragged one-cell fringe.</div>
+            </div>
+            <div style="border-top:2px solid #b0794a;padding-top:14px">
+              <div style="font-size:19px;font-weight:600;margin-bottom:8px">No region concept at all</div>
+              <div style="font-size:17px;line-height:1.55;color:#54605a;font-weight:300">Nothing knows a plateau <em>exists</em>, so nothing can cull a tiny one, guarantee it access, or give it a biome. Single-cell spikes and one-cell notches survive to the mesh. This is the change that matters most.</div>
+            </div>
+            <div style="border-top:2px solid #b0794a;padding-top:14px">
+              <div style="font-size:19px;font-weight:600;margin-bottom:8px">Cliffs are box columns, one flat albedo</div>
+              <div style="font-size:17px;line-height:1.55;color:#54605a;font-weight:300"><code style="font-family:'IBM Plex Mono',monospace;font-size:14px">_build_cliff_multimesh</code> pushes a scaled <code style="font-family:'IBM Plex Mono',monospace;font-size:14px">BoxMesh</code> per cell at <code style="font-family:'IBM Plex Mono',monospace;font-size:14px">Color(0.72, 0.55, 0.25)</code> — 16,384 boxes, hard 90° corners, no strata, no lip, no shadow line. The most-looked-at surface in the game has the least art on it.</div>
+            </div>
+            <div style="border-top:2px solid #b0794a;padding-top:14px">
+              <div style="font-size:19px;font-weight:600;margin-bottom:8px">Uniform trees, one sphere</div>
+              <div style="font-size:17px;line-height:1.55;color:#54605a;font-weight:300"><code style="font-family:'IBM Plex Mono',monospace;font-size:14px">_build_trees</code> picks 1,200 uniform random cells and puts an identical <code style="font-family:'IBM Plex Mono',monospace;font-size:14px">SphereMesh</code> canopy on each. Even density averages out to texture; identical silhouettes read as a repeating stamp; and trees land right on cliff lips, which is what hides the tiering.</div>
+            </div>
+          </div>
+          <div style="margin-top:26px;padding:20px 24px;background:#e2ddcc;border-radius:12px;font-size:17px;line-height:1.55;color:#3c473f;font-weight:300"><strong style="font-weight:600">Worth saying:</strong> the probe is doing its job. It is labelled disposable look-dev, the camera rig is already the real one, and the constants are well chosen. Keep <code style="font-family:'IBM Plex Mono',monospace;font-size:14px">cell_size = 4.0</code> and <code style="font-family:'IBM Plex Mono',monospace;font-size:14px">terrace_step = 1.5</code>; everything below is built on them.</div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0;border-bottom:1px solid #d8d0bd">
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:56px;align-items:start">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7d8a7c;padding-top:10px">02 · The continent</div>
+        <div>
+          <h2 style="font-size:36px;font-weight:400;margin:0 0 12px;letter-spacing:-.01em">Shape first, height second</h2>
+          <p style="font-size:18px;line-height:1.55;color:#54605a;font-weight:300;max-width:660px;margin:0 0 30px;text-wrap:pretty">The land mask is generated before any terracing. Get an interesting coastline and the terraces inherit interesting shapes for free — this is why the current probe, which terraces an infinite plane, has nothing to hang variety on.</p>
+          <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:40px;align-items:start">
+            <div style="background:#e7dfcd;border-radius:14px;padding:30px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#8b968d;margin-bottom:18px">MASK RECIPE</div>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:grid;grid-template-columns:26px 1fr;gap:14px"><div style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#b0794a">1</div><div style="font-size:16px;line-height:1.5;color:#3c473f;font-weight:300">Radial falloff from centre — guarantees a single landmass, no stray specks.</div></div>
+                <div style="display:grid;grid-template-columns:26px 1fr;gap:14px"><div style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#b0794a">2</div><div style="font-size:16px;line-height:1.5;color:#3c473f;font-weight:300">Subtract low-frequency ridged noise from the falloff — this is what cuts the deep bays.</div></div>
+                <div style="display:grid;grid-template-columns:26px 1fr;gap:14px"><div style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#b0794a">3</div><div style="font-size:16px;line-height:1.5;color:#3c473f;font-weight:300">Add three or four hand-placed peninsula blobs so the silhouette has intent, not just noise.</div></div>
+                <div style="display:grid;grid-template-columns:26px 1fr;gap:14px"><div style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#b0794a">4</div><div style="font-size:16px;line-height:1.5;color:#3c473f;font-weight:300">Threshold, then majority-smooth twice. Discard any island under 400 cells.</div></div>
+                <div style="display:grid;grid-template-columns:26px 1fr;gap:14px"><div style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#b0794a">5</div><div style="font-size:16px;line-height:1.5;color:#3c473f;font-weight:300">Distance-to-coast field. Terrace count rises with it, so mountains are inland by construction.</div></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:22px">
+              <div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">SIZE</div>
+                <div style="font-size:17px;line-height:1.5;color:#54605a;font-weight:300">512 × 512 cells at 4 m — a 2 km continent. Big enough for your five-or-six-cities target, small enough to hold in one mesh set while you judge the look.</div>
+              </div>
+              <div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">BIOME PLACEMENT</div>
+                <div style="font-size:17px;line-height:1.5;color:#54605a;font-weight:300">You place four seed points by hand in the editor. Each cell takes the nearest seed, weighted by a noise field so borders wander instead of drawing Voronoi lines. Snow additionally requires tier ≥ 5, so the mountain biome finds the mountains.</div>
+              </div>
+              <div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">THE ONE HARD RULE</div>
+                <div style="font-size:17px;line-height:1.5;color:#54605a;font-weight:300">Biomes never change the tier field. They only change palette, cliff treatment, foliage and step prop. Terrain shape and art direction stay separable — otherwise every biome tweak becomes a regeneration.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0;border-bottom:1px solid #d8d0bd">
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:56px;align-items:start">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7d8a7c;padding-top:10px">02b · Your references</div>
+        <div>
+          <h2 style="font-size:36px;font-weight:400;margin:0 0 12px;letter-spacing:-.01em">What <code style="font-family:'IBM Plex Mono',monospace;font-size:30px">REFERENCES/Imagers/terain</code> actually says</h2>
+          <p style="font-size:18px;line-height:1.55;color:#54605a;font-weight:300;max-width:660px;margin:0 0 28px;text-wrap:pretty">Your curated folder pulls in a noticeably different direction from the chat screenshots, and it overrides them — it is the one place you have already committed taste to disk. Three things it establishes, all of which I have folded into the palettes below.</p>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-bottom:26px">
+            <div style="background:#e7dfcd;border-radius:14px;padding:24px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#b0794a;margin-bottom:10px">MUTED, WARM, DESATURATED</div>
+              <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300"><em>Grass closeup</em> and <em>sheep shepered grass</em> are olive-khaki, not mint. <em>desert gradient</em> is almost a flat warm sand field. The probe's <code style="font-family:'IBM Plex Mono',monospace;font-size:14px">Color(0.44, 0.82, 0.51)</code> is far too saturated and too cool for this folder.</div>
+            </div>
+            <div style="background:#e7dfcd;border-radius:14px;padding:24px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#b0794a;margin-bottom:10px">SOFT BLOTCHES, NOT TILES</div>
+              <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Ground variation is large, soft, irregular value patches — no quantised field grid anywhere. So the patchwork shader stays, but unquantised and at a much larger scale; the rice-paddy grid becomes a settlement-only overlay rather than the base ground.</div>
+            </div>
+            <div style="background:#e7dfcd;border-radius:14px;padding:24px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#b0794a;margin-bottom:10px">ROCK AS ROUNDED COLUMNS</div>
+              <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300"><em>agressive mountains</em> is the important one: columnar masses with softly rounded tops, one warm grey-brown, a pale rim light on each column top, almost no strata. That is a stronger fit for your "softer corners" ask than banded strata — see the note in §03.</div>
+            </div>
+          </div>
+          <div style="padding:20px 24px;background:#e2ddcc;border-radius:12px;font-size:17px;line-height:1.55;color:#3c473f;font-weight:300"><strong style="font-weight:600">Also in the folder:</strong> <em>End Goal.png</em> is a whole-continent view — snow-capped landmass, deep blue inlets, green only in the sheltered lowlands. It confirms §02: coastline shape carries the interest, and green is the exception rather than the field.</div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0;border-bottom:1px solid #d8d0bd">
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:56px;align-items:start">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7d8a7c;padding-top:10px">03 · Cliff anatomy</div>
+        <div>
+          <h2 style="font-size:36px;font-weight:400;margin:0 0 12px;letter-spacing:-.01em">The edge, in cross-section</h2>
+          <p style="font-size:18px;line-height:1.55;color:#54605a;font-weight:300;max-width:660px;margin:0 0 32px;text-wrap:pretty">Four parts. The grass lip is what makes BW cliffs feel soft — the green overhangs the earth and casts a dark line onto it. Your current cliff has none of these; it is the single highest-value change in the document.</p>
+          <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:44px;align-items:start">
+            <div style="background:#e7dfcd;border-radius:14px;padding:34px 30px">
+              <div style="display:grid;grid-template-columns:1fr 168px;gap:0 20px;align-items:center">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#54605a;text-align:right">grass top · biome tint</div>
+                <div style="height:26px;border-radius:5px 5px 0 0;background:#a3b673"></div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#54605a;text-align:right">lip · 0.18 cell overhang</div>
+                <div style="height:12px;background:#93a866;box-shadow:0 3px 0 #4a4a35;border-radius:0 0 4px 4px;width:calc(100% + 44px);margin-left:-22px"></div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#54605a;text-align:right">rock face · rim-lit column</div>
+                <div style="height:86px;background:linear-gradient(#b59a80 0 7%,#a68a6e 7% 66%,#93785f 66% 100%)"></div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#54605a;text-align:right">talus · rubble skirt</div>
+                <div style="height:20px;background:#8a7059;border-radius:0 0 5px 5px"></div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b968d;text-align:right;padding-top:22px">tier below</div>
+                <div style="height:22px;background:#93a866;border-radius:5px;margin-top:22px;opacity:.5"></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:22px">
+              <div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">NUMBERS</div>
+                <div style="font-size:17px;line-height:1.5;color:#54605a;font-weight:300">4 m cell, 1.5 m riser. Lip overhangs 0.72 m. Top chamfer cuts 1.1 m at 45°. Talus skirt 0.3 m.</div>
+              </div>
+              <div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">STRATA, REVISED</div>
+                <div style="font-size:17px;line-height:1.5;color:#54605a;font-weight:300">Per <em>agressive mountains</em>: drop the three hard strata bands for one warm grey-brown mass with a pale rim on the top 7% of the face and soft vertical column divisions. Reads softer, closer to your reference, and costs one less shader term.</div>
+              </div>
+              <div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">SOFTER CORNERS</div>
+                <div style="font-size:17px;line-height:1.5;color:#54605a;font-weight:300">Two mechanisms, both cheap. In the <em>field</em>: demote one-cell spikes, fill one-cell notches, break diagonal-only touches. In the <em>mesh</em>: chamfer strip on every convex corner, single fillet triangle on every concave one. Neither smooths the tier away.</div>
+              </div>
+              <div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">NEVER</div>
+                <div style="font-size:17px;line-height:1.5;color:#54605a;font-weight:300">A cliff under 4 cells of run. Two tiers of drop in one lowland face. A tier edge with a tree on it.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0;border-bottom:1px solid #d8d0bd">
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:56px;align-items:start">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7d8a7c;padding-top:10px">04 · Access</div>
+        <div>
+          <h2 style="font-size:36px;font-weight:400;margin:0 0 12px;letter-spacing:-.01em">Two props, one guarantee</h2>
+          <p style="font-size:18px;line-height:1.55;color:#54605a;font-weight:300;max-width:660px;margin:0 0 30px;text-wrap:pretty">The solver decides <em>where</em>; the biome and the settlement mask decide <em>what</em>. I have deliberately dropped the grass ramp from lowland terrain — with slab and stair both present it muddies the language, and it reappears only as the mountain switchback tread.</p>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:24px">
+            <div style="background:#e7dfcd;border-radius:14px;padding:26px 24px">
+              <div style="height:120px;display:flex;align-items:flex-end;margin-bottom:20px">
+                <div style="width:22%;height:34%;background:#88a3ab;border-radius:6px 3px 0 0"></div>
+                <div style="width:26%;height:58%;background:#7f9aa3;border-radius:5px 6px 0 0;margin-left:-3px"></div>
+                <div style="width:24%;height:80%;background:#8fa8b0;border-radius:7px 4px 0 0;margin-left:-4px"></div>
+                <div style="width:28%;height:100%;background:#8fbc7d;border-radius:6px 6px 0 0;margin-left:-2px"></div>
+              </div>
+              <div style="font-size:20px;font-weight:600;margin-bottom:8px">Rock slab steps — the wild default</div>
+              <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Three or four irregular slabs, each rotated a few degrees, jutting from the face with deep shadow between them. Scribed dark top edge in the Don't Starve manner. This is the one from your third screenshot, and it is the default everywhere no settlement exists.</div>
+            </div>
+            <div style="background:#e7dfcd;border-radius:14px;padding:26px 24px">
+              <div style="height:120px;display:flex;align-items:flex-end;margin-bottom:20px">
+                <div style="width:20%;height:25%;background:#d8cdb4"></div>
+                <div style="width:20%;height:45%;background:#cfc3a8"></div>
+                <div style="width:20%;height:65%;background:#d8cdb4"></div>
+                <div style="width:20%;height:85%;background:#cfc3a8"></div>
+                <div style="width:20%;height:100%;background:#8fbc7d;border-radius:4px 4px 0 0"></div>
+              </div>
+              <div style="font-size:20px;font-weight:600;margin-bottom:8px">Built stairs — settlements only</div>
+              <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Even risers, pale stone, low kerb either side, snapped hard to the grid. Placed where the settlement mask is set, so a village visibly civilises its terrain as it grows. Legible from the furthest camera zoom — that legibility is the point.</div>
+            </div>
+          </div>
+          <div style="margin-top:26px;padding:22px 26px;background:#e2ddcc;border-radius:12px;font-size:17px;line-height:1.55;color:#3c473f;font-weight:300">
+            <strong style="font-weight:600">The guarantee.</strong> Regions form a graph; an edge exists where a region at tier <em>n</em> shares a straight border run of ≥3 cells with a region at tier <em>n−1</em>. Union-find from the tier-0 set; while any region is unreachable, place the cheapest missing access — longest, straightest runs first, because those make the best-looking steps. Above tier 4 the solver switches from placing a prop to carving a gully. No region is meshed before it has a route to sea level, and a test asserts this across 200 seeds.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0;border-bottom:1px solid #d8d0bd">
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:56px;align-items:start">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7d8a7c;padding-top:10px">05 · Mountains</div>
+        <div>
+          <h2 style="font-size:36px;font-weight:400;margin:0 0 12px;letter-spacing:-.01em">Tall faces, gully routes, jagged summit</h2>
+          <p style="font-size:18px;line-height:1.55;color:#54605a;font-weight:300;max-width:660px;margin:0 0 30px;text-wrap:pretty">The <a href="#">profile B</a> mountain form — double-height faces, narrow ledges — with the switchback dropped. You didn't like the zig-zag, and you were right: a staircase cut across a 3 m rock face is a built object on a wild mountain, and it fights the silhouette that makes the form work. So access comes off the face altogether.</p>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:26px 40px">
+            <div style="border-top:2px solid #b0794a;padding-top:14px">
+              <div style="font-size:19px;font-weight:600;margin-bottom:8px">Double riser</div>
+              <div style="font-size:17px;line-height:1.55;color:#54605a;font-weight:300">Above tier 4, faces drop two terraces at once — 3.0 m of unbroken rock. Too tall to step, so a bare face genuinely stops you. This is what makes the mountain read alpine rather than like more stairs.</div>
+            </div>
+            <div style="border-top:2px solid #b0794a;padding-top:14px">
+              <div style="font-size:19px;font-weight:600;margin-bottom:8px">Gullies, not staircases</div>
+              <div style="font-size:17px;line-height:1.55;color:#54605a;font-weight:300">Where a peak needs a route, the generator <em>carves</em> one: a 2-cell channel cut back into the massif that steps down through the tiers, floored with tumbled slabs and scree. You climb <em>through</em> the mountain's own weakness rather than over its face. Nothing is bolted on — the route is terrain.</div>
+            </div>
+            <div style="border-top:2px solid #b0794a;padding-top:14px">
+              <div style="font-size:19px;font-weight:600;margin-bottom:8px">Saddles between peaks</div>
+              <div style="font-size:17px;line-height:1.55;color:#54605a;font-weight:300">Wherever two peaks sit within about 30 cells, the field between them is held two tiers lower — a pass. Passes are the primary way up a range, gullies the secondary way up a single peak. Both give you a landmark to walk toward, which a zig-zag never did.</div>
+            </div>
+            <div style="border-top:2px solid #b0794a;padding-top:14px">
+              <div style="font-size:19px;font-weight:600;margin-bottom:8px">Narrow ledges</div>
+              <div style="font-size:17px;line-height:1.55;color:#54605a;font-weight:300">Minimum region area drops from 260 cells to 60 above tier 4, so ledges 3–5 cells wide survive the absorb pass. Peaks reach tier 8–12 in the footprint a lowland plateau would use.</div>
+            </div>
+            <div style="border-top:2px solid #b0794a;padding-top:14px">
+              <div style="font-size:19px;font-weight:600;margin-bottom:8px">Jagged unbuildable summit</div>
+              <div style="font-size:17px;line-height:1.55;color:#54605a;font-weight:300">The top two tiers skip the smoothing and chamfer passes entirely — raw quantised noise, which is exactly the confetti we removed elsewhere, and up there it reads as shattered rock. Flagged <code style="font-family:'IBM Plex Mono',monospace;font-size:14px">unbuildable</code>; <code style="font-family:'IBM Plex Mono',monospace;font-size:14px">is_walkable</code> still returns true so you can stand and look.</div>
+            </div>
+          </div>
+          <div style="margin-top:26px;padding:22px 26px;background:#20261f;border-radius:12px;color:#dfe6d8;font-size:17px;line-height:1.6;font-weight:300"><strong style="font-weight:600">Snow line.</strong> Not a height threshold — a blend. Snow coverage ramps from 0 at tier 5 to full at tier 8, modulated by a noise field so it pools in hollows and blows off exposed edges. Don't Starve's winter palette: near-white tops, blue-grey rock faces, ink-black crevices, almost no saturation. The one place in the game where the greens disappear.</div>
+          <div style="margin-top:16px;padding:20px 24px;background:#e2ddcc;border-radius:12px;font-size:17px;line-height:1.55;color:#3c473f;font-weight:300"><strong style="font-weight:600">If gullies aren't it either</strong> — two other ways to keep the tall faces and lose the zig-zag: a <em>tunnel mouth</em> at the foot that emerges on a high ledge (strong landmark, but hides the climb), or <em>rockfall ramps</em>, a talus cone piled against one face high enough to walk up (most natural, but softens the silhouette you liked). Say the word and I'll swap the section.</div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0;border-bottom:1px solid #d8d0bd">
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:56px;align-items:start">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7d8a7c;padding-top:10px">06 · Water</div>
+        <div>
+          <h2 style="font-size:36px;font-weight:400;margin:0 0 12px;letter-spacing:-.01em">Sea below, lakes above, falls between</h2>
+          <p style="font-size:18px;line-height:1.55;color:#54605a;font-weight:300;max-width:660px;margin:0 0 30px;text-wrap:pretty">One global plane plus per-basin fills. The falls are not authored — they fall out of the fill algorithm, which is the whole reason to do it this way.</p>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px">
+            <div style="background:#e7dfcd;border-radius:14px;padding:24px">
+              <div style="height:64px;border-radius:8px;background:linear-gradient(180deg,#8fb2c4,#5d8296);margin-bottom:16px"></div>
+              <div style="font-size:19px;font-weight:600;margin-bottom:6px">Sea, tier 0</div>
+              <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">A single plane, as you already have. Everything outside the land mask is sea; the coast gets a 2-cell sand hem where the mask meets it.</div>
+            </div>
+            <div style="background:#e7dfcd;border-radius:14px;padding:24px">
+              <div style="height:64px;border-radius:8px;background:#7fae74;position:relative;margin-bottom:16px;overflow:hidden"><div style="position:absolute;left:22%;right:22%;top:26%;bottom:0;background:linear-gradient(180deg,#a3c4d4,#6d90a4);border-radius:6px 6px 0 0"></div></div>
+              <div style="font-size:19px;font-weight:600;margin-bottom:6px">Perched lakes</div>
+              <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Flood-fill each depression from its lowest cell upward. If it fills without reaching a region border, it's a lake, sitting at whatever tier its basin is on.</div>
+            </div>
+            <div style="background:#e7dfcd;border-radius:14px;padding:24px">
+              <div style="height:64px;border-radius:8px;background:linear-gradient(90deg,#7fae74 0 44%,#b0794a 44% 100%);position:relative;margin-bottom:16px;overflow:hidden"><div style="position:absolute;left:38%;width:11%;top:14%;bottom:0;background:linear-gradient(180deg,#cfe0ea,#9dbecf)"></div></div>
+              <div style="font-size:19px;font-weight:600;margin-bottom:6px">Spillways</div>
+              <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">If the fill reaches a border, the lowest border cell is the outlet. Water pours over the cliff there as a fall, and the stream continues on the tier below. Falls appear where they should because the terrain put them there.</div>
+            </div>
+          </div>
+          <div style="margin-top:24px;padding:20px 24px;background:#e2ddcc;border-radius:12px;font-size:17px;line-height:1.55;color:#3c473f;font-weight:300"><strong style="font-weight:600">Art note.</strong> Two water materials only — sea and fresh. Fresh water is lighter and greener, near-opaque with a pale rim where it meets the shore, because transparent water in a stylised world just shows you the mesh you were trying to hide. Falls get a soft white column plus a spray card at the foot; no simulation.</div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0;border-bottom:1px solid #d8d0bd">
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:56px;align-items:start">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7d8a7c;padding-top:10px">07 · Biome sheets</div>
+        <div>
+          <h2 style="font-size:36px;font-weight:400;margin:0 0 30px;letter-spacing:-.01em">Four biomes for v1</h2>
+
+          <div style="display:flex;flex-direction:column;gap:20px">
+
+            <div style="background:#e7dfcd;border-radius:14px;padding:28px 30px">
+              <div style="display:grid;grid-template-columns:200px 1fr;gap:32px;align-items:start">
+                <div>
+                  <div style="font-size:24px;font-weight:600;margin-bottom:14px">Lowland meadow &amp; paddy</div>
+                  <div style="display:flex;gap:6px;margin-bottom:12px">
+                    <div style="width:34px;height:34px;border-radius:6px;background:#93a866"></div>
+                    <div style="width:34px;height:34px;border-radius:6px;background:#a3b673"></div>
+                    <div style="width:34px;height:34px;border-radius:6px;background:#b3c184"></div>
+                    <div style="width:34px;height:34px;border-radius:6px;background:#a68a6e"></div>
+                    <div style="width:34px;height:34px;border-radius:6px;background:#4a4a35"></div>
+                  </div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b968d;line-height:1.6">TIERS 0–3<br />#93A866 · #A3B673<br />#B3C184 · #A68A6E</div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+                  <div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">CLIFF</div><div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Warm grey-brown mass, rim-lit column tops, soft vertical divisions. Moss spill and a strong grass lip. The reference cliff.</div></div>
+                  <div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">GROUND</div><div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Large soft value blotches at ±8%, unquantised, per your <em>Grass closeup</em>. The Ghibli paddy grid appears only inside settlement radii; flooded paddies as still fresh water on flat tier-0 shelves.</div></div>
+                  <div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">FOLIAGE</div><div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Broad canopy, sparse and clumped along field boundaries. Big clearings. This is where settlements go.</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="background:#e7dfcd;border-radius:14px;padding:28px 30px">
+              <div style="display:grid;grid-template-columns:200px 1fr;gap:32px;align-items:start">
+                <div>
+                  <div style="font-size:24px;font-weight:600;margin-bottom:14px">Deep forest</div>
+                  <div style="display:flex;gap:6px;margin-bottom:12px">
+                    <div style="width:34px;height:34px;border-radius:6px;background:#6d8355"></div>
+                    <div style="width:34px;height:34px;border-radius:6px;background:#7d9260"></div>
+                    <div style="width:34px;height:34px;border-radius:6px;background:#5b6f4c"></div>
+                    <div style="width:34px;height:34px;border-radius:6px;background:#7a6a4e"></div>
+                    <div style="width:34px;height:34px;border-radius:6px;background:#2f3a2a"></div>
+                  </div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b968d;line-height:1.6">TIERS 1–5<br />#6D8355 · #7D9260<br />#5B6F4C · #7A6A4E</div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+                  <div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">CLIFF</div><div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Same earth, darker and wetter. Roots crossing the face, moss covering the top third rather than spilling.</div></div>
+                  <div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">GROUND</div><div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">No patchwork — dappled shadow instead, a large soft noise multiply. Bare earth under the densest clumps.</div></div>
+                  <div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">FOLIAGE</div><div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Tall cedar mass dominant, broad canopy filling in, scrub at cliff feet. Density high enough to hide the horizon and make clearings feel found.</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="background:#e7dfcd;border-radius:14px;padding:28px 30px">
+              <div style="display:grid;grid-template-columns:200px 1fr;gap:32px;align-items:start">
+                <div>
+                  <div style="font-size:24px;font-weight:600;margin-bottom:14px">Snowy mountain</div>
+                  <div style="display:flex;gap:6px;margin-bottom:12px">
+                    <div style="width:34px;height:34px;border-radius:6px;background:#eef2f4"></div>
+                    <div style="width:34px;height:34px;border-radius:6px;background:#c2ced6"></div>
+                    <div style="width:34px;height:34px;border-radius:6px;background:#7f8f9c"></div>
+                    <div style="width:34px;height:34px;border-radius:6px;background:#4e5b68"></div>
+                    <div style="width:34px;height:34px;border-radius:6px;background:#1c242c"></div>
+                  </div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b968d;line-height:1.6">TIERS 5–12<br />#EEF2F4 · #C2CED6<br />#7F8F9C · #4E5B68</div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+                  <div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">CLIFF</div><div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">No earth at all. Blue-grey rock, vertical fracture lines, ink-black crevices, snow caught on ledges and blown off edges. Double-height faces.</div></div>
+                  <div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">GROUND</div><div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Snow with rock showing through on the windward side of every ledge. Almost no saturation — the value range does all the work.</div></div>
+                  <div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">FOLIAGE</div><div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Sparse snow-laden cedars to about tier 8, then nothing. Emptiness above the tree line is the reward for climbing.</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="background:#e7dfcd;border-radius:14px;padding:28px 30px">
+              <div style="display:grid;grid-template-columns:200px 1fr;gap:32px;align-items:start">
+                <div>
+                  <div style="font-size:24px;font-weight:600;margin-bottom:14px">Coast &amp; beach</div>
+                  <div style="display:flex;gap:6px;margin-bottom:12px">
+                    <div style="width:34px;height:34px;border-radius:6px;background:#e8c48a"></div>
+                    <div style="width:34px;height:34px;border-radius:6px;background:#d3ae76"></div>
+                    <div style="width:34px;height:34px;border-radius:6px;background:#b3c184"></div>
+                    <div style="width:34px;height:34px;border-radius:6px;background:#8fb2c4"></div>
+                    <div style="width:34px;height:34px;border-radius:6px;background:#5d8296"></div>
+                  </div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b968d;line-height:1.6">TIERS 0–2<br />#E8C48A · #D3AE76<br />#B3C184 · #8FB2C4</div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+                  <div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">CLIFF</div><div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Pale sandstone, strong horizontal strata, a wet dark band at the waterline. Sea caves cut into the tallest faces.</div></div>
+                  <div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">GROUND</div><div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Sand hem 2 cells wide along the whole mask edge, blending to dune grass. Foam line as a shader ring on the sea plane, not geometry.</div></div>
+                  <div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#b0794a;margin-bottom:6px">FOLIAGE</div><div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Wind-leaning broad canopy, scrub, driftwood. Everything tilts inland — cheapest way to sell prevailing wind.</div></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0;border-bottom:1px solid #d8d0bd">
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:56px;align-items:start">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7d8a7c;padding-top:10px">08 · Foliage</div>
+        <div>
+          <h2 style="font-size:36px;font-weight:400;margin:0 0 12px;letter-spacing:-.01em">Ghibli canopies, not spheres</h2>
+          <p style="font-size:18px;line-height:1.55;color:#54605a;font-weight:300;max-width:660px;margin:0 0 28px;text-wrap:pretty">Three silhouettes, clumped by a second noise field, with a hard two-value split on every canopy — sunlit top, shadowed underside, no gradient between. The rule that does most of the work: <strong style="font-weight:600">density is zero within 2 cells of a cliff edge</strong>. Clear lips are what make the tiering readable.</p>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px">
+            <div style="background:#e7dfcd;border-radius:14px;padding:24px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#b0794a;margin-bottom:10px">A · BROAD — 60%</div>
+              <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Wide flattened crown built from three overlapping card clusters, slightly asymmetric. Meadow, paddy edges, coast. The workhorse.</div>
+            </div>
+            <div style="background:#e7dfcd;border-radius:14px;padding:24px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#b0794a;margin-bottom:10px">B · TALL — 25%</div>
+              <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Narrow cedar mass, darkest value in the scene. Punctuates ridge lines, dominant in deep forest, snow-laden on mountains.</div>
+            </div>
+            <div style="background:#e7dfcd;border-radius:14px;padding:24px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#b0794a;margin-bottom:10px">C · SCRUB — 15%</div>
+              <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Low bush cluster, no trunk. Breaks up cliff feet and talus, hides the mesh seam where wall meets ground.</div>
+            </div>
+          </div>
+          <div style="margin-top:24px;padding:20px 24px;background:#e2ddcc;border-radius:12px;font-size:17px;line-height:1.55;color:#3c473f;font-weight:300"><strong style="font-weight:600">Against your current scatter.</strong> Keep the MultiMesh approach and the per-species instance split — that part is right. Replace uniform random cell picking with a clump field, add the edge exclusion, and give each instance a random yaw plus ±15% scale. Three meshes and those three rules will change the look more than any shader in this document.</div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0;border-bottom:1px solid #d8d0bd">
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:56px;align-items:start">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7d8a7c;padding-top:10px">09 · Pipeline</div>
+        <div>
+          <h2 style="font-size:36px;font-weight:400;margin:0 0 28px;letter-spacing:-.01em">Nine stages, each independently inspectable</h2>
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ stages }}" as="s" hint-placeholder-count="9">
+              <div style="display:grid;grid-template-columns:56px 1.1fr 1.4fr;gap:24px;align-items:baseline;padding:18px 0;border-top:1px solid #d8d0bd">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:24px;color:#c6bda6">{{ s.n }}</div>
+                <div style="font-size:20px;font-weight:600">{{ s.title }}</div>
+                <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">{{ s.body }}</div>
+              </div>
+            </sc-for>
+            <div style="border-top:1px solid #d8d0bd"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0;border-bottom:1px solid #d8d0bd">
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:56px;align-items:start">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7d8a7c;padding-top:10px">10 · Integration</div>
+        <div style="min-width:0">
+          <h2 style="font-size:36px;font-weight:400;margin:0 0 12px;letter-spacing:-.01em">It slots in behind <code style="font-family:'IBM Plex Mono',monospace;font-size:32px">Terrain</code></h2>
+          <p style="font-size:18px;line-height:1.55;color:#54605a;font-weight:300;max-width:660px;margin:0 0 28px;text-wrap:pretty">Your <code style="font-family:'IBM Plex Mono',monospace;font-size:15px">docs/systems/view-camera-terrain.md</code> already decided this: height at a point, walkable or not, and nothing may assume flat. That decision is what makes this rebuild cheap — the tier field answers both questions in constant time, and nothing above the interface changes.</p>
+          <pre style="margin:0 0 26px;padding:26px 28px;background:#20261f;color:#dfe6d8;border-radius:12px;font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.65;overflow-x:auto">class_name TerracedTerrain
+extends Terrain
+## The terraced continent behind the Terrain interface. Owns the tier field;
+## answers height and walkability from it without touching the mesh.
+
+var _field: PlateauField          # tier, region, biome, flags per cell
+var _cell_size: float = 4.0       # matches terrain_style_probe
+var _terrace_step: float = 1.5
+
+
+func height_at(x: float, z: float) -&gt; float:
+	var cell: Vector2i = _to_cell(x, z)
+	if not _field.inside(cell):
+		return 0.0
+	return float(_field.tier_at(cell)) * _terrace_step
+
+
+## False on a cliff face, false in deep water, true on any ledge top and on
+## the footprint of a step or switchback flight.
+func is_walkable(x: float, z: float) -&gt; bool:
+	var cell: Vector2i = _to_cell(x, z)
+	if not _field.inside(cell):
+		return false
+	if _field.is_water(cell) and not _field.is_shallow(cell):
+		return false
+	return true
+
+
+func _to_cell(x: float, z: float) -&gt; Vector2i:
+	return Vector2i(floori(x / _cell_size), floori(z / _cell_size))</pre>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+            <div style="border-top:2px solid #b0794a;padding-top:12px">
+              <div style="font-size:17px;font-weight:600;margin-bottom:6px">Keep the probe</div>
+              <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Point <code style="font-family:'IBM Plex Mono',monospace;font-size:14px">terrain_style_probe.tscn</code> at the new generator rather than deleting it. It already builds the real <code style="font-family:'IBM Plex Mono',monospace;font-size:14px">CameraRig</code>, sun and environment — that's your look-dev harness, unchanged.</div>
+            </div>
+            <div style="border-top:2px solid #b0794a;padding-top:12px">
+              <div style="font-size:17px;font-weight:600;margin-bottom:6px">Swap, don't fork</div>
+              <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300"><code style="font-family:'IBM Plex Mono',monospace;font-size:14px">FlatTerrain</code> stays as the headless default so the sim keeps running without a mesh. Tests that need ground keep using it.</div>
+            </div>
+            <div style="border-top:2px solid #b0794a;padding-top:12px">
+              <div style="font-size:17px;font-weight:600;margin-bottom:6px">Camera</div>
+              <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Orbit and zoom as built. Raise <code style="font-family:'IBM Plex Mono',monospace;font-size:14px">min_zoom</code>: at a 2 km continent the interesting read is the middle distance where three tiers stack in frame.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0;border-bottom:1px solid #d8d0bd">
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:56px;align-items:start">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7d8a7c;padding-top:10px">11 · Asset plan</div>
+        <div>
+          <h2 style="font-size:36px;font-weight:400;margin:0 0 12px;letter-spacing:-.01em">What gets modelled, what gets generated</h2>
+          <p style="font-size:18px;line-height:1.55;color:#54605a;font-weight:300;max-width:660px;margin:0 0 28px;text-wrap:pretty">Everything that repeats in the thousands is procedural; everything the camera can get close to is modelled. Twenty-three hand assets total for v1 — a weekend of Blender, not a quarter.</p>
+          <div style="border-radius:12px;overflow:hidden;border:1px solid #d8d0bd">
+            <div style="display:grid;grid-template-columns:1.5fr .8fr .6fr 2fr;gap:1px;background:#d8d0bd">
+              <div style="background:#e2ddcc;padding:12px 16px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#6b7a70">ASSET</div>
+              <div style="background:#e2ddcc;padding:12px 16px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#6b7a70">METHOD</div>
+              <div style="background:#e2ddcc;padding:12px 16px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#6b7a70">COUNT</div>
+              <div style="background:#e2ddcc;padding:12px 16px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#6b7a70">NOTE</div>
+              <sc-for list="{{ assets }}" as="a" hint-placeholder-count="14">
+                <div style="background:#f2eee2;padding:13px 16px;font-size:16px;font-weight:600;color:#2b3630">{{ a.name }}</div>
+                <div style="background:#f2eee2;padding:13px 16px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:{{ a.color }}">{{ a.method }}</div>
+                <div style="background:#f2eee2;padding:13px 16px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6b7a70">{{ a.count }}</div>
+                <div style="background:#f2eee2;padding:13px 16px;font-size:15px;line-height:1.45;color:#54605a;font-weight:300">{{ a.note }}</div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="margin-top:24px;padding:20px 24px;background:#e2ddcc;border-radius:12px;font-size:17px;line-height:1.55;color:#3c473f;font-weight:300"><strong style="font-weight:600">Texture budget.</strong> Four textures for the entire terrain layer: one rock grain (used by every cliff shader, tinted per biome), one field patchwork noise, one snow-drift noise, one foam/spray card. All greyscale, all tiling, 512². Colour lives in shader uniforms so a biome retint costs nothing.</div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0 0">
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:56px;align-items:start">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7d8a7c;padding-top:10px">12 · Order of work</div>
+        <div>
+          <h2 style="font-size:36px;font-weight:400;margin:0 0 28px;letter-spacing:-.01em">Five sittings, each one shippable</h2>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px">
+            <div style="background:#e2ddcc;border-radius:14px;padding:26px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#b0794a;margin-bottom:10px">SITTING 1 · THE FIELD, IN 2D</div>
+              <div style="font-size:17px;line-height:1.55;color:#3c473f;font-weight:300">Land mask, terracing, smoothing, region labelling — with a debug <code style="font-family:'IBM Plex Mono',monospace;font-size:14px">TextureRect</code> painting tier as colour. Judge coastline and plateau shapes flat before any 3D. Ten minutes tells you whether it reads.</div>
+            </div>
+            <div style="background:#e2ddcc;border-radius:14px;padding:26px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#b0794a;margin-bottom:10px">SITTING 2 · ACCESS &amp; THE TEST</div>
+              <div style="font-size:17px;line-height:1.55;color:#3c473f;font-weight:300">Region graph, union-find, step sites drawn as dots on the same debug map. Then the 200-seed reachability test. Do this before meshing — it is the thing most likely to force a field change.</div>
+            </div>
+            <div style="background:#e2ddcc;border-radius:14px;padding:26px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#b0794a;margin-bottom:10px">SITTING 3 · MESH &amp; THE CLIFF</div>
+              <div style="font-size:17px;line-height:1.55;color:#3c473f;font-weight:300">Chunked <code style="font-family:'IBM Plex Mono',monospace;font-size:14px">ArrayMesh</code> with chamfer strips, plus the cliff and ground shaders. One biome only, no props, no trees. Get the edge right in isolation — everything else is dressing on it.</div>
+            </div>
+            <div style="background:#e2ddcc;border-radius:14px;padding:26px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#b0794a;margin-bottom:10px">SITTING 4 · WATER &amp; MOUNTAINS</div>
+              <div style="font-size:17px;line-height:1.55;color:#3c473f;font-weight:300">Basin fill, spillways, falls; then the mountain parameter set and the snow blend. Both are variations on stages you already have, which is why they come after the base look is settled.</div>
+            </div>
+            <div style="background:#e2ddcc;border-radius:14px;padding:26px;grid-column:span 2">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#b0794a;margin-bottom:10px">SITTING 5 · DRESSING &amp; THE OTHER THREE BIOMES</div>
+              <div style="font-size:17px;line-height:1.55;color:#3c473f;font-weight:300">Foliage clumping, step and stair props, sand hem, biome palettes wired to shader uniforms. By this point a biome is a data row, not a code change — which is the test of whether the earlier sittings were built right.</div>
+            </div>
+          </div>
+          <div style="margin-top:36px;padding:28px 30px;background:#20261f;border-radius:14px;color:#dfe6d8">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.12em;color:#9db08f;margin-bottom:12px">TWO THINGS I'D STILL DECIDE BEFORE SITTING 1</div>
+            <div style="font-size:17px;line-height:1.6;font-weight:300">Whether players terraform tiers at runtime — it decides chunk size and whether the mesher must run incrementally. And whether settlements are placed before or after terrain: placing them first lets the solver put built stairs where villages will actually be, which is a much stronger read than retrofitting them.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  renderVals() {
+    const stages = [
+      ["01", "Land mask", "Radial falloff minus ridged noise, plus hand-placed peninsulas. Threshold, smooth, discard small islands."],
+      ["02", "Distance to coast", "Cheap BFS from the sea. Drives terrace ceiling, sand hem width and mountain placement."],
+      ["03", "Terrace & quantise", "Low-frequency noise scaled by the coast distance, quantised to tiers. Unlimited stacking inland."],
+      ["04", "Majority smooth ×3", "Each cell takes the modal tier of its 8-neighbourhood. This is what turns confetti into coastline."],
+      ["05", "Label & absorb", "Flood-fill regions; absorb anything under 260 cells into its dominant neighbour — 60 above tier 4 so mountain ledges survive."],
+      ["06", "Chamfer & de-pinch", "Demote one-cell spikes, fill one-cell notches, break diagonal-only touches. Skipped on the top two tiers so summits stay jagged."],
+      ["07", "Solve access", "Region graph, union-find from tier 0. Place slab or stair below tier 4; carve a gully or hold a saddle above it."],
+      ["08", "Water", "Sea plane at tier 0; flood-fill each depression; outlet cells become falls, the rest become lakes."],
+      ["09", "Mesh & scatter", "Chunked ArrayMesh, two surfaces with chamfer strips, then clumped MultiMesh foliage with edge exclusion."],
+    ].map(([n, title, body]) => ({ n, title, body }));
+
+    const P = "#4d6f4f", H = "#a8622f";
+    const assets = [
+      ["Terrain mesh", "procedural", "—", "Chunked ArrayMesh from the tier field. Two surfaces: ledge tops and cliff walls.", P],
+      ["Cliff shader", "procedural", "1", "Strata, moss spill, lip ink, talus darkening. Biome colour by uniform.", P],
+      ["Ground shader", "procedural", "1", "Biome tint bands plus quantised patchwork. One shader, four palettes.", P],
+      ["Rock slab step", "Blender", "4 variants", "Hero prop — the camera gets close and you climb it constantly. Worth hand-sculpting.", H],
+      ["Built stair flight", "Blender", "2", "Straight and corner. Snapped to a 1-cell × 1-tier module so the solver can place them blind.", H],
+      ["Gully scree set", "Blender", "4", "Tumbled slabs and scree that floor a carved gully. Placed dense, read as rubble you scramble.", H],
+      ["Broad tree", "Blender", "3", "Card-cluster canopy, hard two-value split. Three silhouettes read as a forest.", H],
+      ["Cedar tree", "Blender", "2", "Tall dark mass. One plain, one snow-laden.", H],
+      ["Scrub cluster", "Blender", "2", "No trunk. Hides the wall-to-ground seam at cliff feet.", H],
+      ["Boulder / talus", "Blender", "4", "Scattered at cliff feet and on jagged summits. Reused across every biome.", H],
+      ["Waterfall column", "procedural", "—", "Scrolling UV on a generated quad strip fitted to the spillway drop.", P],
+      ["Spray card", "Blender", "1", "Single alpha card at the foot of each fall. No simulation.", H],
+      ["Sea & fresh water", "procedural", "2", "Plane plus per-basin quads. Foam ring as a shader term on the mask edge.", P],
+      ["Driftwood / shore props", "Blender", "2", "Coast biome only. Keeps the sand hem from reading empty.", H],
+    ].map(([name, method, count, note, color]) => ({ name, method, count, note, color }));
+
+    return { stages, assets };
+  }
+}
+</script>
+</body>
+</html>

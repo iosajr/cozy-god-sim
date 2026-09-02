@@ -108,9 +108,9 @@ unlikely events — rather than lingering attention. *Name still open.*
 
 **Renown**: A Folk member who has visibly risen through a God's hand.
 Its main mechanical role is unlocking Player interaction (dialogue).
-For animal or plant Folk the mark is transformation toward something
-more humanoid (a horse toward centaur, a tree toward dryad) — the origin
-of the World's mythical entities. *Name still open.*
+For animal Folk the mark is transformation toward something more
+humanoid (a horse toward centaur) — the origin of the World's mythical
+entities. *Name still open.*
 
 ## Removed
 

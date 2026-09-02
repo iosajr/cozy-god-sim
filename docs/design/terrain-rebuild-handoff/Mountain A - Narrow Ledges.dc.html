@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #efe9dc; }
+  a { color: #4d6f4f; } a:hover { color: #2f4a31; }
+</style>
+</helmet>
+
+<div style="background:#efe9dc;color:#1f2a26;font-family:Newsreader,Georgia,serif;padding:44px 48px 48px;min-height:100%;box-sizing:border-box">
+  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7d8a7c;margin-bottom:14px">Mountain profile A</div>
+  <h1 style="font-size:44px;line-height:1;font-weight:300;margin:0 0 14px;letter-spacing:-.02em">Narrow ledges</h1>
+  <p style="font-size:18px;line-height:1.5;font-weight:300;color:#4a564e;max-width:620px;margin:0 0 34px;text-wrap:pretty">Same 1.6 m riser as the lowland. Ledges shrink to 3–4 cells, so tiers stack eight deep in the space a valley plateau would occupy. A slab step on every single ledge.</p>
+
+  <div style="background:#e7dfcd;border-radius:16px;padding:34px 30px 26px">
+    <div style="display:flex;align-items:flex-end;gap:1px;height:320px">
+      <sc-for list="{{ cols }}" as="col" hint-placeholder-count="44">
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%">
+          <div style="height:{{ col.step }}px;display:flex;align-items:flex-end;justify-content:center">
+            <div style="width:9px;height:5px;border-radius:2px;background:{{ col.stepColor }}"></div>
+          </div>
+          <div style="height:6px;background:{{ col.cap }};border-radius:2px 2px 0 0"></div>
+          <div style="height:{{ col.h }}px;background:linear-gradient(180deg,#8a5f3c 0 4px,#b0794a 4px 60%,#8f6440 100%)"></div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b968d;margin-top:16px">
+      <div>sea level · tier 0</div>
+      <div>summit · tier 8</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:28px">
+    <div style="border-top:2px solid #b0794a;padding-top:12px">
+      <div style="font-size:17px;font-weight:600;margin-bottom:6px">Reads as</div>
+      <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">A layered rock wedding-cake. Very Pokémon — the tiers are the puzzle.</div>
+    </div>
+    <div style="border-top:2px solid #b0794a;padding-top:12px">
+      <div style="font-size:17px;font-weight:600;margin-bottom:6px">Cost</div>
+      <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">Eight access sites per mountain face. Lots of props, and the ascent is fiddly.</div>
+    </div>
+    <div style="border-top:2px solid #b0794a;padding-top:12px">
+      <div style="font-size:17px;font-weight:600;margin-bottom:6px">Best if</div>
+      <div style="font-size:16px;line-height:1.5;color:#54605a;font-weight:300">You want the mountain to be climbable terrain, not a backdrop with one path.</div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:900,&quot;height&quot;:700}}">
+class Component extends DCLogic {
+  renderVals() {
+    const N = 44, ledge = 4, unit = 30;
+    const cols = [];
+    for (let i = 0; i < N; i++) {
+      const t = Math.min(8, Math.floor(i / ledge));
+      const h = t * unit;
+      const isRiser = i % ledge === 0 && t > 0 && t <= 8;
+      cols.push({
+        h,
+        cap: t >= 6 ? "#eef2f4" : t >= 4 ? "#c9d6b8" : "#8fbc7d",
+        step: isRiser ? 16 : 0,
+        stepColor: isRiser ? "#7f9aa3" : "transparent",
+      });
+    }
+    return { cols };
+  }
+}
+</script>
+</body>
+</html>

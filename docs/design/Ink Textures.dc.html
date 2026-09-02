@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#171310; }
+  a { color:#c9a227; }
+  a:hover { color:#e8c65a; }
+</style>
+</helmet>
+<div style="min-height:100vh;background:#171310;padding:48px 40px 72px;font-family:'JetBrains Mono',ui-monospace,monospace;color:#d8cdb8">
+  <div style="max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:36px">
+    <div style="display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #3a3129;padding-bottom:24px">
+      <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;color:#8a7a60">Procedural · canvas · tileable</div>
+      <div style="font-family:'IM Fell English',Georgia,serif;font-size:52px;line-height:1;color:#efe4cb">Inked Wilds Texture Set</div>
+      <div style="font-size:13px;line-height:1.6;max-width:640px;color:#9d8f77">Hand-inked, woodcut-ish surfaces generated in code — grimy parchment, crosshatch shadow, warped wood, moss and burlap. Every tile is seamless; click a swatch to pull the PNG.</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:22px">
+      <sc-for list="{{ cards }}" as="card" hint-placeholder-count="8">
+        <div style="display:flex;flex-direction:column;background:#1e1915;border:1px solid #3a3129;box-shadow:0 12px 28px rgba(0,0,0,0.45)">
+          <div ref="{{ card.ref }}" style="height:240px;background-repeat:repeat;border-bottom:1px solid #3a3129"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px">
+            <div style="display:flex;flex-direction:column;gap:3px">
+              <div style="font-family:'IM Fell English',Georgia,serif;font-size:20px;color:#efe4cb;line-height:1">{{ card.name }}</div>
+              <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8a7a60">{{ card.note }}</div>
+            </div>
+            <div onClick="{{ card.download }}" style="cursor:pointer;font-size:10px;letter-spacing:0.14em;padding:7px 10px;border:1px solid #4d4133;color:#c9a227;user-select:none" style-hover="border-color:#c9a227;background:#251e18">PNG</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:28px;border-top:1px solid #3a3129;padding-top:22px;font-size:11px;color:#7d715d;letter-spacing:0.08em">
+      <div>SEED {{ seedLabel }}</div>
+      <div>512×512 SOURCE</div>
+      <div>SEAMLESS ON ALL EDGES</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;seed&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:7,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:1,&quot;max&quot;:999,&quot;section&quot;:&quot;Generation&quot;},&quot;inkAmount&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:0,&quot;max&quot;:2,&quot;step&quot;:0.05,&quot;section&quot;:&quot;Generation&quot;},&quot;grainAmount&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:0,&quot;max&quot;:2,&quot;step&quot;:0.05,&quot;section&quot;:&quot;Generation&quot;},&quot;previewScale&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:160,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:60,&quot;max&quot;:512,&quot;step&quot;:10,&quot;unit&quot;:&quot;px&quot;,&quot;section&quot;:&quot;Preview&quot;}}">
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    this.defs = [
+      { key: 'parchment', name: 'Old Parchment', note: 'aged paper · blotch', fn: 'parchment' },
+      { key: 'hatch',     name: 'Crosshatch',    note: 'pen shadow · ink',   fn: 'hatch' },
+      { key: 'wood',      name: 'Warped Plank',  note: 'grain · knots',      fn: 'wood' },
+      { key: 'stone',     name: 'Cracked Stone', note: 'mottle · fissure',   fn: 'stone' },
+      { key: 'turf',      name: 'Bog Turf',      note: 'moss · tufts',       fn: 'turf' },
+      { key: 'burlap',    name: 'Burlap Sack',   note: 'weave · fray',       fn: 'burlap' },
+      { key: 'bark',      name: 'Black Bark',    note: 'ridge · scar',       fn: 'bark' },
+      { key: 'ash',       name: 'Soot & Ash',    note: 'smudge · ember',     fn: 'ash' }
+    ];
+    this.refs = {};
+    this.defs.forEach(d => { this.refs[d.key] = React.createRef(); });
+  }
+
+  componentDidMount() { this.build(); }
+  componentDidUpdate(prev) { if (prev !== this.props) this.build(); }
+
+  rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  noise(rand, period) {
+    const g = new Float32Array(period * period);
+    for (let i = 0; i < g.length; i++) g[i] = rand();
+    return (x, y) => {
+      const fx = x * period, fy = y * period;
+      const x0 = Math.floor(fx), y0 = Math.floor(fy);
+      const tx = fx - x0, ty = fy - y0;
+      const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
+      const i0 = ((x0 % period) + period) % period, i1 = (i0 + 1) % period;
+      const j0 = ((y0 % period) + period) % period, j1 = (j0 + 1) % period;
+      const a = g[j0 * period + i0], b = g[j0 * period + i1], c = g[j1 * period + i0], d = g[j1 * period + i1];
+      const top = a + (b - a) * sx, bot = c + (d - c) * sx;
+      return top + (bot - top) * sy;
+    };
+  }
+
+  fbm(rand, base, octaves) {
+    const layers = [];
+    for (let o = 0; o < octaves; o++) layers.push(this.noise(rand, base * Math.pow(2, o)));
+    return (x, y) => {
+      let sum = 0, amp = 1, norm = 0;
+      for (let o = 0; o < layers.length; o++) { sum += layers[o](x, y) * amp; norm += amp; amp *= 0.5; }
+      return sum / norm;
+    };
+  }
+
+  mix(c1, c2, t) { return [c1[0] + (c2[0] - c1[0]) * t, c1[1] + (c2[1] - c1[1]) * t, c1[2] + (c2[2] - c1[2]) * t]; }
+
+  // paint a per-pixel field
+  field(ctx, S, fn) {
+    const img = ctx.createImageData(S, S), d = img.data;
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+      const c = fn(x / S, y / S, x, y), i = (y * S + x) * 4;
+      d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  // draw wrapped 3x3 so strokes are seamless
+  wrap(ctx, S, draw) {
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      ctx.save(); ctx.translate(dx * S, dy * S); draw(); ctx.restore();
+    }
+  }
+
+  speckle(ctx, S, rand, count, color, maxR) {
+    ctx.fillStyle = color;
+    for (let i = 0; i < count; i++) {
+      const x = rand() * S, y = rand() * S, r = maxR * (0.2 + rand() * 0.8);
+      ctx.globalAlpha = 0.15 + rand() * 0.55;
+      this.wrap(ctx, S, () => { ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.fill(); });
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // wobbly ink stroke following a direction, with tapered ends
+  inkStroke(ctx, S, rand, x, y, ang, len, width, warp) {
+    const steps = Math.max(6, Math.round(len / 6));
+    const pts = [];
+    let cx = x, cy = y, a = ang;
+    for (let i = 0; i <= steps; i++) {
+      pts.push([cx, cy]);
+      a += (rand() - 0.5) * warp;
+      cx += Math.cos(a) * (len / steps); cy += Math.sin(a) * (len / steps);
+    }
+    this.wrap(ctx, S, () => {
+      for (let i = 1; i < pts.length; i++) {
+        const t = i / pts.length;
+        ctx.lineWidth = width * (0.25 + Math.sin(t * Math.PI) * 0.95);
+        ctx.beginPath(); ctx.moveTo(pts[i - 1][0], pts[i - 1][1]); ctx.lineTo(pts[i][0], pts[i][1]); ctx.stroke();
+      }
+    });
+  }
+
+  vignetteGrain(ctx, S, rand, grain) {
+    const img = ctx.getImageData(0, 0, S, S), d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const n = (rand() - 0.5) * 70 * grain;
+      d[i] += n; d[i + 1] += n * 0.95; d[i + 2] += n * 0.85;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  // ---- textures ----
+  parchment(ctx, S, rand, ink) {
+    const f = this.fbm(rand, 3, 5), f2 = this.fbm(rand, 8, 4);
+    const light = [222, 202, 162], dark = [150, 122, 84], deep = [92, 70, 46];
+    this.field(ctx, S, (u, v) => {
+      const n = f(u, v), m = f2(u, v);
+      let c = this.mix(light, dark, Math.pow(n, 1.6));
+      c = this.mix(c, deep, Math.max(0, m - 0.62) * 1.4);
+      return c;
+    });
+    ctx.strokeStyle = 'rgba(72,52,34,0.5)'; ctx.lineCap = 'round';
+    for (let i = 0; i < 26 * ink; i++) this.inkStroke(ctx, S, rand, rand() * S, rand() * S, rand() * 6.28, 20 + rand() * 90, 1.2, 0.5);
+    this.speckle(ctx, S, rand, 340, '#4a3520', 1.8);
+    this.speckle(ctx, S, rand, 60, '#e8dcc0', 2.4);
+  }
+
+  hatch(ctx, S, rand, ink) {
+    const f = this.fbm(rand, 4, 4);
+    this.field(ctx, S, (u, v) => this.mix([204, 186, 152], [166, 146, 112], f(u, v)));
+    ctx.lineCap = 'round';
+    const passes = [[-0.72, 0.72], [0.72, 0.55], [-0.1, 0.35]];
+    passes.forEach((p, pi) => {
+      const ang = p[0], alpha = p[1];
+      const step = 13 - pi * 2;
+      ctx.strokeStyle = 'rgba(26,20,14,' + (alpha * 0.55 * ink).toFixed(3) + ')';
+      for (let k = -S; k < S * 2; k += step) {
+        const jitter = (rand() - 0.5) * 5;
+        this.inkStroke(ctx, S, rand, k + jitter, -20 + rand() * 20, ang + Math.PI / 2 * 0, S * 1.5, 1.4 + rand(), 0.06);
+      }
+    });
+    this.speckle(ctx, S, rand, 220, '#1a140e', 1.2);
+  }
+
+  wood(ctx, S, rand, ink) {
+    const warp = this.fbm(rand, 3, 4), fine = this.fbm(rand, 16, 3);
+    const lightW = [138, 100, 62], darkW = [74, 50, 30], deepW = [40, 26, 16];
+    this.field(ctx, S, (u, v) => {
+      const w = warp(u, v) * 0.28;
+      const rings = Math.abs(Math.sin((v * 7 + w * 6 + Math.sin(u * 6.283) * 0.15) * Math.PI));
+      let c = this.mix(lightW, darkW, Math.pow(rings, 0.6));
+      c = this.mix(c, deepW, fine(u, v) * 0.35);
+      return c;
+    });
+    ctx.strokeStyle = 'rgba(24,15,9,0.65)'; ctx.lineCap = 'round';
+    for (let i = 0; i < 34 * ink; i++) this.inkStroke(ctx, S, rand, rand() * S, rand() * S, (rand() - 0.5) * 0.35, 60 + rand() * 200, 1.6, 0.07);
+    // knots
+    for (let i = 0; i < 2; i++) {
+      const kx = rand() * S, ky = rand() * S;
+      for (let r = 2; r < 26; r += 3) {
+        ctx.strokeStyle = 'rgba(28,17,10,' + (0.5 - r / 70).toFixed(2) + ')'; ctx.lineWidth = 1.6;
+        this.wrap(ctx, S, () => { ctx.beginPath(); ctx.ellipse(kx, ky, r, r * 0.6, 0.3, 0, 6.2832); ctx.stroke(); });
+      }
+    }
+    this.speckle(ctx, S, rand, 200, '#150d07', 1.1);
+  }
+
+  stone(ctx, S, rand, ink) {
+    const f = this.fbm(rand, 4, 5), g = this.fbm(rand, 10, 3);
+    this.field(ctx, S, (u, v) => {
+      const n = f(u, v);
+      let c = this.mix([146, 141, 128], [86, 82, 74], Math.pow(n, 1.2));
+      c = this.mix(c, [58, 55, 50], Math.max(0, g(u, v) - 0.55) * 1.6);
+      return c;
+    });
+    ctx.strokeStyle = 'rgba(28,26,22,0.8)'; ctx.lineCap = 'round';
+    for (let i = 0; i < 7 * ink; i++) {
+      let x = rand() * S, y = rand() * S, a = rand() * 6.28;
+      for (let b = 0; b < 3; b++) { this.inkStroke(ctx, S, rand, x, y, a, 50 + rand() * 90, 2.2, 0.45); a += (rand() - 0.5) * 1.6; }
+    }
+    ctx.strokeStyle = 'rgba(210,206,196,0.35)';
+    for (let i = 0; i < 18; i++) this.inkStroke(ctx, S, rand, rand() * S, rand() * S, rand() * 6.28, 14 + rand() * 30, 1, 0.5);
+    this.speckle(ctx, S, rand, 500, '#33302a', 1.3);
+  }
+
+  turf(ctx, S, rand, ink) {
+    const f = this.fbm(rand, 4, 4), g = this.fbm(rand, 12, 3);
+    this.field(ctx, S, (u, v) => {
+      let c = this.mix([104, 106, 58], [58, 62, 32], Math.pow(f(u, v), 1.1));
+      c = this.mix(c, [122, 96, 42], Math.max(0, g(u, v) - 0.6) * 1.3);
+      return c;
+    });
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 420 * ink; i++) {
+      const dark = rand() > 0.45;
+      ctx.strokeStyle = dark ? 'rgba(28,32,16,0.75)' : 'rgba(150,152,86,0.55)';
+      this.inkStroke(ctx, S, rand, rand() * S, rand() * S, -Math.PI / 2 + (rand() - 0.5) * 1.5, 7 + rand() * 16, 1.5, 0.35);
+    }
+    this.speckle(ctx, S, rand, 260, '#20240f', 1.2);
+  }
+
+  burlap(ctx, S, rand, ink) {
+    const f = this.fbm(rand, 5, 4);
+    this.field(ctx, S, (u, v) => this.mix([176, 143, 96], [124, 96, 58], f(u, v)));
+    const pitch = 8;
+    for (let i = 0; i < S / pitch; i++) {
+      for (let j = 0; j < S / pitch; j++) {
+        const horiz = (i + j) % 2 === 0;
+        const shade = 0.35 + rand() * 0.4;
+        ctx.fillStyle = 'rgba(' + (horiz ? '92,70,40' : '206,178,130') + ',' + (shade * 0.55).toFixed(2) + ')';
+        const x = j * pitch, y = i * pitch;
+        if (horiz) ctx.fillRect(x, y + 1.5, pitch, pitch - 3);
+        else ctx.fillRect(x + 1.5, y, pitch - 3, pitch);
+      }
+    }
+    ctx.strokeStyle = 'rgba(46,32,18,0.5)'; ctx.lineCap = 'round';
+    for (let i = 0; i < 24 * ink; i++) this.inkStroke(ctx, S, rand, rand() * S, rand() * S, rand() > 0.5 ? 0 : Math.PI / 2, 20 + rand() * 70, 1.2, 0.05);
+    this.speckle(ctx, S, rand, 300, '#3b2a16', 1.1);
+  }
+
+  bark(ctx, S, rand, ink) {
+    const warp = this.fbm(rand, 3, 4), fine = this.fbm(rand, 14, 3);
+    this.field(ctx, S, (u, v) => {
+      const w = warp(u, v);
+      const ridge = Math.abs(Math.sin((u * 9 + w * 3.2 + Math.sin(v * 6.283) * 0.2) * Math.PI));
+      let c = this.mix([72, 60, 48], [26, 22, 18], Math.pow(ridge, 0.5));
+      c = this.mix(c, [96, 82, 62], Math.max(0, fine(u, v) - 0.6) * 0.9);
+      return c;
+    });
+    ctx.strokeStyle = 'rgba(10,8,6,0.85)'; ctx.lineCap = 'round';
+    for (let i = 0; i < 46 * ink; i++) this.inkStroke(ctx, S, rand, rand() * S, rand() * S, Math.PI / 2 + (rand() - 0.5) * 0.3, 40 + rand() * 160, 2, 0.16);
+    ctx.strokeStyle = 'rgba(140,124,98,0.3)';
+    for (let i = 0; i < 40; i++) this.inkStroke(ctx, S, rand, rand() * S, rand() * S, Math.PI / 2 + (rand() - 0.5) * 0.3, 20 + rand() * 60, 1, 0.2);
+    this.speckle(ctx, S, rand, 380, '#0d0b08', 1.2);
+  }
+
+  ash(ctx, S, rand, ink) {
+    const f = this.fbm(rand, 3, 5), g = this.fbm(rand, 9, 4);
+    this.field(ctx, S, (u, v) => {
+      let c = this.mix([64, 58, 54], [22, 19, 18], Math.pow(f(u, v), 0.9));
+      c = this.mix(c, [116, 108, 100], Math.max(0, g(u, v) - 0.68) * 1.8);
+      return c;
+    });
+    ctx.strokeStyle = 'rgba(8,6,6,0.55)'; ctx.lineCap = 'round';
+    for (let i = 0; i < 30 * ink; i++) this.inkStroke(ctx, S, rand, rand() * S, rand() * S, rand() * 6.28, 30 + rand() * 120, 3, 0.6);
+    this.speckle(ctx, S, rand, 260, '#cbbfae', 1.3);
+    this.speckle(ctx, S, rand, 40, '#c4682a', 1.6);
+  }
+
+  build() {
+    const S = 512;
+    const seed = Math.round(this.props.seed ?? 7);
+    const ink = this.props.inkAmount ?? 1;
+    const grain = this.props.grainAmount ?? 1;
+    this.urls = {};
+    this.defs.forEach((d, idx) => {
+      const el = this.refs[d.key].current;
+      if (!el) return;
+      const cv = document.createElement('canvas');
+      cv.width = S; cv.height = S;
+      const ctx = cv.getContext('2d');
+      const rand = this.rng(seed * 7919 + idx * 104729 + 13);
+      this[d.fn](ctx, S, rand, ink);
+      this.vignetteGrain(ctx, S, rand, grain);
+      const url = cv.toDataURL('image/png');
+      this.urls[d.key] = url;
+      el.style.backgroundImage = 'url(' + url + ')';
+      el.style.backgroundSize = (this.props.previewScale ?? 160) + 'px';
+    });
+  }
+
+  renderVals() {
+    const seed = Math.round(this.props.seed ?? 7);
+    return {
+      seedLabel: String(seed).padStart(4, '0'),
+      cards: this.defs.map(d => ({
+        name: d.name,
+        note: d.note,
+        ref: this.refs[d.key],
+        download: () => {
+          const url = this.urls && this.urls[d.key];
+          if (!url) return;
+          const a = document.createElement('a');
+          a.href = url; a.download = d.key + '-512.png'; a.click();
+        }
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

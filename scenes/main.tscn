@@ -1,9 +1,9 @@
 [gd_scene format=3 uid="uid://ckymgyef2nuks"]
 
 [ext_resource type="Script" uid="uid://bo7swtsmwhls0" path="res://scripts/sim_host.gd" id="1_host"]
-[ext_resource type="Script" uid="uid://ywkygcw157p4" path="res://scripts/camera_rig.gd" id="2_rig"]
-[ext_resource type="Script" uid="uid://cwkd1k33bliig" path="res://scripts/view_spawner.gd" id="3_spawner"]
-[ext_resource type="Script" uid="uid://d0ajt7g8hi8ay" path="res://ui/inspector_panel.gd" id="4_inspector"]
+[ext_resource type="Script" uid="uid://ywkygcw157p4" path="res://scripts/view-camera-terrain/camera_rig.gd" id="2_rig"]
+[ext_resource type="Script" uid="uid://cwkd1k33bliig" path="res://scripts/view-camera-terrain/view_spawner.gd" id="3_spawner"]
+[ext_resource type="Script" uid="uid://d0ajt7g8hi8ay" path="res://scripts/checks/inspector_panel.gd" id="4_inspector"]
 
 [sub_resource type="StandardMaterial3D" id="Material_ground"]
 albedo_color = Color(0.42, 0.55, 0.34, 1)

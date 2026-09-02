@@ -21,6 +21,8 @@ Every living thing, sharing one shape.
 - The world starts with two humanoid species: humans in a Village and
   dryads in a Forest. Both walk, so both are the one Entity class with a
   different species resource behind them.
+- Dryads are a starting species, not something a tree becomes. Their
+  place in the world is tending the forest they live in.
 - Dryads may leave their forest. Nothing holds them to it.
 - Every entity carries a name, drawn in order from a pool its species
   authors. An empty pool falls back to the kind and a number.
@@ -47,10 +49,9 @@ stops a population behaving identically.
 
 - An entity a god is deliberately attending to is Favored, for good or ill.
 - An entity that has visibly risen through a god's hand is Renowned. For
-  animals and plants this is a transformation toward something more
-  humanoid — a horse toward a centaur, a tree toward a dryad. Each such
-  species therefore needs a second set of art, which is a real content
-  cost when scoping species.
+  animals this is a transformation toward something more humanoid — a
+  horse toward a centaur. Each such species therefore needs a second set
+  of art, which is a real content cost when scoping species.
 
 ## Reproduction
 

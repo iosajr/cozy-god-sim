@@ -39,12 +39,6 @@ Whether entities given everything stop working, the way they did in Black &
 White. It adds character, and it also lets a settlement be broken in a way
 that is hard to read from the outside.
 
-## Dryads as a starting species and as a raised tree
-
-A dryad is one of the two species the world starts with. It is also what
-the docs say a tree becomes when a god raises it. Whether those are the
-same thing, or share only a name, is undecided.
-
 ## What entities are called
 
 Every entity now carries a name, and every species carries the pool it

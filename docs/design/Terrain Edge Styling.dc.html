@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  body { margin: 0; background: #171917; }
+  a { color: #c8a86a; }
+  a:hover { color: #e0c48c; }
+  input[type=range] { -webkit-appearance: none; appearance: none; height: 3px; background: #3a3d36; border-radius: 2px; outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%; background: #c8a86a; cursor: pointer; border: none; }
+  input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 50%; background: #c8a86a; cursor: pointer; border: none; }
+</style>
+</helmet>
+
+<div style="background:#171917;color:#e6e2d4;font-family:'Karla',system-ui,sans-serif;padding:64px 40px 96px;display:flex;flex-direction:column;align-items:center;gap:72px">
+
+  <header style="max-width:1180px;width:100%;display:flex;flex-direction:column;gap:20px">
+    <div style="font:500 12px/1 'Karla',sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#8d9382">Terrain look-dev · edge language</div>
+    <h1 style="margin:0;font:600 clamp(38px,4.6vw,68px)/1.02 'Playfair Display',serif;color:#f2eee1;max-width:16ch;text-wrap:balance">Soft lowland lips, hard upland cliffs</h1>
+    <p style="margin:0;max-width:66ch;font:400 18px/1.65 'Karla',sans-serif;color:#b6b3a4;text-wrap:pretty">Your probe reads flat for one structural reason: every terrace is <em style="color:#d8d2bd;font-style:normal">the same 1.5 units tall</em>, and every edge is the same vertical box face. Pokémon and Don't Starve both terrace — they differ in what happens at the step. The fix is a single rule applied at mesh time: <strong style="color:#e6e2d4;font-weight:700">treat an edge by how far the land actually drops there</strong>, and let step height grow with altitude so the rule sorts lowlands and cliffs for you.</p>
+  </header>
+
+  <section style="max-width:1180px;width:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="aspect-ratio:16/10;overflow:hidden;border:1px solid #2e312b;background:#101210"><img src="uploads/styling/Pokemon%20black%20and%20white.jpg" alt="Pokémon Black and White overworld" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+      <div style="font:600 19px/1.2 'Playfair Display',serif;color:#f2eee1">Pokémon B/W — the lip</div>
+      <p style="margin:0;font:400 15px/1.6 'Karla',sans-serif;color:#a8a596;text-wrap:pretty">Plateaus are one or two units apart and the face is short, warm, and slightly angled. The silhouette stays readable because the grass rolls over a lit top edge rather than ending in a hard corner. Steps are frequent and shallow.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="aspect-ratio:16/10;overflow:hidden;border:1px solid #2e312b;background:#101210"><img src="uploads/styling/dont%20starve%20elsewhere.png" alt="Don't Starve Elsewhere cliff" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+      <div style="font:600 19px/1.2 'Playfair Display',serif;color:#f2eee1">Don't Starve — the wall</div>
+      <p style="margin:0;font:400 15px/1.6 'Karla',sans-serif;color:#a8a596;text-wrap:pretty">One enormous drop instead of many small ones. The face is near-black at its base, the top edge carries a painted dark rim, and the whole palette is desaturated slate and umber. Height is spent in few, tall steps.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="aspect-ratio:16/10;overflow:hidden;border:1px solid #2e312b;background:#101210"><img src="uploads/Screenshot%202026-09-01%20150232.png" alt="Current Godot probe" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+      <div style="font:600 19px/1.2 'Playfair Display',serif;color:#f2eee1">Your probe — uniform stairs</div>
+      <p style="margin:0;font:400 15px/1.6 'Karla',sans-serif;color:#a8a596;text-wrap:pretty">Constant <span style="font-family:ui-monospace,monospace;color:#c8a86a">terrace_step</span>, box columns, one green and one brown. Every edge is identical, so the eye reads contour lines on a pancake — no lowland, no cliff, no scale cue.</p>
+    </div>
+  </section>
+
+  <section style="max-width:1180px;width:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1px;background:#2a2d27;border:1px solid #2a2d27">
+    <div style="background:#1c1e1b;padding:26px 24px;display:flex;flex-direction:column;gap:10px">
+      <div style="font:700 13px/1 'Karla',sans-serif;letter-spacing:.12em;color:#c8a86a">01 · GROWING STEPS</div>
+      <p style="margin:0;font:400 15px/1.6 'Karla',sans-serif;color:#b6b3a4;text-wrap:pretty">Step height scales with altitude: <span style="font-family:ui-monospace,monospace;font-size:13px;color:#d8d2bd">step(i) = base × (1 + growth × (i − sea))</span>. Coastal plains stay walkable, highlands become dramatic.</p>
+    </div>
+    <div style="background:#1c1e1b;padding:26px 24px;display:flex;flex-direction:column;gap:10px">
+      <div style="font:700 13px/1 'Karla',sans-serif;letter-spacing:.12em;color:#c8a86a">02 · ONE EDGE RULE</div>
+      <p style="margin:0;font:400 15px/1.6 'Karla',sans-serif;color:#b6b3a4;text-wrap:pretty">Per cell edge, measure the real drop. Under the threshold it becomes a bevelled skirt; over it, a vertical face. No biome authoring — the terrain decides.</p>
+    </div>
+    <div style="background:#1c1e1b;padding:26px 24px;display:flex;flex-direction:column;gap:10px">
+      <div style="font:700 13px/1 'Karla',sans-serif;letter-spacing:.12em;color:#c8a86a">03 · PAINTED RIM</div>
+      <p style="margin:0;font:400 15px/1.6 'Karla',sans-serif;color:#b6b3a4;text-wrap:pretty">Top-face corners sitting over a drop get darkened ~22% in vertex colour. That single multiply is what buys the hand-inked Don't Starve outline, with no shader.</p>
+    </div>
+    <div style="background:#1c1e1b;padding:26px 24px;display:flex;flex-direction:column;gap:10px">
+      <div style="font:700 13px/1 'Karla',sans-serif;letter-spacing:.12em;color:#c8a86a">04 · ONE MESH</div>
+      <p style="margin:0;font:400 15px/1.6 'Karla',sans-serif;color:#b6b3a4;text-wrap:pretty">Quads only where geometry is visible, welded into a single vertex-coloured <span style="font-family:ui-monospace,monospace;font-size:13px;color:#d8d2bd">ArrayMesh</span> — far cheaper than 65k box instances, and it takes per-vertex colour.</p>
+    </div>
+  </section>
+
+  <section style="max-width:1180px;width:100%;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:24px;flex-wrap:wrap">
+      <h2 style="margin:0;font:600 32px/1.1 'Playfair Display',serif;color:#f2eee1">The rule, running</h2>
+      <div style="font:400 14px/1.5 'Karla',sans-serif;color:#8d9382">Drag to orbit · scroll to zoom · same noise pipeline as your probe</div>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:1px;background:#2a2d27;border:1px solid #2a2d27;min-height:560px">
+      <div style="position:relative;background:#0f1110">
+        <canvas ref="{{ canvasRef }}" style="width:100%;height:100%;display:block"></canvas>
+        <div style="position:absolute;left:16px;top:16px;display:flex;gap:8px">
+          <button onClick="{{ onStyled }}" style="{{ styledBtn }}">Styled</button>
+          <button onClick="{{ onCurrent }}" style="{{ currentBtn }}">Your probe</button>
+        </div>
+        <div style="position:absolute;left:16px;bottom:14px;font:400 12px/1.4 'Karla',sans-serif;color:#7d8377">{{ statusLine }}</div>
+      </div>
+      <div style="background:#1c1e1b;padding:24px 22px;display:flex;flex-direction:column;gap:22px">
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;justify-content:space-between;font:700 11px/1 'Karla',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8d9382"><span>Base step</span><span style="color:#c8a86a">{{ baseStepLabel }}</span></div>
+          <input type="range" min="0.6" max="3" step="0.05" value="{{ baseStep }}" onInput="{{ onBaseStep }}" style="width:100%">
+          <div style="font:400 12px/1.45 'Karla',sans-serif;color:#6f7568">Height of a lowland terrace.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;justify-content:space-between;font:700 11px/1 'Karla',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8d9382"><span>Cliff growth</span><span style="color:#c8a86a">{{ growthLabel }}</span></div>
+          <input type="range" min="0" max="0.6" step="0.01" value="{{ cliffGrowth }}" onInput="{{ onGrowth }}" style="width:100%">
+          <div style="font:400 12px/1.45 'Karla',sans-serif;color:#6f7568">How much taller each step gets with altitude. Zero = your current pancake.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;justify-content:space-between;font:700 11px/1 'Karla',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8d9382"><span>Soft/hard threshold</span><span style="color:#c8a86a">{{ softLabel }}</span></div>
+          <input type="range" min="0" max="8" step="0.1" value="{{ softDrop }}" onInput="{{ onSoft }}" style="width:100%">
+          <div style="font:400 12px/1.45 'Karla',sans-serif;color:#6f7568">Drops shorter than this bevel; taller ones become cliffs.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;justify-content:space-between;font:700 11px/1 'Karla',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8d9382"><span>Bevel inset</span><span style="color:#c8a86a">{{ lipLabel }}</span></div>
+          <input type="range" min="0" max="1.8" step="0.05" value="{{ lip }}" onInput="{{ onLip }}" style="width:100%">
+          <div style="font:400 12px/1.45 'Karla',sans-serif;color:#6f7568">How far the grass rolls over the lip.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;justify-content:space-between;font:700 11px/1 'Karla',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8d9382"><span>Sea level band</span><span style="color:#c8a86a">{{ seaLabel }}</span></div>
+          <input type="range" min="1" max="6" step="1" value="{{ seaLevel }}" onInput="{{ onSea }}" style="width:100%">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;justify-content:space-between;font:700 11px/1 'Karla',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8d9382"><span>Seed</span><span style="color:#c8a86a">{{ seedLabel }}</span></div>
+          <input type="range" min="1" max="60" step="1" value="{{ seed }}" onInput="{{ onSeed }}" style="width:100%">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="max-width:1180px;width:100%;display:flex;flex-direction:column;gap:18px">
+    <h2 style="margin:0;font:600 32px/1.1 'Playfair Display',serif;color:#f2eee1">Wiring it into your probe</h2>
+    <p style="margin:0;max-width:70ch;font:400 16px/1.65 'Karla',sans-serif;color:#b6b3a4;text-wrap:pretty">The full builder is in <a href="TerraceMeshBuilder.gd" download="">TerraceMeshBuilder.gd</a> — drop it beside <span style="font-family:ui-monospace,monospace;font-size:14px;color:#d8d2bd">terrain_noise_probe.gd</span>. It replaces <span style="font-family:ui-monospace,monospace;font-size:14px;color:#d8d2bd">_build_cliff_multimesh()</span> and <span style="font-family:ui-monospace,monospace;font-size:14px;color:#d8d2bd">_build_grass_multimeshes()</span> entirely; your <span style="font-family:ui-monospace,monospace;font-size:14px;color:#d8d2bd">HeightMap</span>, bands, camera rig and trees stay as they are.</p>
+    <pre style="margin:0;overflow:auto;background:#101210;border:1px solid #2a2d27;padding:26px 28px;font:400 13.5px/1.75 ui-monospace,SFMono-Regular,Menlo,monospace;color:#c9cbbd">@export var terrace_step: float = 1.4      # was 1.5, now only the LOWLAND step
+@export var cliff_growth: float = 0.22     # each step above sea is this much taller
+@export var soft_drop: float = 2.4         # drops under this bevel, over this cliff
+@export var bevel_lip: float = 1.1         # keep under cell_size * 0.45
+@export var sea_level_band: int = 2
+
+var _terrain_instance: MeshInstance3D
+var _heights: PackedFloat32Array
+
+func _rebuild_terrain_meshes() -> void:
+    if _terrain_instance != null:
+        _terrain_instance.queue_free()
+    for instance in [_trunk_instance, _canopy_instance]:
+        if instance != null:
+            instance.queue_free()
+
+    _heights = TerraceMeshBuilder.level_heights(
+        _bands.size(), terrace_step, cliff_growth, sea_level_band)
+
+    var mesh := TerraceMeshBuilder.build_mesh(
+        _levels, grid_cells, grid_cells, cell_size,
+        _heights, sea_level_band, soft_drop, bevel_lip, _current_seed)
+
+    _terrain_instance = MeshInstance3D.new()
+    _terrain_instance.name = "Terrain"
+    _terrain_instance.mesh = mesh
+    _terrain_instance.material_override = TerraceMeshBuilder.make_material()
+    add_child(_terrain_instance)
+    _build_trees()
+
+# heights are no longer level * terrace_step — everything that placed things
+# on the ground (trees, water, spawn points) reads the table instead:
+func _cell_top_y(level: int) -&gt; float:
+    return _heights[level]</pre>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:6px">
+      <div style="border-left:2px solid #c8a86a;padding-left:16px">
+        <div style="font:700 13px/1.4 'Karla',sans-serif;color:#e6e2d4;margin-bottom:6px">Water level follows too</div>
+        <p style="margin:0;font:400 14px/1.6 'Karla',sans-serif;color:#a8a596">Set <span style="font-family:ui-monospace,monospace;font-size:13px;color:#d8d2bd">water_level_y = _heights[sea_level_band] - 0.15</span> instead of the hard-coded 2.25, or the sea will drift as you tune the step.</p>
+      </div>
+      <div style="border-left:2px solid #c8a86a;padding-left:16px">
+        <div style="font:700 13px/1.4 'Karla',sans-serif;color:#e6e2d4;margin-bottom:6px">Scale comes from the step, not the grid</div>
+        <p style="margin:0;font:400 14px/1.6 'Karla',sans-serif;color:#a8a596">At 256 cells × 4 units your island is 1 km wide but only ~20 units tall. Growth 0.2–0.3 pushes peaks past 60 units, which is where the silhouette starts reading as landscape.</p>
+      </div>
+      <div style="border-left:2px solid #c8a86a;padding-left:16px">
+        <div style="font:700 13px/1.4 'Karla',sans-serif;color:#e6e2d4;margin-bottom:6px">Next: break the grid</div>
+        <p style="margin:0;font:400 14px/1.6 'Karla',sans-serif;color:#a8a596">Once the edge language is right, the remaining tell is the 90° staircase. Warp the sample position with a second low-frequency noise before banding — same code, wobbly coastlines.</p>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;palette&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Don't Starve&quot;,&quot;Pokémon bright&quot;,&quot;Ghibli soft&quot;],&quot;default&quot;:&quot;Don't Starve&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;gridSize&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:128,&quot;min&quot;:64,&quot;max&quot;:192,&quot;step&quot;:16,&quot;tsType&quot;:&quot;number&quot;},&quot;showRim&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = {
+    mode: 'styled', baseStep: 1.7, cliffGrowth: 0.35, softDrop: 2.6,
+    lip: 1.1, seaLevel: 2, seed: 2, status: 'loading three.js…'
+  };
+
+  PALETTES = {
+    "Don't Starve": {
+      tops: ['#a9a186','#7d8f63','#6c7f57','#5f7350','#5a6a52','#5b6158','#6a6f72','#878c90','#c2c7ca'],
+      bed: '#2b3a3f', cliffTop: '#4e4f4a', cliffBase: '#33342f', cliffCap: '#8d9093',
+      water: '#3c5a68', fog: '#8a969a', sky: '#0f1110'
+    },
+    "Pokémon bright": {
+      tops: ['#e0d9a8','#84cd8a','#6fc07c','#5cb371','#59a86c','#8fae6a','#a9a071','#bfae7d','#d2c69a'],
+      bed: '#3f6f86', cliffTop: '#c08a3e', cliffBase: '#7d4f1e', cliffCap: '#e0b064',
+      water: '#59a9cd', fog: '#cbe6f2', sky: '#12181c'
+    },
+    "Ghibli soft": {
+      tops: ['#cbc39a','#9db97a','#8aab6a','#7b9c5e','#749356','#7d9160','#8b9169','#9a9576','#a9a186'],
+      bed: '#4a6b6a', cliffTop: '#8f7d5e', cliffBase: '#3b3529', cliffCap: '#b0a184',
+      water: '#7ba7ac', fog: '#c3d6cc', sky: '#141816'
+    }
+  };
+
+  BANDS = 13;
+
+  constructor(p) {
+    super(p);
+    this.canvasRef = React.createRef();
+    this._field = null;
+    this._fieldKey = '';
+  }
+
+  componentDidMount() { this._waitForThree(); }
+  componentDidUpdate() { this._schedule(); }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this._onResize);
+    if (this._raf) cancelAnimationFrame(this._raf);
+  }
+
+  _waitForThree() {
+    if (window.THREE) { this._init(); return; }
+    if ((this._tries = (this._tries || 0) + 1) > 120) {
+      this.setState({ status: 'three.js failed to load' });
+      return;
+    }
+    setTimeout(() => this._waitForThree(), 100);
+  }
+
+  // ---------- noise, matching the probe's fbm + square falloff ----------
+  _hash(x, y, s) {
+    let n = (x * 374761393 + y * 668265263 + s * 2246822519) | 0;
+    n = (n ^ (n >> 13)) | 0;
+    n = Math.imul(n, 1274126177) | 0;
+    return ((n ^ (n >> 16)) >>> 0) / 4294967295;
+  }
+  _vnoise(x, y, s) {
+    const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+    const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+    const a = this._hash(xi, yi, s), b = this._hash(xi + 1, yi, s);
+    const c = this._hash(xi, yi + 1, s), d = this._hash(xi + 1, yi + 1, s);
+    return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v;
+  }
+  _buildField(N, seed) {
+    const vals = new Float32Array(N * N);
+    let min = Infinity, max = -Infinity;
+    for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) {
+      let amp = 1, freq = 3.2 / N, sum = 0, norm = 0;
+      for (let o = 0; o < 5; o++) {
+        sum += this._vnoise(x * freq, z * freq, seed + o * 977) * amp;
+        norm += amp; amp *= 0.5; freq *= 2.0;
+      }
+      const v = sum / norm;
+      vals[z * N + x] = v;
+      if (v < min) min = v; if (v > max) max = v;
+    }
+    // normalise, then subtract a square falloff so it stays an island
+    let min2 = Infinity, max2 = -Infinity;
+    for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) {
+      const nx = (x / (N - 1)) * 2 - 1, nz = (z / (N - 1)) * 2 - 1;
+      const t = Math.max(Math.abs(nx), Math.abs(nz));
+      const t3 = t * t * t, f = t3 / (t3 + Math.pow(2.4 - 2.4 * t, 3));
+      const v = (vals[z * N + x] - min) / (max - min) - f;
+      vals[z * N + x] = v;
+      if (v < min2) min2 = v; if (v > max2) max2 = v;
+    }
+    for (let i = 0; i < vals.length; i++) {
+      vals[i] = Math.pow(Math.max(0, (vals[i] - min2) / (max2 - min2)), 0.85);
+    }
+    return vals;
+  }
+
+  _heights(baseStep, growth, sea) {
+    const h = new Float32Array(this.BANDS);
+    let y = 0;
+    for (let i = 0; i < this.BANDS; i++) {
+      if (i > 0) y += baseStep * (1 + growth * Math.max(0, i - sea));
+      h[i] = y;
+    }
+    return h;
+  }
+
+  _rgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+  }
+
+  // ---------- geometry: the same rule as TerraceMeshBuilder.gd ----------
+  _buildGeometry() {
+    const THREE = window.THREE;
+    const N = Math.max(64, Math.min(192, this.props.gridSize ?? 128));
+    const cell = 4;
+    const s = this.state;
+    const styled = s.mode === 'styled';
+    const pal = this.PALETTES[this.props.palette ?? "Don't Starve"] || this.PALETTES["Don't Starve"];
+
+    const key = N + ':' + s.seed;
+    if (this._fieldKey !== key) { this._field = this._buildField(N, s.seed); this._fieldKey = key; }
+    const field = this._field;
+
+    const growth = styled ? s.cliffGrowth : 0;
+    const softDrop = styled ? s.softDrop : 0;
+    const lip = styled ? s.lip : 0;
+    const rimOn = styled && (this.props.showRim ?? true);
+    const H = this._heights(s.baseStep, growth, s.seaLevel);
+
+    const levels = new Int16Array(N * N);
+    for (let i = 0; i < levels.length; i++) {
+      levels[i] = Math.min(this.BANDS - 1, Math.floor(field[i] * this.BANDS));
+    }
+
+    const tops = pal.tops.map(c => this._rgb(c));
+    const bed = this._rgb(pal.bed);
+    const cTop = this._rgb(pal.cliffTop), cBase = this._rgb(pal.cliffBase), cCap = this._rgb(pal.cliffCap);
+    const mix = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
+    const flatTop = this._rgb('#70d18a'), flatCliff = this._rgb('#b88c40');
+
+    const pos = [], col = [];
+    const push = (p, c) => { pos.push(p[0], p[1], p[2]); col.push(c[0], c[1], c[2]); };
+    const quad = (a, b, c, d, ca, cb, cc, cd) => {
+      push(a, ca); push(b, cb); push(c, cc);
+      push(a, ca); push(c, cc); push(d, cd);
+    };
+    const rim = (c, on) => on && rimOn ? [c[0] * 0.78, c[1] * 0.78, c[2] * 0.78] : c;
+    const lvlAt = (x, z) => (x < 0 || z < 0 || x >= N || z >= N) ? 0 : levels[z * N + x];
+
+    let rs = s.seed * 9301 + 49297;
+    const rnd = () => { rs = (rs * 9301 + 49297) % 233280; return rs / 233280; };
+
+    for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) {
+      const lv = levels[z * N + x], y = H[lv];
+      const nl = [lvlAt(x - 1, z), lvlAt(x + 1, z), lvlAt(x, z - 1), lvlAt(x, z + 1)];
+      const drop = [0, 0, 0, 0], ins = [0, 0, 0, 0];
+      for (let d = 0; d < 4; d++) {
+        drop[d] = y - H[nl[d]];
+        if (drop[d] > 0.001 && drop[d] <= softDrop) ins[d] = lip;
+      }
+      let base;
+      if (!styled) base = lv < s.seaLevel ? bed : flatTop;
+      else if (lv < s.seaLevel) base = bed;
+      else base = tops[Math.min(tops.length - 1, lv - s.seaLevel)];
+      const j = styled ? 1 + (rnd() - 0.5) * 0.16 : 1;
+      const tint = [base[0] * j, base[1] * j, base[2] * j];
+
+      const x0 = x * cell + ins[0], x1 = (x + 1) * cell - ins[1];
+      const z0 = z * cell + ins[2], z1 = (z + 1) * cell - ins[3];
+      const d0 = drop[0] > 0.001, d1 = drop[1] > 0.001, d2 = drop[2] > 0.001, d3 = drop[3] > 0.001;
+
+      quad([x0, y, z0], [x0, y, z1], [x1, y, z1], [x1, y, z0],
+        rim(tint, d0 || d2), rim(tint, d0 || d3), rim(tint, d1 || d3), rim(tint, d1 || d2));
+
+      for (let d = 0; d < 4; d++) {
+        if (drop[d] <= 0.001) continue;
+        const ny = H[nl[d]];
+        const bx0 = x * cell, bx1 = (x + 1) * cell, bz0 = z * cell, bz1 = (z + 1) * cell;
+        // The bevel is a CHAMFER, not the whole face: it eats at most `lip`
+        // of the drop. Its outer edge sits on the true cell boundary (full
+        // span, not the inset one) so corners close instead of tearing.
+        const bev = ins[d] > 0 ? Math.min(drop[d] * 0.55, lip) : 0;
+        const yb = y - bev;
+        let ia, ib, oa, ob;
+        if (d === 0) { ia = [x0, y, z0]; ib = [x0, y, z1]; oa = [bx0, yb, bz0]; ob = [bx0, yb, bz1]; }
+        else if (d === 1) { ia = [x1, y, z1]; ib = [x1, y, z0]; oa = [bx1, yb, bz1]; ob = [bx1, yb, bz0]; }
+        else if (d === 2) { ia = [x1, y, z0]; ib = [x0, y, z0]; oa = [bx1, yb, bz0]; ob = [bx0, yb, bz0]; }
+        else { ia = [x0, y, z1]; ib = [x1, y, z1]; oa = [bx0, yb, bz1]; ob = [bx1, yb, bz1]; }
+
+        if (bev > 0.0001) {
+          const tc = rim(tint, true);
+          const bc = mix(tint, cTop, 0.45);
+          quad(ia, ib, ob, oa, tc, tc, bc, bc);
+        }
+
+        const total = yb - ny;
+        if (total <= 0.001) continue;
+        // The face is broken VERTICALLY, not in horizontal strata: each cell
+        // is one rock facet, bracketed by dark ink seams, and its value holds
+        // top to bottom — no gradient to black.
+        const P = (f, yy) => [oa[0] + (ob[0] - oa[0]) * f, yy, oa[2] + (ob[2] - oa[2]) * f];
+        if (!styled) {
+          quad(P(0, yb), P(1, yb), P(1, ny), P(0, ny), flatCliff, flatCliff, flatCliff, flatCliff);
+        } else {
+          const n = this._hash(x * 13 + d, z * 13 + 7, s.seed);
+          const g = 0.86 + n * 0.28;
+          const body = mix(cTop, cBase, 0.3).map(v => v * g);
+          const seam = body.map(v => v * 0.58);
+          const bands = [[0, 0.07, seam], [0.07, 0.93, body], [0.93, 1, seam]];
+          for (const [f0, f1, cc] of bands) {
+            const top = mix(cc, cCap, 0.3);
+            quad(P(f0, yb), P(f1, yb), P(f1, ny), P(f0, ny), top, top, cc, cc);
+          }
+        }
+      }
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(col), 3));
+    geo.computeVertexNormals();
+    return { geo, world: N * cell, seaY: H[s.seaLevel] - 0.15, pal, peak: H[this.BANDS - 1], tris: pos.length / 9 };
+  }
+
+  _init() {
+    const THREE = window.THREE;
+    const canvas = this.canvasRef.current;
+    if (!canvas) return;
+    const r = new THREE.WebGLRenderer({ canvas, antialias: true });
+    r.setPixelRatio(Math.min(2, window.devicePixelRatio));
+    this._renderer = r;
+    this._scene = new THREE.Scene();
+    this._camera = new THREE.PerspectiveCamera(45, 1, 1, 6000);
+
+    const sun = new THREE.DirectionalLight(0xfff4e0, 1.05);
+    sun.position.set(-0.5, 1.1, 0.6);
+    this._scene.add(sun);
+    this._sun = sun;
+    const hemi = new THREE.HemisphereLight(0xcfe2ea, 0x2a2f2a, 0.75);
+    this._scene.add(hemi);
+    this._hemi = hemi;
+
+    this._orbit = { theta: 0.7, phi: 0.95, dist: 700 };
+    let dragging = false, lx = 0, ly = 0;
+    canvas.addEventListener('pointerdown', e => { dragging = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId); });
+    canvas.addEventListener('pointerup', e => { dragging = false; });
+    canvas.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      this._orbit.theta -= (e.clientX - lx) * 0.006;
+      this._orbit.phi = Math.max(0.12, Math.min(1.45, this._orbit.phi - (e.clientY - ly) * 0.005));
+      lx = e.clientX; ly = e.clientY;
+    });
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      this._orbit.dist = Math.max(90, Math.min(2200, this._orbit.dist * (1 + Math.sign(e.deltaY) * 0.1)));
+    }, { passive: false });
+
+    this._onResize = () => this._resize();
+    window.addEventListener('resize', this._onResize);
+    this._rebuild();
+    this._loop();
+  }
+
+  _resize() {
+    const c = this.canvasRef.current;
+    if (!c || !this._renderer) return;
+    const w = c.clientWidth || 800, h = c.clientHeight || 560;
+    this._renderer.setSize(w, h, false);
+    this._camera.aspect = w / h;
+    this._camera.updateProjectionMatrix();
+  }
+
+  _schedule() {
+    if (!this._renderer) return;
+    if (this._pending) return;
+    this._pending = true;
+    requestAnimationFrame(() => { this._pending = false; this._rebuild(); });
+  }
+
+  _rebuild() {
+    const THREE = window.THREE;
+    if (!this._renderer) return;
+    const t0 = performance.now();
+    const { geo, world, seaY, pal, peak, tris } = this._buildGeometry();
+
+    if (this._mesh) { this._scene.remove(this._mesh); this._mesh.geometry.dispose(); }
+    const mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+    this._mesh = new THREE.Mesh(geo, mat);
+    this._mesh.position.set(-world / 2, 0, -world / 2);
+    this._scene.add(this._mesh);
+
+    if (this._water) { this._scene.remove(this._water); this._water.geometry.dispose(); }
+    const wgeo = new THREE.PlaneGeometry(world * 2.2, world * 2.2);
+    const wmat = new THREE.MeshLambertMaterial({ color: pal.water, transparent: true, opacity: 0.88 });
+    this._water = new THREE.Mesh(wgeo, wmat);
+    this._water.rotation.x = -Math.PI / 2;
+    this._water.position.y = seaY;
+    this._scene.add(this._water);
+
+    this._scene.background = new THREE.Color(pal.sky);
+    this._scene.fog = new THREE.Fog(pal.fog, world * 1.0, world * 2.6);
+    this._world = world;
+    this._orbit.dist = Math.min(this._orbit.dist, world * 2.2);
+
+    const ms = Math.round(performance.now() - t0);
+    const line = this.state.mode === 'styled'
+      ? `${tris.toLocaleString()} tris · peak ${peak.toFixed(1)}u · rebuilt in ${ms}ms`
+      : `uniform step, box-style faces — ${tris.toLocaleString()} tris`;
+    if (this.state.status !== line) this.setState({ status: line });
+  }
+
+  _loop() {
+    this._raf = requestAnimationFrame(() => this._loop());
+    if (!this._renderer) return;
+    const c = this.canvasRef.current;
+    if (c && (c.width !== Math.round(c.clientWidth * Math.min(2, devicePixelRatio)) || c.clientHeight === 0)) this._resize();
+    const o = this._orbit, w = this._world || 500;
+    this._camera.position.set(
+      Math.sin(o.theta) * Math.cos(o.phi) * o.dist,
+      Math.sin(o.phi) * o.dist,
+      Math.cos(o.theta) * Math.cos(o.phi) * o.dist
+    );
+    this._camera.lookAt(0, w * 0.02, 0);
+    this._renderer.render(this._scene, this._camera);
+  }
+
+  _btn(active) {
+    return `padding:7px 14px;border:1px solid ${active ? '#c8a86a' : '#3a3d36'};background:${active ? 'rgba(200,168,106,0.14)' : 'rgba(16,18,16,0.7)'};color:${active ? '#e8d3a4' : '#9aa08f'};font:700 11px/1 'Karla',sans-serif;letter-spacing:.12em;text-transform:uppercase;cursor:pointer`;
+  }
+
+  renderVals() {
+    const s = this.state;
+    const num = (k) => (e) => this.setState({ [k]: parseFloat(e.target.value) });
+    return {
+      canvasRef: this.canvasRef,
+      baseStep: s.baseStep, cliffGrowth: s.cliffGrowth, softDrop: s.softDrop,
+      lip: s.lip, seaLevel: s.seaLevel, seed: s.seed,
+      baseStepLabel: s.baseStep.toFixed(2) + 'u',
+      growthLabel: '×' + s.cliffGrowth.toFixed(2),
+      softLabel: s.softDrop.toFixed(1) + 'u',
+      lipLabel: s.lip.toFixed(2) + 'u',
+      seaLabel: 'band ' + s.seaLevel,
+      seedLabel: String(s.seed),
+      statusLine: s.status,
+      onBaseStep: num('baseStep'), onGrowth: num('cliffGrowth'), onSoft: num('softDrop'),
+      onLip: num('lip'), onSea: num('seaLevel'), onSeed: num('seed'),
+      onStyled: () => this.setState({ mode: 'styled' }),
+      onCurrent: () => this.setState({ mode: 'current' }),
+      styledBtn: this._btn(s.mode === 'styled'),
+      currentBtn: this._btn(s.mode === 'current')
+    };
+  }
+}
+</script>
+</body>
+</html>
